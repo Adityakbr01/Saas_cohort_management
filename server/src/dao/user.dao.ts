@@ -1,4 +1,5 @@
 import User, { IUser } from "@/models/userModel";
+import { Types } from "mongoose";
 
 export const findAllUsers = () => User.find().select("-password");
 
@@ -16,4 +17,24 @@ export const deleteUserById = (id: string) =>
 
 export const findUserByEmail = (email: string): Promise<IUser | null> => {
   return User.findOne({ email }).select("+password") as Promise<IUser | null>;
+};
+
+
+interface UserInput {
+  name: string;
+  email: string;
+  password: string;
+  role: "super_admin" | "mentor" | "student" | "org_admin";
+  organization?: Types.ObjectId;
+  profile: {
+    bio: string;
+    skills: string[];
+    xp: number;
+    streak: number;
+  };
+}
+
+export const createUser = async (userData: UserInput): Promise<IUser> => {
+  const user = await User.create(userData);
+  return user;
 };
