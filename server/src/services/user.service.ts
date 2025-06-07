@@ -207,10 +207,11 @@ async loginUser (loginData: LoginData): Promise<any> {
   },
 
   async updateProfile(userId: string, update: Partial<IUser>) {
+    console.log(update)
     return await UserDAO.updateUser(userId, update);
   },
 
   async logout(userId: string) {
-    // await UserDAO.invalidateTokens(userId);
+    await UserDAO.invalidateAllTokens(userId);
   },
 };

@@ -7,6 +7,8 @@ import {
   validateRegisterInputcomplate,
 } from "@/utils/zod/user";
 import { UserController } from "@/controllers/userController";
+import { protect, restrictTo } from "@/middleware/authMiddleware";
+import { Role } from "@/configs/roleConfig";
 
 const router = express.Router();
 
@@ -30,5 +32,14 @@ router.post(
   validateRequest(loginInput),
   UserController.loginController
 );
+router.get(
+  "/all",
+  protect,
+  restrictTo(Role.org_admin),
+  UserController.allUsers
+);
+router.get("/profile", protect, UserController.profile);
+router.patch("/profile", protect, UserController.updateProfile);
+router.post("/logout", protect, UserController.logout);
 
 export default router;

@@ -20,7 +20,7 @@ declare global {
  */
 export const protect = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+    const token = req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
 
     if (!token) {
       sendError(res, 401, 'Not authorized, no token');
@@ -39,7 +39,6 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
         id: decoded.id,
         role: decoded.role
       };
-
       next();
     } catch (error) {
       sendError(res, 401, 'Not authorized, token failed');

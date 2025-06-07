@@ -4,6 +4,10 @@ import { sendError, sendSuccess } from "@/utils/responseUtil";
 import { wrapAsync } from "@/utils/wrapAsync";
 import { logger } from "@/utils/logger";
 import { cookieConfig } from "@/configs/cookieConfig";
+import User from "@/models/userModel";
+import { ApiError } from "@/utils/apiError";
+import safeCache from "@/utils/cache";
+import { Role } from "@/configs/roleConfig";
 
 export interface LoginData {
   email: string;
@@ -29,6 +33,7 @@ export const UserController = {
   complateRegisterController: wrapAsync(async (req: Request, res: Response) => {
     const user = await UserService.register(req.body);
     sendSuccess(res, 201, "User registered successfully", user);
+    safeCache.del("AllUserForAdmin")
   }),
   // Resend OTP
   resendOTPController: wrapAsync(async (req: Request, res: Response) => {
@@ -83,6 +88,26 @@ export const UserController = {
     const userId = req.user?.id;
     await UserService.logout(userId);
     res.clearCookie("refreshToken");
+    res.clearCookie("accessToken")
     sendSuccess(res, 200, "Logged out successfully from all devices");
   }),
+
+ //All users for admin panel
+  allUsers: wrapAsync(async (req: Request, res: Response) => {
+  const role = req.user?.role;
+  const userId = req.user?.id;
+
+  if (role !== Role.org_admin) {
+    throw new ApiError(403, "Access denied. Only super_admins can access this route.");
+  }
+  const cached = safeCache.get("AllUserForAdmin");
+  if (cached) {
+     sendSuccess(res, 200, "Users fetched successfully (from cache)", cached);
+     return
+  }
+  const users = await User.find({ _id: { $ne: userId } }).select("-password -otp -otpExpiry");
+  safeCache.set("AllUserForAdmin", users, 600); // Cache for 10 minutes
+
+  sendSuccess(res, 200, "Users fetched successfully", users);
+}),
 };

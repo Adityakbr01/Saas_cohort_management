@@ -40,7 +40,6 @@ export const createUser = async (userData: UserInput): Promise<IUser> => {
   const user = await User.create(userData);
   return user;
 };
-
 export const UserDAO = {
   async findByEmailWithPassword(email: string): Promise<IUser | null> {
     return User.findByEmailWithPassword(email);
@@ -55,7 +54,11 @@ export const UserDAO = {
   },
 
   async updateUser(id: string, updates: Partial<IUser>): Promise<IUser | null> {
-    return User.findByIdAndUpdate(id, updates, { new: true });
+
+    return User.findByIdAndUpdate(id, {
+      name:updates.name,
+      profile:updates.profile
+    }, { new: true });
   },
 
   storeRefreshToken: async (userId: string, refreshToken: string) => {
