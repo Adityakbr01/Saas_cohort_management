@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { UserService } from "@/services/user.service";
 import { sendError, sendSuccess } from "@/utils/responseUtil";
 import { wrapAsync } from "@/utils/wrapAsync";
+import { logger } from "@/utils/logger";
 
 export const UserController = {
   initiateRegistrationController: wrapAsync(
@@ -19,10 +20,22 @@ export const UserController = {
     }
   ),
 
-  complateRegister: wrapAsync(async (req: Request, res: Response) => {
+  complateRegisterController: wrapAsync(async (req: Request, res: Response) => {
     const user = await UserService.register(req.body);
     sendSuccess(res, 201, "User registered successfully", user);
   }),
+
+  // Resend OTP
+ resendOTPController : wrapAsync(async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    const result = await UserService.resendOTP(email);
+    sendSuccess(res, 200, result.message, result);
+  } catch (error: any) {
+    logger.error(`Resend OTP failed: ${error.message}`);
+    sendError(res, 400, error.message);
+  }
+}),
 
   login: wrapAsync(async (req: Request, res: Response) => {
     const { email, password } = req.body;

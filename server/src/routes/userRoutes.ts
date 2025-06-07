@@ -1,6 +1,6 @@
 import express from "express";
 import { validateRequest } from "@/middleware/validateRequest";
-import { validateRegisterInput, validateRegisterInputcomplate } from "@/utils/zod/user";
+import { resendOtpInput, validateRegisterInput, validateRegisterInputcomplate } from "@/utils/zod/user";
 import { UserController } from "@/controllers/userController";
 
 const router = express.Router();
@@ -13,7 +13,8 @@ router.post(
 router.post(
   "/register/complete",
   validateRequest(validateRegisterInputcomplate),
-  UserController.complateRegister
+  UserController.complateRegisterController
 );
+router.post("/resend-otp", validateRequest(resendOtpInput), UserController.resendOTPController);
 
 export default router;

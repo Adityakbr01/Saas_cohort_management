@@ -93,6 +93,35 @@ export const UserService = {
 
     return existingUser;
   },
+// Resend OTP for verification
+async resendOTP (email: string): Promise<any> {
+  try {
+    const user = await User.findByEmailWithPassword(email);
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    if (user.isVerified) {
+      throw new ApiError(409, "User is already verified");
+    }
+
+    const otpData = generateOTPForPurpose("verification");
+    user.otp = otpData.otp;
+    user.otpExpiry = otpData.expiry;
+    await user.save();
+
+    await sendOTPEmail(email, otpData.otp, user.name);
+
+    logger.info(`OTP resent for user: ${email}`);
+    return {
+      success: true,
+      message: "OTP sent to your email",
+    };
+  } catch (error: any) {
+    logger.error(`OTP resend failed: ${error.message}`);
+    throw error;
+  }
+},
 
   async login(email: string, password: string) {
     if (!email || !password) {
