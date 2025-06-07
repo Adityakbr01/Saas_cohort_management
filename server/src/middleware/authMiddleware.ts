@@ -34,6 +34,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
         role: string;
       };
 
+     
       // Add user info to request
       req.user = {
         id: decoded.id,

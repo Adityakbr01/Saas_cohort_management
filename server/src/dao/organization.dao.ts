@@ -13,4 +13,9 @@ export const OrganizationDAO = {
   }) {
     return Organization.create(data);
   },
+
+  async findOrgByUserId(userId: string) {
+   const existingOrgUser =  Organization.findOne({ ownerId: userId });
+   return existingOrgUser
+  },
 };
