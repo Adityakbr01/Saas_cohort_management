@@ -1,0 +1,29 @@
+# Node.js
+node_modules/
+dist/
+coverage/
+.env
+npm-debug.log*
+
+# Logs
+logs/
+*.log
+yarn-debug.log*
+yarn-error.log*
+
+# Dependency directories
+jspm_packages/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-workspace
+
+# macOS
+.DS_Store
+
+# Others
+*.swp
+*.bak
+*.tmp
+
