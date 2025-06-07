@@ -67,9 +67,6 @@ EduLaunch is a powerful, scalable, and customizable **SaaS Learning Management S
 **Phase 3:** Chat, Jobs, Analytics  
 **Phase 4:** Subscription & Billing  
 **Phase 5:** AI-powered Feedback, Auto-grading, Polish
-
-➡️ Full [Notion roadmap link](#) available.
-
 ---
 
 ## 📄 License
