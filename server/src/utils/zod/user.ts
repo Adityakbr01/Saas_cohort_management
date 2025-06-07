@@ -22,8 +22,18 @@ export const resendOtpInput = z.object({
   email: z.string().email({ message: "Please provide a valid email" }),
 });
 
-
 export const loginInput = z.object({
   email: z.string().email(),
   password: z.string().min(1, "Password is required"),
+});
+
+
+export const updateProfileInput = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters long" }),
+  profile: z.object({
+    bio: z.string().optional(),
+    xp: z.number().min(0).default(0),
+    streak: z.number().min(0).default(0),
+    skills: z.array(z.string()).default([]),
+  }),
 });

@@ -23,8 +23,6 @@ const app = express();
 // Middleware
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-
-
 app.disable("x-powered-by");
 
 

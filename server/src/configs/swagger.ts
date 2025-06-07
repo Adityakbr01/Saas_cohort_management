@@ -1,5 +1,6 @@
 import swaggerJsdoc from "swagger-jsdoc";
 import { env_config } from "./env";
+import {userSchemas, userTags} from "../../scripts/user.swagger"
 
 const options = {
   definition: {
@@ -14,6 +15,12 @@ const options = {
         url: `http://localhost:${env_config.PORT}`,
       },
     ],
+     tags: [...userTags],
+    components: {
+    schemas: {
+      ...userSchemas,
+    },
+  },
   },
   apis: ["./src/routes/*.ts"], // path to your route files
 };
