@@ -1,11 +1,19 @@
 import express from "express";
 import { validateRequest } from "@/middleware/validateRequest";
-import { validateRegisterInput } from "@/utils/zod/user";
-import { registerController } from "@/controllers/userController";
+import { validateRegisterInput, validateRegisterInputcomplate } from "@/utils/zod/user";
+import { UserController } from "@/controllers/userController";
 
 const router = express.Router();
 
-router.post("/register",validateRequest(validateRegisterInput),registerController)
-
+router.post(
+  "/register/initiate",
+  validateRequest(validateRegisterInput),
+  UserController.initiateRegistrationController
+);
+router.post(
+  "/register/complete",
+  validateRequest(validateRegisterInputcomplate),
+  UserController.complateRegister
+);
 
 export default router;

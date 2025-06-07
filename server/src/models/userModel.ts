@@ -1,8 +1,25 @@
 import mongoose, { Document, Schema, Model, Types } from "mongoose";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { boolean } from "zod";
 
-// Interface for User document
-export interface IUser extends Document {
+// RefreshToken Interface
+interface RefreshToken {
+  token: string;
+  expiresAt: Date;
+  createdAt: Date;
+}
+
+// Instance Methods
+interface IUserMethods {
+  comparePassword(candidatePassword: string): Promise<boolean>;
+  generateAuthToken(): string;
+  generateRefreshToken(): string;
+  invalidateAllTokens(): Promise<void>;
+}
+
+// User Document Interface
+export interface IUser extends Document, IUserMethods {
   _id: Types.ObjectId;
   name: string;
   email: string;
@@ -15,12 +32,23 @@ export interface IUser extends Document {
     xp?: number;
     streak?: number;
   };
+  isVerified: boolean;
   createdAt: Date;
-  comparePassword(candidatePassword: string): Promise<boolean>;
+  isActive: boolean;
+  lastLogin: Date;
+  tokenVersion: number;
+  refreshTokens: RefreshToken[];
+  otp?: string;
+  otpExpiry?: Date;
 }
 
-// User Schema
-const userSchema = new Schema<IUser>(
+// Static methods
+interface UserModel extends Model<IUser, {}, IUserMethods> {
+  findByEmailWithPassword(email: string): Promise<IUser | null>;
+}
+
+// Schema
+const userSchema = new Schema<IUser, UserModel>(
   {
     name: { type: String, required: true, trim: true },
     email: {
@@ -29,6 +57,10 @@ const userSchema = new Schema<IUser>(
       unique: true,
       lowercase: true,
       trim: true,
+      match: [
+        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+        "Please enter a valid email",
+      ],
     },
     password: { type: String, required: true },
     role: {
@@ -46,38 +78,93 @@ const userSchema = new Schema<IUser>(
       xp: { type: Number, default: 0 },
       streak: { type: Number, default: 0 },
     },
-    createdAt: {
-      type: Date,
-      default: Date.now,
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
+    otp: {
+      type: String,
+      select: false,
+    },
+    otpExpiry: {
+      type: Date,
+      select: false,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    lastLogin: Date,
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
+    refreshTokens: [
+      {
+        token: { type: String, required: true },
+        expiresAt: { type: Date, required: true },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );
 
-// Indexes for performance
+// Indexes
 userSchema.index({ createdAt: 1 });
 userSchema.index({ organization: 1 });
 
-// Hash password before saving
+// Pre-save hash
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error as Error);
-  }
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
-// Compare password method
+// Instance methods
 userSchema.methods.comparePassword = async function (
   candidatePassword: string
 ): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Create and export User model
-const User: Model<IUser> = mongoose.model<IUser>("User", userSchema);
+userSchema.methods.generateAuthToken = function (): string {
+  const payload = {
+    id: this._id,
+    email: this.email,
+    role: this.role,
+    tokenVersion: this.tokenVersion,
+  };
+  return jwt.sign(payload, process.env.JWT_SECRET as string, {
+    expiresIn: "1h",
+  });
+};
+
+userSchema.methods.generateRefreshToken = function (): string {
+  const payload = {
+    id: this._id,
+    email: this.email,
+    tokenVersion: this.tokenVersion,
+  };
+  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET as string, {
+    expiresIn: "30d",
+  });
+};
+
+userSchema.methods.invalidateAllTokens = async function (): Promise<void> {
+  this.tokenVersion += 1;
+  this.refreshTokens = [];
+  await this.save();
+};
+
+// Static method
+userSchema.statics.findByEmailWithPassword = function (email: string) {
+  return this.findOne({ email }).select(
+    "+password +otp +otpExpiry +refreshTokens"
+  );
+};
+
+// Final export
+const User = mongoose.model<IUser, UserModel>("User", userSchema);
 export default User;

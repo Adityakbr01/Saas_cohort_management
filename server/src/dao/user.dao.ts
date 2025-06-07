@@ -18,8 +18,6 @@ export const deleteUserById = (id: string) =>
 export const findUserByEmail = (email: string): Promise<IUser | null> => {
   return User.findOne({ email }).select("+password") as Promise<IUser | null>;
 };
-
-
 interface UserInput {
   name: string;
   email: string;
@@ -38,3 +36,27 @@ export const createUser = async (userData: UserInput): Promise<IUser> => {
   const user = await User.create(userData);
   return user;
 };
+
+
+export const UserDAO = {
+  async findByEmailWithPassword(email: string): Promise<IUser | null> {
+    return User.findByEmailWithPassword(email);
+  },
+  async createUser(data: Partial<IUser>): Promise<IUser> {
+    const user = new User(data);
+    return user.save();
+
+  },
+
+  async findById(userId: string): Promise<IUser | null> {
+    return User.findById(userId);
+  },
+
+  async updateUser(id: string, updates: Partial<IUser>): Promise<IUser | null> {
+    return User.findByIdAndUpdate(id, updates, { new: true });
+  },
+
+  async invalidateTokens(userId: string): Promise<void> {
+    const user = await User.findById(userId);
+    if (user) await user.invalidateAllTokens();
+  }}
