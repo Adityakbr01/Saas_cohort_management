@@ -21,3 +21,9 @@ export const validateRegisterInputcomplate = z.object({
 export const resendOtpInput = z.object({
   email: z.string().email({ message: "Please provide a valid email" }),
 });
+
+
+export const loginInput = z.object({
+  email: z.string().email(),
+  password: z.string().min(1, "Password is required"),
+});

@@ -1,14 +1,15 @@
-import { Types } from "mongoose";
-import { ApiError } from "@/utils/apiError";
-import { createUser, findUserByEmail, UserDAO } from "@/dao/user.dao";
+import { LoginData } from "@/controllers/userController";
+import { UserDAO } from "@/dao/user.dao";
 import User, { IUser } from "@/models/userModel";
+import { ApiError } from "@/utils/apiError";
+import { logger } from "@/utils/logger";
 import {
   cleanExpiredOTP,
   generateOTPForPurpose,
   verifyOTP,
 } from "@/utils/otpUtils";
+import { Types } from "mongoose";
 import { sendOTPEmail } from "./emailService";
-import { logger } from "@/utils/logger";
 
 export const UserService = {
   // Register user - Step 1: Send OTP
@@ -123,33 +124,81 @@ async resendOTP (email: string): Promise<any> {
   }
 },
 
-  async login(email: string, password: string) {
-    if (!email || !password) {
-      throw new ApiError(400, "Email and password are required.");
-    }
+async loginUser (loginData: LoginData): Promise<any> {
+  try {
+    const { email, password } = loginData;
 
     const user = await UserDAO.findByEmailWithPassword(email);
-    if (!user || !(await user.comparePassword(password))) {
+    if (!user) {
       throw new ApiError(401, "Invalid email or password");
     }
 
-    const accessToken = user.generateAuthToken();
-    const refreshToken = user.generateRefreshToken();
+    if (!user.isVerified) {
+      throw new ApiError(403, "Please verify your email before logging in");
+    }
 
-    user.refreshTokens.push({
-      token: refreshToken,
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      createdAt: new Date(),
-    });
+    if (!user.isActive) {
+      throw new ApiError(403, "Account has been deactivated. Please contact support");
+    }
 
-    await user.save();
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      throw new ApiError(401, "Invalid email or password");
+    }
+
+    // Log current tokenVersion before invalidation
+    logger.info(`User ${email} - Current tokenVersion: ${user.tokenVersion}`);
+
+    // Invalidate all previous tokens for single device login
+    await UserDAO.invalidateAllTokens(user._id.toString());
+
+    // Fetch user again to get updated tokenVersion
+    const updatedUser = await UserDAO.findById(user._id.toString());
+    if (!updatedUser) {
+      throw new ApiError(500, "User not found after token invalidation");
+    }
+
+    // Log new tokenVersion
+    logger.info(`User ${email} - New tokenVersion: ${updatedUser.tokenVersion}`);
+
+    const token = updatedUser.generateAuthToken();
+    const refreshToken = updatedUser.generateRefreshToken();
+
+    // Store refresh token in the database
+    await UserDAO.storeRefreshToken(updatedUser._id.toString(), refreshToken);
+
+    // Update last login
+    await UserDAO.updateUser(updatedUser._id.toString(), { lastLogin: new Date() });
+
+    // Fetch user again to confirm refresh token storage
+    const finalUser = await UserDAO.findById(updatedUser._id.toString());
+    if (!finalUser) {
+      throw new ApiError(500, "User not found after updates");
+    }
+
+    logger.info(
+      `User logged in: ${email}, Refresh tokens count: ${finalUser.refreshTokens.length}`
+    );
 
     return {
-      user,
-      accessToken,
+      success: true,
+      message: "Login successful",
+      token,
       refreshToken,
+      user: {
+        id: finalUser._id.toString(),
+        email: finalUser.email,
+        name:finalUser.name,
+        role: finalUser.role,
+        isVerified: finalUser.isVerified,
+        lastLogin: finalUser.lastLogin || new Date(),
+      },
     };
-  },
+  } catch (error: any) {
+    logger.error(`Login failed for ${loginData.email}: ${error.message}`);
+    throw new ApiError(401, error.message);
+  }
+},
 
   async getProfile(userId: string) {
     const user = await UserDAO.findById(userId);
@@ -162,6 +211,6 @@ async resendOTP (email: string): Promise<any> {
   },
 
   async logout(userId: string) {
-    await UserDAO.invalidateTokens(userId);
+    // await UserDAO.invalidateTokens(userId);
   },
 };

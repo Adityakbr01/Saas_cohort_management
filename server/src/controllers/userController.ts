@@ -3,8 +3,14 @@ import { UserService } from "@/services/user.service";
 import { sendError, sendSuccess } from "@/utils/responseUtil";
 import { wrapAsync } from "@/utils/wrapAsync";
 import { logger } from "@/utils/logger";
+import { cookieConfig } from "@/configs/cookieConfig";
 
+export interface LoginData {
+  email: string;
+  password: string;
+}
 export const UserController = {
+  //Initial Registration
   initiateRegistrationController: wrapAsync(
     async (req: Request, res: Response) => {
       const { email, name } = req.body;
@@ -19,40 +25,46 @@ export const UserController = {
       sendSuccess(res, 200, result.message);
     }
   ),
-
+  //complate Registration
   complateRegisterController: wrapAsync(async (req: Request, res: Response) => {
     const user = await UserService.register(req.body);
     sendSuccess(res, 201, "User registered successfully", user);
   }),
-
   // Resend OTP
- resendOTPController : wrapAsync(async (req: Request, res: Response) => {
-  try {
-    const { email } = req.body;
-    const result = await UserService.resendOTP(email);
-    sendSuccess(res, 200, result.message, result);
-  } catch (error: any) {
-    logger.error(`Resend OTP failed: ${error.message}`);
-    sendError(res, 400, error.message);
-  }
-}),
+  resendOTPController: wrapAsync(async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      const result = await UserService.resendOTP(email);
+      sendSuccess(res, 200, result.message, result);
+    } catch (error: any) {
+      logger.error(`Resend OTP failed: ${error.message}`);
+      sendError(res, 400, error.message);
+    }
+  }),
+  // Login Controller
+  loginController: wrapAsync(async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body as LoginData;
 
-  login: wrapAsync(async (req: Request, res: Response) => {
-    const { email, password } = req.body;
-    const result = await UserService.login(email, password);
-
-    // Optionally, set refresh token as HttpOnly cookie
-    res.cookie("refreshToken", result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    });
-
-    sendSuccess(res, 200, "Login successful", {
-      user: result.user,
-      accessToken: result.accessToken,
-    });
+      // Basic input validation
+      if (!email || !password) {
+        sendError(res, 400, "Email and password are required");
+        return;
+      }
+      const result = await UserService.loginUser({ email, password });
+      if (!result.success) {
+        sendError(res, 400, result.message);
+        return;
+      }
+      res.cookie("accessToken", result.token, cookieConfig);
+      res.cookie("refreshToken", result.refreshToken, cookieConfig);
+      sendSuccess(res, 200, result.message, result);
+      return;
+    } catch (error: any) {
+      logger.error(`Login error: ${error.message}`);
+      sendError(res, 400, error.message);
+      return;
+    }
   }),
 
   profile: wrapAsync(async (req: Request, res: Response) => {
