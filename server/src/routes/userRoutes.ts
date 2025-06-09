@@ -196,6 +196,7 @@ router.post("/logout", protect, UserController.logout);
  *         description: User account deleted successfully
  */
 router.delete("/delete", protect, UserController.deleteUser);
+router.put("/:userId/role",protect, restrictTo(Role.super_admin), UserController.updateUserRole);
 
 
 

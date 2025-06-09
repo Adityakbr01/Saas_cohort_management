@@ -106,4 +106,11 @@ export const UserDAO = {
   async deleteUser(id: string): Promise<IUser | null> {
     return User.findByIdAndDelete(id);
   },
+  async updateRole(userId: string, newRole: string) {
+  return User.findByIdAndUpdate(
+    userId,
+    { role: newRole },
+    { new: true, runValidators: true }
+  ).select("-password -otp -otpExpiry -refreshTokens -tokenVersion");
+}
 };

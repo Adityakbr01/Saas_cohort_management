@@ -137,4 +137,22 @@ export const UserController = {
     safeCache.del("AllUserForAdmin");
     sendSuccess(res, 200, "User deleted successfully");
   }),
+
+
+  updateUserRole: wrapAsync(async (req: Request, res: Response) => {
+  const userId = req.params.userId;
+  const { role } = req.body;
+  const currentUserRole = req.user?.role;
+
+  if (currentUserRole !== Role.super_admin) {
+    throw new ApiError(403, "Only super_admins can update user roles");
+  }
+
+  if (!role) {
+    throw new ApiError(400, "New role is required");
+  }
+
+  const updatedUser = await UserService.updateUserRole(userId, role);
+  sendSuccess(res, 200, "User role updated successfully", updatedUser);
+}),
 };
