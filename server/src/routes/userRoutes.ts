@@ -126,7 +126,7 @@ router.post(
 router.get(
   "/all",
   protect,
-  restrictTo(Role.org_admin),
+  restrictTo(Role.super_admin),
   UserController.allUsers
 );
 

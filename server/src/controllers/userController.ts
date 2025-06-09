@@ -97,27 +97,36 @@ export const UserController = {
   const role = req.user?.role;
   const userId = req.user?.id;
 
-  if (role.toString() !== Role.org_admin.toString()) {
+  if (role.toString() !== Role.super_admin.toString()) {
     throw new ApiError(403, "Access denied. Only super_admins can access this route.");
   }
+
   const cached = safeCache.get("AllUserForAdmin");
   if (cached) {
-     sendSuccess(res, 200, "Users fetched successfully (from cache)", cached);
-     return
+    sendSuccess(res, 200, "Users fetched successfully (from cache)", cached);
+    return;
   }
-  const users = await User.find({ _id: { $ne: userId } }).select("-password -otp -otpExpiry");
+
+  const users = await User.find({
+    $and: [
+      { _id: { $ne: userId } },
+      { role: Role.org_admin }
+    ]
+  })
+    .select("-password -otp -otpExpiry -refreshTokens -tokenVersion")
+    .populate("plan", "organization");
+
   safeCache.set("AllUserForAdmin", users, 600); // Cache for 10 minutes
 
   sendSuccess(res, 200, "Users fetched successfully", users);
 }),
+
   // Delete user by ID (for admin)
   deleteUser: wrapAsync(async (req: Request, res: Response) => {
     const userId = req.params.id;
     const {targetId} = req.body
     const role = req.user?.role;
     if (targetId && role.toString() !== Role.org_admin.toString()) {
-
-
     }
 
     if (!userId) {
