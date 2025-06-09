@@ -1,8 +1,11 @@
-import React from 'react'
+import { ModeToggle } from '@/components/Theme/mode-toggle'
 
 function Login() {
   return (
-    <div>Login</div>
+    <div>
+
+      <ModeToggle />
+    </div>
   )
 }
 
