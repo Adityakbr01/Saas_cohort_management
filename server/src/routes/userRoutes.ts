@@ -183,4 +183,20 @@ router.patch(
  */
 router.post("/logout", protect, UserController.logout);
 
+/**
+ * @openapi
+ * /api/user/delete:
+ *   delete:
+ *     summary: Delete user account
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User account deleted successfully
+ */
+router.delete("/delete", protect, UserController.deleteUser);
+
+
+
 export default router;

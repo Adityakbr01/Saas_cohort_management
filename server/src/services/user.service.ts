@@ -10,6 +10,7 @@ import {
 } from "@/utils/otpUtils";
 import { Types } from "mongoose";
 import { sendOTPEmail } from "./emailService";
+import { Role } from "@/configs/roleConfig";
 
 export const UserService = {
   // Register user - Step 1: Send OTP
@@ -214,4 +215,44 @@ async loginUser (loginData: LoginData): Promise<any> {
   async logout(userId: string) {
     await UserDAO.invalidateAllTokens(userId);
   },
+  
+  async allUsers(role: string, targetRole:string, userId: string) {
+    if (role !== "org_admin") {
+      throw new ApiError(403, "Access denied. Only org_admins can access this route.");
+    }
+    return await UserDAO.getAllUsers(targetRole ? { role: targetRole } : {});
+  },
+
+  async deleteUser(userId: string) {
+    const user = await UserDAO.findById(userId)
+
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    if (user.role === "super_admin") {
+      throw new ApiError(403, "Cannot delete super_admin user");
+    }
+    await UserDAO.deleteUser(userId);
+    return { success: true, message: "User deleted successfully" };
+  }
+,
+  async deleteOrgUserById(userId: string) {
+  const user = await UserDAO.findById(userId);
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (user.role === Role.super_admin) {
+    throw new ApiError(403, "Cannot delete super_admin user");
+  }
+
+  if (user.role !== Role.org_admin) {
+    throw new ApiError(403, "Only org_admin users can be deleted");
+  }
+
+  await UserDAO.deleteUser(userId);
+  return { success: true, message: "Org Admin deleted successfully" };
+}
 };

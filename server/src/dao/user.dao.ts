@@ -54,11 +54,14 @@ export const UserDAO = {
   },
 
   async updateUser(id: string, updates: Partial<IUser>): Promise<IUser | null> {
-
-    return User.findByIdAndUpdate(id, {
-      name:updates.name,
-      profile:updates.profile
-    }, { new: true });
+    return User.findByIdAndUpdate(
+      id,
+      {
+        name: updates.name,
+        profile: updates.profile,
+      },
+      { new: true }
+    );
   },
 
   storeRefreshToken: async (userId: string, refreshToken: string) => {
@@ -87,5 +90,20 @@ export const UserDAO = {
       },
       { new: true }
     );
+  },
+
+  async getAllUsers({ role }: { role?: string }): Promise<IUser[]> {
+    const filter: any = {};
+
+    // Example: filter multiple roles using $or
+    if (role) {
+      const roles = Array.isArray(role) ? role : [role];
+      filter.$or = roles.map((r) => ({ role: r }));
+    }
+
+    return User.find(filter).select("-password");
+  },
+  async deleteUser(id: string): Promise<IUser | null> {
+    return User.findByIdAndDelete(id);
   },
 };

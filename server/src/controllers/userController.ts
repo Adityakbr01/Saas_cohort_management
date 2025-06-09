@@ -97,7 +97,7 @@ export const UserController = {
   const role = req.user?.role;
   const userId = req.user?.id;
 
-  if (role !== Role.org_admin) {
+  if (role.toString() !== Role.org_admin.toString()) {
     throw new ApiError(403, "Access denied. Only super_admins can access this route.");
   }
   const cached = safeCache.get("AllUserForAdmin");
@@ -110,4 +110,22 @@ export const UserController = {
 
   sendSuccess(res, 200, "Users fetched successfully", users);
 }),
+  // Delete user by ID (for admin)
+  deleteUser: wrapAsync(async (req: Request, res: Response) => {
+    const userId = req.params.id;
+    const {targetId} = req.body
+    const role = req.user?.role;
+    if (targetId && role.toString() !== Role.org_admin.toString()) {
+
+
+    }
+
+    if (!userId) {
+      sendError(res, 400, "User ID is required");
+      return;
+    }
+    await UserService.deleteUser(userId);
+    safeCache.del("AllUserForAdmin");
+    sendSuccess(res, 200, "User deleted successfully");
+  }),
 };
