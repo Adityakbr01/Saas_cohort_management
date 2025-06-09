@@ -14,4 +14,7 @@ router.post(
   orgController.createOrg
 );
 
+router.get("/", protect,restrictTo(Role.super_admin), orgController.getAllOrgs);
+router.get("/:orgId/users",protect, restrictTo(Role.org_admin,Role.mentor), orgController.getOrgUsers);
+
 export default router;

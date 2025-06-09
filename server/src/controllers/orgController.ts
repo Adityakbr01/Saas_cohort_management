@@ -16,4 +16,33 @@ export const orgController = {
 
     sendSuccess(res, 201, "Organization created successfully", organization);
   }),
+
+  // Fetch all organizations for a super admin
+  getAllOrgs: wrapAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const organizations = await OrganizationService.getAllOrg({
+      userId,
+      page,
+      limit,
+    });
+
+    sendSuccess(res, 200, "Organizations fetched successfully", organizations);
+  }),
+
+  // Fetch all users in an organization
+  getOrgUsers: wrapAsync(async (req: Request, res: Response) => {
+    const orgId = req.params.orgId;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const data = await OrganizationService.getOrgUsers({ orgId, page, limit });
+    sendSuccess(res, 200, "Organization users fetched successfully", data);
+  }),
 };

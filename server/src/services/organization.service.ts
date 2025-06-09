@@ -11,7 +11,7 @@ export const OrganizationService = {
   }) {
     const { name, logo, ownerId } = data;
 
-        if (ownerId) {
+    if (ownerId) {
       const existingOrgUser = await OrganizationDAO.findOrgByUserId(ownerId);
       if (existingOrgUser) {
         throw new ApiError(400, "You already own an organization");
@@ -29,4 +29,12 @@ export const OrganizationService = {
 
     return OrganizationDAO.createOrg({ name, slug, logo, ownerId });
   },
+async getAllOrg({ userId, page, limit }: { userId: string, page: number, limit: number }) {
+  return OrganizationDAO.findAllOrgs(userId, page, limit);
+}
+,
+
+ async getOrgUsers({ orgId, page, limit }: { orgId: string; page: number; limit: number }) {
+  return OrganizationDAO.findOrgWithPaginatedMembers(orgId, page, limit);
+}
 };

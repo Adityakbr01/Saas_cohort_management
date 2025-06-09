@@ -6,6 +6,7 @@ export interface IOrganization extends Document {
   slug: string;
   ownerId?: mongoose.Types.ObjectId;
   logo?: string;
+  Members?: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,7 +34,14 @@ const organizationSchema = new Schema<IOrganization>(
       type: String, // URL or path to logo image
       default: "",
     },
+    Members: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
+
   {
     timestamps: true, // Auto adds createdAt and updatedAt
     versionKey: false, // Remove __v version key
@@ -41,5 +49,8 @@ const organizationSchema = new Schema<IOrganization>(
 );
 
 // 3. Create and export the model
-const Organization = mongoose.model<IOrganization>("Organization", organizationSchema);
+const Organization = mongoose.model<IOrganization>(
+  "Organization",
+  organizationSchema
+);
 export default Organization;
