@@ -1,4 +1,4 @@
-import Organization from "@/models/organizationMode";
+import Organization from "@/models/organizationModel";
 
 export const OrganizationDAO = {
   async findBySlug(slug: string) {

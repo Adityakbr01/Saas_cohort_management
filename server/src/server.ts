@@ -17,6 +17,7 @@ import { swaggerSpec } from "./configs/swagger";
 
 import userRouter from "@/routes/userRoutes";
 import orgRouter from "@/routes/orgRoutes";
+import subscriptionRouter from "@/routes/subscriptionRoute";
 
 
 const app = express();
@@ -79,6 +80,7 @@ app.get("/", (_, res) => {
 
 // ✅ Routes
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/subscription", subscriptionRouter);
 app.use("/api/v1/org", orgRouter);
 
 

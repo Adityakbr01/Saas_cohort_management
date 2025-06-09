@@ -40,6 +40,7 @@ export interface IUser extends Document, IUserMethods {
   refreshTokens: RefreshToken[];
   otp?: string;
   otpExpiry?: Date;
+  plan: Types.ObjectId; // Reference to SubscriptionPlan
 }
 
 // Static methods
@@ -72,6 +73,13 @@ const userSchema = new Schema<IUser, UserModel>(
       type: Schema.Types.ObjectId,
       ref: "Organization",
     },
+
+    plan: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SubscriptionPlan",
+      required: true,
+    },
+
     profile: {
       bio: { type: String, default: "" },
       skills: { type: [String], default: [] },

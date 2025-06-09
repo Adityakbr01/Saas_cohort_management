@@ -1,7 +1,7 @@
 import slugify from "slugify";
 import { ApiError } from "@/utils/apiError";
 import { OrganizationDAO } from "@/dao/organization.dao";
-import Organization from "@/models/organizationMode";
+import Organization from "@/models/organizationModel";
 
 export const OrganizationService = {
   async createOrganization(data: {
