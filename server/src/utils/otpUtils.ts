@@ -50,9 +50,9 @@ export const generateOTP = (length: number = 6): string => {
 };
 
 // Generate OTP expiry time
-export const generateOTPExpiry = (minutes: number = 10): Date => {
+export const generateOTPExpiry = (minutes: number = 2): Date => {
   const expiryMinutes = parseInt(process.env.OTP_EXPIRY || `${minutes}`);
-  return new Date(Date.now() + expiryMinutes * 60 * 1000);
+  return new Date(Date.now() + expiryMinutes * 60 * 1000); // 2 minutes by default
 };
 
 // Validate OTP format
@@ -173,9 +173,7 @@ export const generateOTPForPurpose = (
 ): OTPData => {
   const otp = generateOTP(length);
   const expiry = generateOTPExpiry();
-
   logger.info(`OTP generated for purpose: ${purpose}`);
-
   return {
     otp,
     expiry,

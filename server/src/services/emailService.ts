@@ -55,7 +55,7 @@ export const sendEmail = async (options: EmailOptions): Promise<EmailSendResult>
     const transporter = createTransporter();
 
     const mailOptions = {
-      from: `"E-Commerce App" <${process.env.EMAIL_FROM || process.env.SMTP_USER}>`,
+      from: `"EduLaunch" <${process.env.EMAIL_FROM || process.env.SMTP_USER}>`,
       to: options.to,
       subject: options.subject,
       text: options.text,
@@ -83,19 +83,19 @@ export const sendOTPEmail = async (
   firstName: string = "User"
 ): Promise<EmailSendResult> => {
   try {
-    const subject = "Your OTP for E-Commerce App Verification";
+    const subject = "Your OTP for EduLaunch App Verification";
 
     const text = `
 Hello ${firstName},
 
 Your OTP for email verification is: ${otp}
 
-This OTP is valid for ${process.env.OTP_EXPIRY || 10} minutes.
+This OTP is valid for ${process.env.OTP_EXPIRY || 2} minutes.
 
 If you didn't request this OTP, please ignore this email.
 
 Best regards,
-E-Commerce App Team
+EduLaunch App Team
     `;
 
     const html = `
@@ -159,20 +159,20 @@ E-Commerce App Team
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛒 E-Commerce App</h1>
+            <h1>🛒 EduLaunch</h1>
             <h2>Email Verification</h2>
         </div>
         
         <p>Hello <strong>${firstName}</strong>,</p>
         
-        <p>Thank you for registering with our E-Commerce App! To complete your registration, please use the following OTP:</p>
+        <p>Thank you for registering with our EduLaunch! To complete your registration, please use the following OTP:</p>
         
         <div class="otp-box">
             <div>Your Verification Code</div>
             <div class="otp-code">${otp}</div>
         </div>
         
-        <p><strong>Important:</strong> This OTP is valid for <strong>${process.env.OTP_EXPIRY || 10} minutes</strong> only.</p>
+        <p><strong>Important:</strong> This OTP is valid for <strong>${process.env.OTP_EXPIRY || 2} minutes</strong> only.</p>
         
         <div class="warning">
             <strong>Security Notice:</strong> If you didn't request this verification code, please ignore this email. Never share your OTP with anyone.
@@ -182,7 +182,7 @@ E-Commerce App Team
         
         <div class="footer">
             <p>Best regards,<br>
-            <strong>E-Commerce App Team</strong></p>
+            <strong>EduLaunch Team</strong></p>
             <p>This is an automated email. Please do not reply to this message.</p>
         </div>
     </div>
@@ -208,12 +208,12 @@ export const sendWelcomeEmail = async (
   firstName: string = "User"
 ): Promise<EmailSendResult> => {
   try {
-    const subject = "Welcome to E-Commerce App!";
+    const subject = "Welcome to EduLaunch!";
 
     const text = `
 Hello ${firstName},
 
-Welcome to E-Commerce App! Your account has been successfully verified.
+Welcome to EduLaunch! Your account has been successfully verified.
 
 You can now:
 - Browse our wide range of products
@@ -224,7 +224,7 @@ You can now:
 Thank you for choosing us!
 
 Best regards,
-E-Commerce App Team
+EduLaunch Team
     `;
 
     const html = `
@@ -233,7 +233,7 @@ E-Commerce App Team
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to E-Commerce App</title>
+    <title>Welcome to EduLaunch</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -285,7 +285,7 @@ E-Commerce App Team
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛒 E-Commerce App</h1>
+            <h1>🛒 EduLaunch</h1>
         </div>
         
         <div class="welcome-box">
@@ -308,7 +308,7 @@ E-Commerce App Team
         
         <div class="footer">
             <p>Best regards,<br>
-            <strong>E-Commerce App Team</strong></p>
+            <strong>EduLaunch Team</strong></p>
             <p>Need help? Contact our support team anytime.</p>
         </div>
     </div>
@@ -335,7 +335,7 @@ export const sendPasswordResetEmail = async (
   firstName: string = "User"
 ): Promise<EmailSendResult> => {
   try {
-    const subject = "Password Reset Request - E-Commerce App";
+    const subject = "Password Reset Request - EduLaunch";
 
     const html = `
 <!DOCTYPE html>
@@ -398,7 +398,7 @@ export const sendPasswordResetEmail = async (
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛒 E-Commerce App</h1>
+            <h1>🛒 EduLaunch</h1>
             <h2>Password Reset Request</h2>
         </div>
         
@@ -411,7 +411,7 @@ export const sendPasswordResetEmail = async (
             <div class="otp-code">${otp}</div>
         </div>
         
-        <p><strong>Important:</strong> This OTP is valid for <strong>${process.env.OTP_EXPIRY || 10} minutes</strong> only.</p>
+        <p><strong>Important:</strong> This OTP is valid for <strong>${process.env.OTP_EXPIRY || 2} minutes</strong> only.</p>
         
         <div class="warning">
             <strong>Security Notice:</strong> If you didn't request a password reset, please ignore this email and consider changing your password for security.
@@ -419,7 +419,7 @@ export const sendPasswordResetEmail = async (
         
         <div class="footer">
             <p>Best regards,<br>
-            <strong>E-Commerce App Team</strong></p>
+            <strong>EduLaunch Team</strong></p>
         </div>
     </div>
 </body>
