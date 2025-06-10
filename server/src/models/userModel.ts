@@ -41,6 +41,7 @@ export interface IUser extends Document, IUserMethods {
   otp?: string;
   otpExpiry?: Date;
   plan: Types.ObjectId; // Reference to SubscriptionPlan
+  suspended?: boolean; // Optional field for suspension status
 }
 
 // Static methods
@@ -80,6 +81,11 @@ const userSchema = new Schema<IUser, UserModel>(
       required: true,
     },
 
+    suspended: {
+      type: Boolean,
+      default: false,
+    },
+    
     profile: {
       bio: { type: String, default: "" },
       skills: { type: [String], default: [] },

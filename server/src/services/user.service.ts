@@ -155,6 +155,15 @@ export const UserService = {
         );
       }
 
+      // Check if the user is suspended
+      if (user.suspended) {
+        throw new ApiError(
+          403,
+          "Your account has been suspended. Please contact support."
+        );
+      }
+
+
       const isPasswordValid = await user.comparePassword(password);
       if (!isPasswordValid) {
         throw new ApiError(401, "Invalid email or password");

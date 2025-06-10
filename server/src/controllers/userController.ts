@@ -63,7 +63,8 @@ export const UserController = {
       }
       res.cookie("accessToken", result.token, cookieConfig);
       res.cookie("refreshToken", result.refreshToken, cookieConfig);
-      sendSuccess(res, 200, result.message, result);
+      console.log(result)
+      sendSuccess(res, 200, result.message, {result: result.user, token: result.token, refreshToken: result.refreshToken});
       return;
     } catch (error: any) {
       logger.error(`Login error: ${error.message}`);
