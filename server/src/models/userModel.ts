@@ -40,7 +40,7 @@ export interface IUser extends Document, IUserMethods {
   refreshTokens: RefreshToken[];
   otp?: string;
   otpExpiry?: Date;
-  plan: Types.ObjectId; // Reference to SubscriptionPlan
+  plan?: Types.ObjectId; // Reference to SubscriptionPlan
   suspended?: boolean; // Optional field for suspension status
 }
 
@@ -78,7 +78,8 @@ const userSchema = new Schema<IUser, UserModel>(
     plan: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "SubscriptionPlan",
-      required: true,
+      required: false, // Optional field for subscription plan
+      default: null,
     },
 
     suspended: {
