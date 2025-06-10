@@ -47,9 +47,19 @@ function Login() {
         description: `Welcome back, ${response.data.user.name}!`,
       });
       // Store token in localStorage or state management if needed
-      localStorage.setItem("token", response.token);
-      navigate("/dashboard"); // Adjust redirect path as needed
+
+      
+      // localStorage.setItem("token", response.token);
+
+      // Redirect to dashboard or home page after successful login
+      navigate("/dashboard");
+      if(response.data.user.role === "super_admin") {
+        navigate("/dashboard/super_admin");
+      }else{
+        navigate("/");
+      }
     } catch (error: any) {
+      console.error("Login error:", error);
       toast.error("Login Failed", {
         description:
           error?.data?.message || "Invalid credentials. Please try again.",

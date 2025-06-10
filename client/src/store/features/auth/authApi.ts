@@ -1,4 +1,4 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export interface AuthResponse {
   token: string;
@@ -8,7 +8,7 @@ export interface AuthResponse {
       name: string;
       email: string;
       role: string;
-      phone_number:string;
+      phone_number: string;
       profileImage: string;
       OWN_Restaurant?: string;
     };
@@ -16,20 +16,43 @@ export interface AuthResponse {
 }
 
 export const authApi = createApi({
-  reducerPath: 'authApi',
-  baseQuery: fetchBaseQuery({ 
+  reducerPath: "authApi",
+  baseQuery: fetchBaseQuery({
     baseUrl: `http://localhost:3000/api/v1/users`,
-    credentials: "include"
+    credentials: "include",
   }),
-  tagTypes: ['Profile'],
+  tagTypes: ["Profile"],
   endpoints: (builder) => ({
-    loginUser: builder.mutation<AuthResponse,{email: string; password: string}>({
-      query:(credentials) => ({
-        url: '/login',
-        method: 'POST',
+    loginUser: builder.mutation<
+      AuthResponse,
+      { email: string; password: string }
+    >({
+      query: (credentials) => ({
+        url: "/login",
+        method: "POST",
         body: credentials,
-      })
-    })
+      }),
+    }),
+    initiateRegisterUser: builder.mutation<
+      AuthResponse,
+      { name: string; email: string; password: string }
+    >({
+      query: (newUser) => ({
+        url: "/register/initiate",
+        method: "POST",
+        body: newUser,
+      }),
+    }),
+    complateRegisterUser: builder.mutation<
+      AuthResponse,
+      { otp: string; email: string; password: string }
+    >({
+      query: (newUser) => ({
+        url: "/register/complete",
+        method: "POST",
+        body: newUser,
+      }),
+    }),
   }),
 });
 

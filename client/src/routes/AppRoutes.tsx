@@ -26,7 +26,7 @@ const AppRoutes = () => {
 
       {/* super_admin Dashboard layout with nested routes */}
       <Route element={<DashboardLayout />}>
-        <Route path="/super_admin" element={<Overview />} />
+        <Route path="/dashboard/super_admin" element={<Overview />} />
         <Route path="/subscriptions" element={<SubscriptionsPage />} />
         <Route path="/org-admins" element={<OrgAdminsPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />

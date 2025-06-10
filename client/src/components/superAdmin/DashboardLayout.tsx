@@ -45,7 +45,7 @@ import { ModeToggle } from "../Theme/mode-toggle";
 
 const data = {
   navMain: [
-    { title: "Dashboard", url: "/", icon: Home },
+    { title: "Dashboard", url: "/dashboard/super_admin", icon: Home },
     { title: "Subscriptions", url: "/subscriptions", icon: CreditCard },
     { title: "Organization Admins", url: "/org-admins", icon: Building2 },
     { title: "Analytics", url: "/analytics", icon: BarChart3 },
