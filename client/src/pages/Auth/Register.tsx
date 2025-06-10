@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useInitiateRegisterUserMutation, useComplateRegisterUserMutation, useResendUserOtpMutation } from "@/store/features/auth/authApi";
 import { ModeToggle } from "@/components/Theme/mode-toggle";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -367,6 +367,17 @@ export default function Register() {
                   )}
                 </Button>
               </form>
+              <p className="mt-2 text-center text-sm text-muted-foreground">
+                Don&apos;t have an account?{" "}
+                <Link
+                  to="/login"
+                  replace
+                  className="font-medium text-primary hover:underline"
+                  aria-label="Sign up for a new account"
+                >
+                  Sign In
+                </Link>
+              </p>
             </Form>
           ) : (
             <Form {...completeForm}>
@@ -461,6 +472,7 @@ export default function Register() {
                 </Button>
               </form>
             </Form>
+
           )}
         </div>
       </main>

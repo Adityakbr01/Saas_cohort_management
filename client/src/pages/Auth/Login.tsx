@@ -12,11 +12,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { ModeToggle } from "@/components/Theme/mode-toggle";
-import { toast } from "sonner"; // Use Sonner’s toast
-import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { Link, useNavigate } from "react-router-dom";
 import { useLoginUserMutation } from "@/store/features/auth/authApi";
+import { useState, useMemo } from "react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
-// Validation schema using Zod
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z
@@ -29,8 +30,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 function Login() {
   const navigate = useNavigate();
   const [loginUser, { isLoading }] = useLoginUserMutation();
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Initialize form with React Hook Form and Zod
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -39,33 +40,45 @@ function Login() {
     },
   });
 
-  // Handle form submission
   const onSubmit = async (data: LoginFormValues) => {
     try {
       const response = await loginUser(data).unwrap();
-      toast.success("Login Successful", {
-        description: `Welcome back, ${response.data.user.name}!`,
-      });
-      // Store token in localStorage or state management if needed
-
-      
-      // localStorage.setItem("token", response.token);
-
-      // Redirect to dashboard or home page after successful login
-      navigate("/dashboard");
-      if(response.data.user.role === "super_admin") {
-        navigate("/dashboard/super_admin");
-      }else{
-        navigate("/");
+      if (!response?.data?.result) {
+        throw new Error("Invalid response from server");
       }
-    } catch (error: any) {
-      console.error("Login error:", error);
-      toast.error("Login Failed", {
-        description:
-          error?.data?.message || "Invalid credentials. Please try again.",
+      const { name, role } = response.data.result;
+      toast.success("Login Successful", {
+        description: `Welcome back, ${name || "User"}!`,
       });
+
+      // Role-based navigation
+      const redirectPath = role === "super_admin" ? "/dashboard/super_admin" : "/";
+      navigate(redirectPath, { replace: true });
+
+      // Optional: Clear any registration-related localStorage (if applicable)
+      localStorage.removeItem("registerStep");
+      localStorage.removeItem("initiateData");
+    } catch (error: any) {
+      const errorMessage =
+        error?.data?.message ||
+        (error?.status === 429
+          ? "Too many login attempts. Please try again later."
+          : error?.status === 403
+          ? "Account locked. Please contact support."
+          : "Invalid credentials. Please try again.");
+      toast.error("Login Failed", { description: errorMessage });
     }
   };
+
+  // Memoize footer to prevent unnecessary re-renders
+  const footer = useMemo(
+    () => (
+      <footer className="p-4 text-center text-sm text-muted-foreground">
+        © {new Date().getFullYear()} Your App Name
+      </footer>
+    ),
+    [],
+  );
 
   return (
     <div className="min-h-screen w-full flex flex-col justify-between bg-background">
@@ -84,62 +97,97 @@ function Login() {
               <FormField
                 control={form.control}
                 name="email"
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel>Email address</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
                         placeholder="Enter your email"
+                        autoComplete="email"
                         {...field}
                         className="w-full"
+                        aria-invalid={fieldState.invalid}
+                        aria-describedby={fieldState.error ? `email-error` : undefined}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage id="email-error" />
                   </FormItem>
                 )}
               />
               <FormField
                 control={form.control}
                 name="password"
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Enter your password"
-                        {...field}
-                        className="w-full"
-                      />
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter your password"
+                          autoComplete="current-password"
+                          {...field}
+                          className="w-full"
+                          aria-invalid={fieldState.invalid}
+                          aria-describedby={fieldState.error ? `password-error` : undefined}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowPassword(!showPassword)}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage id="password-error" />
                   </FormItem>
                 )}
               />
+              <div className="flex justify-end">
+                <a
+                  href="/forgot-password"
+                  className="text-sm font-medium text-primary hover:underline"
+                  aria-label="Forgot your password?"
+                >
+                  Forgot password?
+                </a>
+              </div>
               <Button
                 type="submit"
                 className="w-full dark:bg-blue-50"
                 disabled={isLoading}
+                aria-live="polite"
               >
-                {isLoading ? "Signing in..." : "Sign in"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign in"
+                )}
               </Button>
             </form>
           </Form>
           <p className="mt-2 text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
-            <a
-              href="/signup" // Adjust signup route as needed
+            <Link
+              to="/register"
+              replace
               className="font-medium text-primary hover:underline"
+              aria-label="Sign up for a new account"
             >
               Sign up
-            </a>
+            </Link>
           </p>
         </div>
       </main>
-      <footer className="p-4 text-center text-sm text-muted-foreground">
-        &copy; {new Date().getFullYear()} Your App Name
-      </footer>
+      {footer}
     </div>
   );
 }

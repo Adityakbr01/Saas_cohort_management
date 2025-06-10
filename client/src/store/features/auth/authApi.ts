@@ -7,9 +7,27 @@ export interface AuthResponse {
     id: string;
     name: string;
     email: string;
-    role: string; 
+    role: string;
     message?: string;
   };
+}
+
+export interface LoginResponse {
+  data: {
+    result: {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      lastLogin: string;
+      isVerified: boolean;
+    };
+    token: string;
+    refreshToken: string;
+  };
+  success: boolean;
+  message: string;
+  status: number;
 }
 
 export const authApi = createApi({
@@ -21,7 +39,7 @@ export const authApi = createApi({
   tagTypes: ["Profile"],
   endpoints: (builder) => ({
     loginUser: builder.mutation<
-      AuthResponse,
+      LoginResponse,
       { email: string; password: string }
     >({
       query: (credentials) => ({
@@ -50,17 +68,19 @@ export const authApi = createApi({
         body: newUser,
       }),
     }),
-    resendUserOtp: builder.mutation<
-      AuthResponse,
-      { email: string }
-    >({
+    resendUserOtp: builder.mutation<AuthResponse, { email: string }>({
       query: (email) => ({
         url: "/resend-otp",
         method: "POST",
         body: email,
       }),
-    })
+    }),
   }),
 });
 
-export const { useLoginUserMutation,useInitiateRegisterUserMutation,useComplateRegisterUserMutation,useResendUserOtpMutation } = authApi;
+export const {
+  useLoginUserMutation,
+  useInitiateRegisterUserMutation,
+  useComplateRegisterUserMutation,
+  useResendUserOtpMutation,
+} = authApi;
