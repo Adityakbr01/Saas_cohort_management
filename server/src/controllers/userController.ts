@@ -32,7 +32,7 @@ export const UserController = {
   //complate Registration
   complateRegisterController: wrapAsync(async (req: Request, res: Response) => {
     const user = await UserService.register(req.body);
-    sendSuccess(res, 201, "User registered successfully", user);
+    sendSuccess(res, 201, "User registered successfully", {name: user.name, email: user.email, role: user.role});
     safeCache.del("AllUserForAdmin")
   }),
   // Resend OTP
