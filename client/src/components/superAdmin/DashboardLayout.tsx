@@ -1,23 +1,14 @@
 "use client";
 
-import * as React from "react";
-import { Outlet, useLocation, Link } from "react-router-dom";
 import {
-  BarChart3,
-  Building2,
-  CreditCard,
-  Home,
-  Settings,
-  Users,
-  Shield,
-  Bell,
-  HelpCircle,
-  FileText,
-  Calendar,
-  User,
-  Moon,
-  Sun,
-} from "lucide-react";
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
@@ -34,17 +25,23 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 import { UserNav } from "@/components/user-nav";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { useState, useEffect } from "react";
+  BarChart3,
+  Bell,
+  Building2,
+  Calendar,
+  CreditCard,
+  FileText,
+  HelpCircle,
+  Home,
+  Settings,
+  Shield,
+  User,
+  Users
+} from "lucide-react";
+import { Link, Outlet, useLocation } from "react-router-dom";
+import { ModeToggle } from "../Theme/mode-toggle";
 
 const data = {
   navMain: [
@@ -65,31 +62,6 @@ const data = {
     { title: "Help Center", url: "/help", icon: HelpCircle },
     { title: "Settings", url: "/settings", icon: Settings },
   ],
-};
-
-// Simple ModeToggle component for theme switching
-const ModeToggle: React.FC = () => {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove(theme === "light" ? "dark" : "light");
-    root.classList.add(theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(theme === "light" ? "dark" : "light");
-  };
-
-  return (
-    <button
-      onClick={toggleTheme}
-      className="flex items-center justify-center rounded-md p-2 hover:bg-gray-200 dark:hover:bg-gray-700"
-      aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-    >
-      {theme === "light" ? <Moon className="size-5" /> : <Sun className="size-5" />}
-    </button>
-  );
 };
 
 export function DashboardLayout() {
@@ -215,7 +187,7 @@ export function DashboardLayout() {
               </BreadcrumbList>
             </Breadcrumb>
             <div className="ml-auto">
-              <ModeToggle />
+             <ModeToggle />
             </div>
           </header>
           <main className="flex flex-1 flex-col gap-4 p-4 pt-0 min-h-[calc(100vh-4rem)]">
