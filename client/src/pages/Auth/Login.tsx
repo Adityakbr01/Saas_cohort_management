@@ -58,7 +58,7 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-background">
+    <div className="min-h-screen w-full flex flex-col justify-between bg-background">
       <header className="p-4 flex justify-end">
         <ModeToggle />
       </header>

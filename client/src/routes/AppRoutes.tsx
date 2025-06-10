@@ -13,15 +13,20 @@ import { UserManagementPage } from "@/components/superAdmin/pages/user-managemen
 import { UserProfilePage } from "@/components/superAdmin/pages/user-profile-page";
 import Login from "@/pages/Auth/Login";
 import Register from "@/pages/Auth/Register";
+import Home from "@/pages/Home";
 import NotFound from "@/pages/NotFound";
 import { Route, Routes } from "react-router-dom";
 
 const AppRoutes = () => {
   return (
     <Routes>
-        {/* Dashboard layout with nested routes */}
+
+
+      <Route path="/" element={<Home />}></Route>
+
+      {/* super_admin Dashboard layout with nested routes */}
       <Route element={<DashboardLayout />}>
-        <Route path="/" element={<Overview />} />
+        <Route path="/super_admin" element={<Overview />} />
         <Route path="/subscriptions" element={<SubscriptionsPage />} />
         <Route path="/org-admins" element={<OrgAdminsPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
