@@ -14,9 +14,12 @@ import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { useInitiateRegisterUserMutation, useComplateRegisterUserMutation } from "@/store/features/auth/authApi";
+import { useInitiateRegisterUserMutation, useComplateRegisterUserMutation, useResendUserOtpMutation } from "@/store/features/auth/authApi";
 import { ModeToggle } from "@/components/Theme/mode-toggle";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import AES from "crypto-js/aes";
+import encUtf8 from "crypto-js/enc-utf8";
 
 const initiateSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -35,19 +38,53 @@ const completeSchema = z.object({
 type InitiateFormValues = z.infer<typeof initiateSchema>;
 type CompleteFormValues = z.infer<typeof completeSchema>;
 
+const STORAGE_KEY = import.meta.env.VITE_STORAGE_KEY || "fallback_secret_key_123";
+
 export default function Register() {
-  const [step, setStep] = useState<1 | 2>(1);
-  const [initiateData, setInitiateData] = useState<Pick<InitiateFormValues, "email" | "password"> | null>(null);
+  const [step, setStep] = useState<1 | 2>(() => {
+    try {
+      const savedStep = localStorage.getItem("registerStep");
+      return savedStep === "2" ? 2 : 1;
+    } catch {
+      return 1;
+    }
+  });
+  const [initiateData, setInitiateData] = useState<{
+    email: string;
+    password?: string;
+    name?: string;
+  } | null>(() => {
+    try {
+      const savedData = localStorage.getItem("initiateData");
+      if (savedData) {
+        const decrypted = AES.decrypt(savedData, STORAGE_KEY).toString(encUtf8);
+        return JSON.parse(decrypted);
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(() => {
+    const savedTimer = sessionStorage.getItem("otpTimer");
+    return savedTimer ? parseInt(savedTimer, 10) : 120; // 2 minutes
+  });
+  const [canResend, setCanResend] = useState(otpTimer <= 0);
+  const otpInputRef = useRef<HTMLInputElement>(null);
+  const storageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const navigate = useNavigate();
   const [initiateRegisterUser, { isLoading: isInitiating }] = useInitiateRegisterUserMutation();
   const [completeRegisterUser, { isLoading: isCompleting }] = useComplateRegisterUserMutation();
+  const [resendUserOtp, { isLoading: isResending }] = useResendUserOtpMutation();
 
   const initiateForm = useForm<InitiateFormValues>({
     resolver: zodResolver(initiateSchema),
     defaultValues: {
-      name: "",
-      email: "",
+      name: initiateData?.name || "",
+      email: initiateData?.email || "",
       password: "",
       confirmPassword: "",
     },
@@ -58,34 +95,147 @@ export default function Register() {
     defaultValues: { otp: "" },
   });
 
+  // OTP timer logic
+  useEffect(() => {
+    if (step === 2 && otpTimer > 0) {
+      const timer = setInterval(() => {
+        setOtpTimer((prev) => {
+          const newTime = prev - 1;
+          sessionStorage.setItem("otpTimer", newTime.toString());
+          if (newTime <= 0) {
+            setCanResend(true);
+            clearInterval(timer);
+          }
+          return newTime;
+        });
+      }, 1000);
+      return () => {
+        clearInterval(timer);
+      };
+    }
+  }, [step]);
+
+  // Debounced localStorage write
+  const saveToStorage = useCallback(() => {
+    if (storageTimeoutRef.current) {
+      clearTimeout(storageTimeoutRef.current);
+    }
+    storageTimeoutRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem("registerStep", step.toString());
+        if (initiateData) {
+          const dataToStore = { email: initiateData.email, name: initiateData.name };
+          const encrypted = AES.encrypt(JSON.stringify(dataToStore), STORAGE_KEY).toString();
+          localStorage.setItem("initiateData", encrypted);
+        } else {
+          localStorage.removeItem("initiateData");
+        }
+      } catch (error) {
+        console.error("Failed to save to localStorage:", error);
+        toast.error("Storage error", { description: "Failed to save registration state." });
+      }
+    }, 200);
+  }, [step, initiateData]);
+
+  useEffect(() => {
+    saveToStorage();
+    if (step === 2) {
+      completeForm.reset({ otp: "" });
+      otpInputRef.current?.focus();
+    }
+    return () => {
+      if (storageTimeoutRef.current) {
+        clearTimeout(storageTimeoutRef.current);
+      }
+    };
+  }, [step, initiateData, completeForm, saveToStorage]);
+
   const handleInitiate = async (data: InitiateFormValues) => {
     try {
       const { name, email, password } = data;
-      await initiateRegisterUser({ name, email, password }).unwrap();
-      setInitiateData({ email, password });
+      const initialRes = await initiateRegisterUser({ name, email, password }).unwrap();
+      console.log("Registration initiated successfully", initialRes);
+      setInitiateData({ email, password, name });
       setStep(2);
-      toast.success("OTP sent", { description: "Check your email for the OTP." });
+      setOtpTimer(120);
+      sessionStorage.setItem("otpTimer", "120");
+      setCanResend(false);
+      completeForm.reset({ otp: "" });
+      toast.success("OTP sent", { description: initialRes.message || "Check your email for the OTP." });
     } catch (error: any) {
-      toast.error("Registration failed", {
-        description: error?.data?.message || "Please try again later.",
-      });
+      const errorMessage = error?.data?.message || error?.message || "Please try again later.";
+      toast.error("Registration failed", { description: errorMessage });
     }
   };
 
   const handleComplete = async (data: CompleteFormValues) => {
-    if (!initiateData) return;
+    if (!initiateData) {
+      toast.error("No registration data found", {
+        description: "Please start the registration process again.",
+      });
+      setStep(1);
+      completeForm.reset({ otp: "" });
+      return;
+    }
+    if (otpTimer <= 0) {
+      toast.error("OTP expired", { description: "Please request a new OTP." });
+      setCanResend(true);
+      return;
+    }
     try {
       const { email, password } = initiateData;
+      if (!password) {
+        throw new Error("Password missing. Please restart registration.");
+      }
       const { otp } = data;
       const response = await completeRegisterUser({ email, password, otp }).unwrap();
+      console.log("Registration completed successfully", response);
+      if (!response?.data) {
+        throw new Error("Invalid response from server");
+      }
       toast.success("Registration successful", {
-        description: `Welcome, ${response.data.user.name}`,
+        description: `Welcome, ${response.data.name || "User"}`,
       });
-      navigate(response.data.user.role === "super_admin" ? "/super_admin" : "/");
+      localStorage.removeItem("registerStep");
+      localStorage.removeItem("initiateData");
+      sessionStorage.removeItem("otpTimer");
+      setInitiateData(null);
+      completeForm.reset({ otp: "" });
+      navigate(response.data.role === "super_admin" ? "/super_admin" : "/");
     } catch (error: any) {
-      toast.error("OTP verification failed", {
-        description: error?.data?.message || "Please try again.",
+      const errorMessage = error?.data?.message || error?.message || "Please try again.";
+      toast.error("OTP verification failed", { description: errorMessage });
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!initiateData) {
+      toast.error("No registration data found", {
+        description: "Please start the registration process again.",
       });
+      setStep(1);
+      completeForm.reset({ otp: "" });
+      return;
+    }
+    try {
+      const resendRes = await resendUserOtp({ email: initiateData.email }).unwrap();
+      console.log("OTP resent successfully", resendRes);
+      setOtpTimer(120);
+      sessionStorage.setItem("otpTimer", "120");
+      setCanResend(false);
+      completeForm.reset({ otp: "" });
+      toast.success("OTP resent", {
+        description: resendRes.data.message || "Check your email for the new OTP."
+      });
+    } catch (error: any) {
+      const errorMessage = error?.data?.message || error?.message || "Please try again later.";
+      if (error?.status === 429) {
+        toast.error("Too many requests", {
+          description: "Please wait before requesting another OTP.",
+        });
+      } else {
+        toast.error("Failed to resend OTP", { description: errorMessage });
+      }
     }
   };
 
@@ -107,57 +257,114 @@ export default function Register() {
                 <FormField
                   control={initiateForm.control}
                   name="name"
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem>
                       <FormLabel>Full Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="John Doe" {...field} />
+                        <Input
+                          placeholder="John Doe"
+                          {...field}
+                          aria-invalid={fieldState.invalid}
+                          aria-describedby={fieldState.error ? `name-error` : undefined}
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage id="name-error" />
                     </FormItem>
                   )}
                 />
                 <FormField
                   control={initiateForm.control}
                   name="email"
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="john@example.com" {...field} />
+                        <Input
+                          type="email"
+                          placeholder="john@example.com"
+                          {...field}
+                          autoComplete="off"
+                          aria-invalid={fieldState.invalid}
+                          aria-describedby={fieldState.error ? `email-error` : undefined}
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage id="email-error" />
                     </FormItem>
                   )}
                 />
                 <FormField
                   control={initiateForm.control}
                   name="password"
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="********" {...field} />
+                        <div className="relative">
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="********"
+                            {...field}
+                            autoComplete="new-password"
+                            aria-invalid={fieldState.invalid}
+                            aria-describedby={fieldState.error ? `password-error` : undefined}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowPassword(!showPassword)}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage id="password-error" />
                     </FormItem>
                   )}
                 />
                 <FormField
                   control={initiateForm.control}
                   name="confirmPassword"
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem>
                       <FormLabel>Confirm Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="********" {...field} />
+                        <div className="relative">
+                          <Input
+                            type={showConfirmPassword ? "text" : "password"}
+                            placeholder="********"
+                            {...field}
+                            autoComplete="new-password"
+                            aria-invalid={fieldState.invalid}
+                            aria-describedby={fieldState.error ? `confirmPassword-error` : undefined}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                          >
+                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage id="confirmPassword-error" />
                     </FormItem>
                   )}
                 />
                 <Button type="submit" className="w-full" disabled={isInitiating}>
-                  {isInitiating ? "Sending OTP..." : "Send OTP"}
+                  {isInitiating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Sending OTP...
+                    </>
+                  ) : (
+                    "Send OTP"
+                  )}
                 </Button>
               </form>
             </Form>
@@ -167,32 +374,88 @@ export default function Register() {
                 <FormField
                   control={completeForm.control}
                   name="otp"
-                  render={({ field }) => (
-                    <FormItem className="w-full flex flex-col items-center"> 
+                  render={({ field, fieldState }) => (
+                    <FormItem className="w-full flex flex-col items-center">
                       <FormLabel>Enter OTP</FormLabel>
                       <FormControl>
-                        <InputOTP maxLength={6} {...field} aria-label="One-time password input">
+                        <InputOTP
+                          maxLength={6}
+                          value={field.value}
+                          onChange={(value) => {
+                            field.onChange(value);
+                            completeForm.setValue("otp", value, { shouldValidate: true });
+                          }}
+                          autoComplete="off"
+                          ref={otpInputRef}
+                          aria-invalid={fieldState.invalid}
+                          aria-describedby={fieldState.error ? `otp-error` : `otp-timer`}
+                          aria-label="One-time password input"
+                        >
                           <InputOTPGroup>
                             {Array.from({ length: 6 }).map((_, i) => (
-                              <InputOTPSlot key={i} index={i} />
+                              <InputOTPSlot
+                                key={i}
+                                index={i}
+                                aria-label={`OTP digit ${i + 1}`}
+                              />
                             ))}
                           </InputOTPGroup>
                         </InputOTP>
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage id="otp-error" />
+                      <div
+                        id="otp-timer"
+                        className="text-sm text-muted-foreground mt-2 text-center"
+                        aria-live="polite"
+                      >
+                        {otpTimer > 0
+                          ? `OTP expires in ${Math.floor(otpTimer / 60)}:${(otpTimer % 60)
+                            .toString()
+                            .padStart(2, "0")} minutes`
+                          : "OTP has expired. Please request a new one."}
+                      </div>
                     </FormItem>
                   )}
                 />
                 <Button type="submit" className="w-full cursor-pointer" disabled={isCompleting}>
-                  {isCompleting ? "Verifying..." : "Complete Registration"}
+                  {isCompleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Verifying...
+                    </>
+                  ) : (
+                    "Complete Registration"
+                  )}
+                </Button>
+                <Button
+                  variant="link"
+                  className="w-full cursor-pointer"
+                  onClick={handleResendOtp}
+                  disabled={isResending || !canResend}
+                  aria-label="Resend OTP"
+                >
+                  {isResending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Resending OTP...
+                    </>
+                  ) : (
+                    "Resend OTP"
+                  )}
                 </Button>
                 <Button
                   variant="link"
                   className="w-full cursor-pointer"
                   onClick={() => {
                     setStep(1);
-                    completeForm.reset();
+                    completeForm.reset({ otp: "" });
+                    localStorage.removeItem("registerStep");
+                    localStorage.removeItem("initiateData");
+                    sessionStorage.removeItem("otpTimer");
+                    setOtpTimer(120);
+                    setCanResend(false);
                   }}
+                  aria-label="Back to registration form"
                 >
                   Back to Registration
                 </Button>

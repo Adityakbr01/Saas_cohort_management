@@ -2,16 +2,13 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export interface AuthResponse {
   token: string;
+  message?: string;
   data: {
-    user: {
-      id: string;
-      name: string;
-      email: string;
-      role: string;
-      phone_number: string;
-      profileImage: string;
-      OWN_Restaurant?: string;
-    };
+    id: string;
+    name: string;
+    email: string;
+    role: string; 
+    message?: string;
   };
 }
 
@@ -53,7 +50,17 @@ export const authApi = createApi({
         body: newUser,
       }),
     }),
+    resendUserOtp: builder.mutation<
+      AuthResponse,
+      { email: string }
+    >({
+      query: (email) => ({
+        url: "/resend-otp",
+        method: "POST",
+        body: email,
+      }),
+    })
   }),
 });
 
-export const { useLoginUserMutation,useInitiateRegisterUserMutation,useComplateRegisterUserMutation } = authApi;
+export const { useLoginUserMutation,useInitiateRegisterUserMutation,useComplateRegisterUserMutation,useResendUserOtpMutation } = authApi;
