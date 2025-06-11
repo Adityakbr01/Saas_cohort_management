@@ -176,11 +176,6 @@ export default function ForgotPassword() {
       completeForm.reset({ otp: "", password: "", confirmPassword: "" });
       return;
     }
-    if (otpTimer <= 0) {
-      toast.error("OTP expired", { description: "Please request a new OTP." });
-      setCanResend(true);
-      return;
-    }
     try {
       const { email } = initiateData;
       const { otp, password } = data;
@@ -201,7 +196,7 @@ export default function ForgotPassword() {
         (error?.status === 429
           ? "Too many requests. Please try again later."
           : "Invalid OTP or server error. Please try again.");
-      toast.error("Password Reset Failed", { description: errorMessage });
+      toast.error("Password Reset", { description: errorMessage });
     }
   };
 
@@ -449,7 +444,7 @@ export default function ForgotPassword() {
         </div>
       </main>
       <footer className="p-4 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Your App Name
+        © {new Date().getFullYear()} EduLaunch. All rights reserved.
       </footer>
     </div>
   );
