@@ -82,6 +82,10 @@ router.post(
  */
 router.post(
   "/resend-otp",
+  createDynamicRateLimiter({
+    timeWindow: 10, // 10 minutes
+    maxRequests: 3, // Limit to 3 requests per 10 minutes
+  }),
   validateRequest(resendOtpInput),
   UserController.resendOTPController
 );
@@ -199,13 +203,13 @@ router.post("/logout", protect, UserController.logout);
 router.delete("/delete", protect, UserController.deleteUser);
 router.put("/:userId/role",protect, restrictTo(Role.super_admin), UserController.updateUserRole);
 router.post("/initiate-forgot-password",createDynamicRateLimiter({
-  timeWindow: 60_000, // 1 minute
+  timeWindow: 1, // 1 minute
   maxRequests: 5, // Limit to 5 requests per minute
 }), UserController.initiateforgotPassword);
 router.post("/complete-forgot-password", UserController.completeforgotPassword);
 router.post("/resend-forgot-password-otp",createDynamicRateLimiter({
-  timeWindow: 60_000, // 1 minute
-  maxRequests: 5, // Limit to 5 requests per minute
+  timeWindow: 10,
+  maxRequests: 4,
 }), UserController.resendForgotPasswordOtp);
 
 
