@@ -9,7 +9,7 @@ interface RateLimitOptions {
 
 export const createDynamicRateLimiter = ({ timeWindow, maxRequests }: RateLimitOptions) => {
   return rateLimit({
-    windowMs: timeWindow, // e.g. 1 minute = 60,000 ms
+    windowMs: timeWindow * 60 * 1000, // e.g. 1 minute = 60,000 ms
     max: maxRequests,
     standardHeaders: true,    // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false,     // Disable the `X-RateLimit-*` headers
