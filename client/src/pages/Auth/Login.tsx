@@ -43,16 +43,27 @@ function Login() {
   const onSubmit = async (data: LoginFormValues) => {
     try {
       const response = await loginUser(data).unwrap();
+
       if (!response?.data?.result) {
         throw new Error("Invalid response from server");
       }
-      const { name, role } = response.data.result;
+
+      const { name,role } = response.data.result;
+
+      // Merge token into result object
+      const fullResult = {
+        ...response.data.result,
+        token: response.data.token, // Inject token here
+      };
+
+      // Show success toast
       toast.success("Login Successful", {
         description: `Welcome back, ${name || "User"}!`,
       });
 
-      // Store user data in localStorage
-      localStorage.setItem("user", JSON.stringify(response.data.result));
+      // Save full result to localStorage
+      localStorage.setItem("user", JSON.stringify(fullResult));
+
       // Role-based navigation
       const redirectPath = role === "super_admin" ? "/dashboard/super_admin" : "/";
       navigate(redirectPath, { replace: true });
@@ -67,8 +78,8 @@ function Login() {
         (error?.status === 429
           ? "Too many login attempts. Please try again later."
           : error?.status === 403
-          ? "Account locked. Please contact support."
-          : "Invalid credentials. Please try again.");
+            ? "Account locked. Please contact support."
+            : "Invalid credentials. Please try again.");
       toast.error("Login Failed", { description: errorMessage });
     }
   };
