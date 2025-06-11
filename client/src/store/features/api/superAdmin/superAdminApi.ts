@@ -29,14 +29,53 @@ export const subscriptionApi = createApi({
     baseUrl: `${Backend_URL}/subscription`,
     credentials: "include",
   }),
-  tagTypes: ["Profile"],
+  tagTypes: ["SubscriptionPlan"],
   endpoints: (builder) => ({
     getSubscriptions: builder.query<GetSubscriptionsResponse, void>({
       query: () => ({
         url: "/",
         method: "GET",
       }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.data.map(({ _id }) => ({
+                type: "SubscriptionPlan" as const,
+                id: _id,
+              })),
+              { type: "SubscriptionPlan", id: "LIST" },
+            ]
+          : [{ type: "SubscriptionPlan", id: "LIST" }],
     }),
+
+    createSubscription: builder.mutation<
+      SubscriptionPlan,
+      Partial<SubscriptionPlan>
+    >({
+      query: (data) => ({
+        url: "/create",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: [{ type: "SubscriptionPlan", id: "LIST" }],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data: newSubscription } = await queryFulfilled;
+          dispatch(
+            subscriptionApi.util.updateQueryData(
+              "getSubscriptions",
+              undefined,
+              (draft) => {
+                draft.data.push(newSubscription);
+              }
+            )
+          );
+        } catch (error) {
+          console.error("Failed to create subscription:", error);
+        }
+      },
+    }),
+
     updateSubscription: builder.mutation<
       void,
       { id: string; data: Partial<SubscriptionPlan> }
@@ -46,8 +85,27 @@ export const subscriptionApi = createApi({
         method: "PUT",
         body: data,
       }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "SubscriptionPlan", id },
+        { type: "SubscriptionPlan", id: "LIST" },
+      ],
+    }),
+    deleteSubscription: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: "SubscriptionPlan", id },
+        { type: "SubscriptionPlan", id: "LIST" },
+      ],
     }),
   }),
 });
 
-export const { useGetSubscriptionsQuery,useUpdateSubscriptionMutation } = subscriptionApi;
+export const {
+  useGetSubscriptionsQuery,
+  useCreateSubscriptionMutation,
+  useUpdateSubscriptionMutation,
+  useDeleteSubscriptionMutation,
+} = subscriptionApi;
