@@ -1,6 +1,7 @@
 import { getCurrentUserRole } from "@/utils/authUtils";
 import { Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import AnimatedPencil from "@/components/AnimatedPencil";
 
 interface PublicRouteProps {
   children: React.ReactNode;
@@ -17,7 +18,7 @@ const PublicRoute = ({ children }: PublicRouteProps) => {
   }, []);
 
   if (isLoading) {
-    return <div>Loading...</div>; // Replace with spinner if needed
+    return <AnimatedPencil />; // Replace with spinner if needed
   }
 
   if (role) {
