@@ -1,3 +1,4 @@
+import { Backend_URL } from "@/config/constant";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export interface AuthResponse {
@@ -33,7 +34,7 @@ export interface LoginResponse {
 export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: `http://localhost:3000/api/v1/users`,
+    baseUrl: `${Backend_URL}/users`,
     credentials: "include",
   }),
   tagTypes: ["Profile"],
