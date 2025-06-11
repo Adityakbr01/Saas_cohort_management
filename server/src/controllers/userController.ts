@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { UserService } from "@/services/user.service";
 import { sendError, sendSuccess } from "@/utils/responseUtil";
 import { wrapAsync } from "@/utils/wrapAsync";
@@ -8,6 +8,7 @@ import User from "@/models/userModel";
 import { ApiError } from "@/utils/apiError";
 import safeCache from "@/utils/cache";
 import { Role } from "@/configs/roleConfig";
+import { forgotPasswordRateLimit, resendOtpRateLimit } from "@/middleware/rateLimitMiddleware";
 
 export interface LoginData {
   email: string;
@@ -164,19 +165,23 @@ export const UserController = {
     sendSuccess(res, 200, "User role updated successfully", updatedUser);
   }),
 
-  initiateforgotPassword: wrapAsync(async (req: Request, res: Response) => {
-    const { email } = req.body;
-    if (!email) {
-      sendError(res, 400, "Email is required");
-      return;
+  initiateforgotPassword: wrapAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+      // Apply rate limiting middleware
+      await forgotPasswordRateLimit(req, res, next);
+      const { email } = req.body;
+      if (!email) {
+        sendError(res, 400, "Email is required");
+        return;
+      }
+      const result = await UserService.initiateForgotPassword(email);
+      if (!result.success) {
+        sendError(res, 400, result.message);
+        return;
+      }
+      sendSuccess(res, 200, result.message);
     }
-    const result = await UserService.initiateForgotPassword(email);
-    if (!result.success) {
-      sendError(res, 400, result.message);
-      return;
-    }
-    sendSuccess(res, 200, result.message);
-  }),
+  ),
 
   completeforgotPassword: wrapAsync(async (req: Request, res: Response) => {
     const { email, otp, password } = req.body;
@@ -195,19 +200,19 @@ export const UserController = {
     }
     sendSuccess(res, 200, result.message);
   }),
-  resendForgotPasswordOtp : wrapAsync(
-    async (req: Request, res: Response) => {
-      const { email } = req.body;
-      if (!email) {
-        sendError(res, 400, "Email is required");
-        return;
-      }
-      const result = await UserService.initiateForgotPassword(email);
-      if (!result.success) {
-        sendError(res, 400, result.message);
-        return;
-      }
-      sendSuccess(res, 200, result.message);
+  resendForgotPasswordOtp: wrapAsync(async (req: Request, res: Response, next: NextFunction) => {
+    // Apply rate limiting middleware
+    await resendOtpRateLimit(req, res,next);
+    const { email } = req.body;
+    if (!email) {
+      sendError(res, 400, "Email is required");
+      return;
     }
-  )
+    const result = await UserService.initiateForgotPassword(email);
+    if (!result.success) {
+      sendError(res, 400, result.message);
+      return;
+    }
+    sendSuccess(res, 200, result.message);
+  }),
 };
