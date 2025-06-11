@@ -199,6 +199,7 @@ router.delete("/delete", protect, UserController.deleteUser);
 router.put("/:userId/role",protect, restrictTo(Role.super_admin), UserController.updateUserRole);
 router.post("/initiate-forgot-password", UserController.initiateforgotPassword);
 router.post("/complete-forgot-password", UserController.completeforgotPassword);
+router.post("/resend-forgot-password-otp", UserController.resendForgotPasswordOtp);
 
 
 export default router;

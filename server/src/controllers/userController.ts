@@ -179,15 +179,15 @@ export const UserController = {
   }),
 
   completeforgotPassword: wrapAsync(async (req: Request, res: Response) => {
-    const { email, otp, newPassword } = req.body;
-    if (!email || !otp || !newPassword) {
+    const { email, otp, password } = req.body;
+    if (!email || !otp || !password) {
       sendError(res, 400, "Email, OTP and new password are required");
       return;
     }
     const result = await UserService.completeForgotPassword(
       email,
       otp,
-      newPassword
+      password
     );
     if (!result.success) {
       sendError(res, 400, result.message);
@@ -195,4 +195,19 @@ export const UserController = {
     }
     sendSuccess(res, 200, result.message);
   }),
+  resendForgotPasswordOtp : wrapAsync(
+    async (req: Request, res: Response) => {
+      const { email } = req.body;
+      if (!email) {
+        sendError(res, 400, "Email is required");
+        return;
+      }
+      const result = await UserService.initiateForgotPassword(email);
+      if (!result.success) {
+        sendError(res, 400, result.message);
+        return;
+      }
+      sendSuccess(res, 200, result.message);
+    }
+  )
 };
