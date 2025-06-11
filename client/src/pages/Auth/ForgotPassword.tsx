@@ -73,6 +73,7 @@ export default function ForgotPassword() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const otpInputRef = useRef<HTMLInputElement>(null);
   const storageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null); // Ref to track interval
 
   const navigate = useNavigate();
   const [initiateForgotPassword, { isLoading: isInitiating }] = useInitiateForgotPasswordMutation();
@@ -98,20 +99,34 @@ export default function ForgotPassword() {
   // OTP timer logic
   useEffect(() => {
     if (step === 2 && otpTimer > 0) {
-      const timer = setInterval(() => {
+      // Clear existing interval to prevent duplicates
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+
+      timerRef.current = setInterval(() => {
         setOtpTimer((prev) => {
           const newTime = prev - 1;
           sessionStorage.setItem("forgotPasswordTimer", newTime.toString());
           if (newTime <= 0) {
             setCanResend(true);
-            clearInterval(timer);
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+              timerRef.current = null;
+            }
           }
           return newTime;
         });
       }, 1000);
-      return () => clearInterval(timer);
+
+      return () => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      };
     }
-  }, [step]);
+  }, [step, otpTimer]); // Added otpTimer to dependencies
 
   // Debounced localStorage write
   const saveToStorage = useCallback(() => {
@@ -176,11 +191,15 @@ export default function ForgotPassword() {
       completeForm.reset({ otp: "", password: "", confirmPassword: "" });
       return;
     }
+    if (otpTimer <= 0) {
+      toast.error("OTP expired", { description: "Please request a new OTP." });
+      setCanResend(true);
+      return;
+    }
     try {
       const { email } = initiateData;
       const { otp, password } = data;
       await completeForgotPassword({ email, otp, password }).unwrap();
- 
       toast.success("Password Reset Successful", {
         description: "Your password has been updated. Please log in.",
       });
@@ -196,7 +215,7 @@ export default function ForgotPassword() {
         (error?.status === 429
           ? "Too many requests. Please try again later."
           : "Invalid OTP or server error. Please try again.");
-      toast.error("Password Reset", { description: errorMessage });
+      toast.error("Password Reset Failed", { description: errorMessage });
     }
   };
 
