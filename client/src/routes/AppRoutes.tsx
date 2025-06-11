@@ -16,17 +16,45 @@ import Login from "@/pages/Auth/Login";
 import Register from "@/pages/Auth/Register";
 import Home from "@/pages/Home";
 import NotFound from "@/pages/NotFound";
+import ProtectedRoute from "@/auth/ProtectedRoute"; // Import ProtectedRoute
+import PublicRoute from "@/auth/PublicRoute"; // Import PublicRoute
+import Unauthorized from "@/pages/Unauthorized";
 import { Route, Routes } from "react-router-dom";
 
 const AppRoutes = () => {
   return (
     <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={<Home />} />
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <PublicRoute>
+            <Register />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={<ForgotPassword />}
+      />
 
-
-      <Route path="/" element={<Home />}></Route>
-
-      {/* super_admin Dashboard layout with nested routes */}
-      <Route element={<DashboardLayout />}>
+      {/* Protected Super Admin Routes */}
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={["super_admin"]}>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="/dashboard/super_admin" element={<Overview />} />
         <Route path="/subscriptions" element={<SubscriptionsPage />} />
         <Route path="/org-admins" element={<OrgAdminsPage />} />
@@ -40,17 +68,9 @@ const AppRoutes = () => {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/profile" element={<UserProfilePage />} />
       </Route>
-      {/* login and register routes */}
-      <Route
-        path="/login" element={<Login />} />
-      <Route
-        path="/register"
-        element={<Register />} />
-<Route path="forgot-password" element={<ForgotPassword/>} />
 
-
-      {/* Add more role-based routes below */}
-      <Route path="/unauthorized" element={<div>403 Unauthorized</div>} />
+      {/* Fallback Routes */}
+      <Route path="/unauthorized" element={<Unauthorized />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

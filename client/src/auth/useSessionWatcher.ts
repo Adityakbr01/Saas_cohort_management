@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import { logout } from "@/utils/authUtils";
 
 interface DecodedToken {
@@ -16,16 +16,23 @@ const useSessionWatcher = () => {
 
       try {
         const { token } = JSON.parse(userStr);
-        const decoded: DecodedToken = jwtDecode(token);
+        if (!token) {
+          console.warn("No token found in user object");
+          return; // Don't logout
+        }
 
+        const decoded: DecodedToken = jwtDecode(token);
         const isExpired = decoded.exp * 1000 < Date.now();
-        if (isExpired) logout();
-      } catch {
-        logout();
+        if (isExpired) {
+          logout(); // Logout only on expiry
+        }
+      } catch (err) {
+        console.error("Error checking session:", err);
+        // Don't logout on parsing errors
       }
     };
 
-    // Start interval (every 15s, debounced)
+    // Start interval (every 15s)
     intervalRef.current = setInterval(checkSession, 15000);
 
     return () => {

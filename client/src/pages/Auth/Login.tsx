@@ -51,6 +51,8 @@ function Login() {
         description: `Welcome back, ${name || "User"}!`,
       });
 
+      // Store user data in localStorage
+      localStorage.setItem("user", JSON.stringify(response.data.result));
       // Role-based navigation
       const redirectPath = role === "super_admin" ? "/dashboard/super_admin" : "/";
       navigate(redirectPath, { replace: true });
@@ -58,6 +60,7 @@ function Login() {
       // Optional: Clear any registration-related localStorage (if applicable)
       localStorage.removeItem("registerStep");
       localStorage.removeItem("initiateData");
+      localStorage.removeItem("forgotPasswordStep");
     } catch (error: any) {
       const errorMessage =
         error?.data?.message ||

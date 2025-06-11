@@ -2,7 +2,7 @@ import { jwtDecode } from "jwt-decode";
 
 interface DecodedToken {
   exp: number; // Unix timestamp
-  role: string;
+  role?: string; // Role is optional to handle missing role
 }
 
 export const getCurrentUserRole = (): string | null => {
@@ -11,22 +11,30 @@ export const getCurrentUserRole = (): string | null => {
 
   try {
     const user = JSON.parse(userStr);
-    const token = user.token;
+    const token = user?.token;
 
-    if (!token) return null;
+    if (!token) {
+      console.warn("No token found in user object");
+      return null; // Don't logout, just return null
+    }
 
     const decoded: DecodedToken = jwtDecode(token);
     const isExpired = decoded.exp * 1000 < Date.now();
 
     if (isExpired) {
-      logout(); // Auto logout
+      logout(); // Logout only on expiry
       return null;
     }
 
-    return decoded.role || null;
+    if (!decoded.role) {
+      console.warn("No role found in token");
+      return null; // Don't logout, just return null
+    }
+
+    return decoded.role;
   } catch (err) {
-    logout();
-    return null;
+    console.error("Error decoding token:", err);
+    return null; // Don't logout on parsing errors
   }
 };
 

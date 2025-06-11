@@ -2,12 +2,11 @@ import { getCurrentUserRole } from "@/utils/authUtils";
 import { Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
-interface ProtectedRouteProps {
+interface PublicRouteProps {
   children: React.ReactNode;
-  allowedRoles: string[];
 }
 
-const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
+const PublicRoute = ({ children }: PublicRouteProps) => {
   const [role, setRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -21,15 +20,16 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <div>Loading...</div>; // Replace with spinner if needed
   }
 
-  if (!role) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!allowedRoles.includes(role)) {
-    return <Navigate to="/unauthorized" replace />;
+  if (role) {
+    // Redirect based on role
+    const redirectPath =
+      role === "super_admin" ? "/dashboard/super_admin" :
+      role === "org_admin" ? "/dashboard/org_admin" :
+      role === "user" ? "/dashboard/user" : "/";
+    return <Navigate to={redirectPath} replace />;
   }
 
   return <>{children}</>;
 };
 
-export default ProtectedRoute;
+export default PublicRoute;
