@@ -75,6 +75,33 @@ export const authApi = createApi({
         body: email,
       }),
     }),
+    initiateForgotPassword: builder.mutation<
+      AuthResponse,
+      { email: string }
+    >({ 
+      query: (email) => ({
+        url: "/initiate-forgot-password",
+        method: "POST",
+        body: email,
+      }),
+    }),
+    complateForgotPassword: builder.mutation<
+      AuthResponse,
+      { otp: string; email: string; password: string }
+    >({
+      query: (forgotPasswordData) => ({
+        url: "/complete-forgot-password",
+        method: "POST",
+        body: forgotPasswordData,
+      }),
+    }),
+    resendForgotPasswordOtp: builder.mutation<AuthResponse, { email: string }>({
+      query: (email) => ({
+        url: "/resend-forgot-password-otp",
+        method: "POST",
+        body: email,
+      }),
+    }),
   }),
 });
 
@@ -83,4 +110,7 @@ export const {
   useInitiateRegisterUserMutation,
   useComplateRegisterUserMutation,
   useResendUserOtpMutation,
+  useInitiateForgotPasswordMutation,
+  useComplateForgotPasswordMutation,
+  useResendForgotPasswordOtpMutation,
 } = authApi;

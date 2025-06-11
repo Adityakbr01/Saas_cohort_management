@@ -11,6 +11,7 @@ import { SettingsPage } from "@/components/superAdmin/pages/settings-page";
 import { SubscriptionsPage } from "@/components/superAdmin/pages/subscriptions-page";
 import { UserManagementPage } from "@/components/superAdmin/pages/user-management-page";
 import { UserProfilePage } from "@/components/superAdmin/pages/user-profile-page";
+import ForgotPassword from "@/pages/Auth/ForgotPassword";
 import Login from "@/pages/Auth/Login";
 import Register from "@/pages/Auth/Register";
 import Home from "@/pages/Home";
@@ -45,6 +46,8 @@ const AppRoutes = () => {
       <Route
         path="/register"
         element={<Register />} />
+<Route path="forgot-password" element={<ForgotPassword/>} />
+
 
       {/* Add more role-based routes below */}
       <Route path="/unauthorized" element={<div>403 Unauthorized</div>} />
