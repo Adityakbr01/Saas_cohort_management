@@ -10,6 +10,7 @@ import {
 import { UserController } from "@/controllers/userController";
 import { protect, restrictTo } from "@/middleware/authMiddleware";
 import { Role } from "@/configs/roleConfig";
+import { createDynamicRateLimiter } from "@/middleware/rateLimitMiddleware";
 
 const router = express.Router();
 
@@ -197,9 +198,15 @@ router.post("/logout", protect, UserController.logout);
  */
 router.delete("/delete", protect, UserController.deleteUser);
 router.put("/:userId/role",protect, restrictTo(Role.super_admin), UserController.updateUserRole);
-router.post("/initiate-forgot-password", UserController.initiateforgotPassword);
+router.post("/initiate-forgot-password",createDynamicRateLimiter({
+  timeWindow: 60_000, // 1 minute
+  maxRequests: 5, // Limit to 5 requests per minute
+}), UserController.initiateforgotPassword);
 router.post("/complete-forgot-password", UserController.completeforgotPassword);
-router.post("/resend-forgot-password-otp", UserController.resendForgotPasswordOtp);
+router.post("/resend-forgot-password-otp",createDynamicRateLimiter({
+  timeWindow: 60_000, // 1 minute
+  maxRequests: 5, // Limit to 5 requests per minute
+}), UserController.resendForgotPasswordOtp);
 
 
 export default router;
