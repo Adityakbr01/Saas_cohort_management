@@ -4,10 +4,14 @@ import { ApiError } from "@/utils/apiError";
 type SubscriptionData = {
   price: number;
   name: string;
+  description: string;
+  features: string[];
+  popular: boolean;
+  userId?: string;
 };
 
 export const SubscriptionService = {
-  async createSubscription({ price, name } : SubscriptionData) {
+  async createSubscription({ price, name,description,features,popular,userId } : SubscriptionData) {
     const existing = await SubscriptionDao.getAllSubscriptions();
     if (existing.some(sub => sub.name === name)) {
       throw new ApiError(400, 'Subscription name already exists');
@@ -15,7 +19,7 @@ export const SubscriptionService = {
     if (existing.length >= 3) {
       throw new ApiError(400, 'Only 3 subscriptions allowed');
     }
-    return SubscriptionDao.createSubscription({ name, price });
+    return SubscriptionDao.createSubscription({ name, price,description,features,popular,userId });
   },
 
   async getAllSubscriptions() {
@@ -28,11 +32,11 @@ export const SubscriptionService = {
     return sub;
   },
 
-  async updateSubscription(id: string, data: { name: string; price: number }) {
-    const existing = await SubscriptionDao.getSubscriptionById(id);
-    if (!existing) throw new ApiError(404, 'Subscription not found');
-    return SubscriptionDao.updateSubscription(id, data);
-  },
+  async updateSubscription(id: string, data: SubscriptionData) {
+  const existing = await SubscriptionDao.getSubscriptionById(id);
+  if (!existing) throw new ApiError(404, 'Subscription not found');
+  return SubscriptionDao.updateSubscription(id, data);
+},
 
   async deleteSubscription(id: string) {
     const existing = await SubscriptionDao.getSubscriptionById(id);

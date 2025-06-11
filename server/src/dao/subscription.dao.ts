@@ -12,9 +12,19 @@ export class SubscriptionDao {
       throw new Error("Error fetching subscriptions: " + error.message);
     }
   }
-  static async createSubscription(data: { name: string; price: number }) {
+  static async createSubscription(data: { name: string; price: number,description:string,features:string[],popular:boolean,userId?: string }) {
     try {
-      const subscription = new SubscriptionModel(data);
+      const  {name,price,description,features,popular,userId} = data;
+      const subscription = new SubscriptionModel(
+        {
+          name,
+          price,
+          description,
+          features,
+          popular,
+          Owner: userId, 
+        }
+      );
       return await subscription.save();
     } catch (error: any) {
       throw new Error("Error creating subscription: " + error.message);
@@ -26,17 +36,15 @@ export class SubscriptionDao {
 
   static async updateSubscription(
     id: string,
-    data: { name: string; price: number }
+    data: { name: string; price: number, description: string; features: string[]; popular: boolean; userId?: string }
   ) {
     const existing = await SubscriptionModel.findOne({ name: data.name });
-
     if (existing && existing._id.toString() !== id) {
       throw new ApiError(
         400,
         "Another subscription with this name already exists"
       );
     }
-
     return SubscriptionModel.findByIdAndUpdate(id, data, { new: true });
   }
 

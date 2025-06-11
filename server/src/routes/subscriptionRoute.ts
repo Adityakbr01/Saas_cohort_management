@@ -35,7 +35,7 @@ router.put(
   '/:id',
   protect,
   restrictTo(Role.super_admin),
-  validateRequest(CreateSubscriptionSchema), // you can also create an UpdateSchema
+  validateRequest(CreateSubscriptionSchema),
   SubscriptionController.updateSubscription
 );
 

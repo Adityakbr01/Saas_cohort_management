@@ -17,5 +17,8 @@ export const CreateSubscriptionSchema = z.object({
   name: z.enum(['basic', 'pro', 'business'], {
     errorMap: () => ({ message: "Invalid subscription plan name" })
   }),
-  price: z.number().positive("Price must be a positive number"),
+  price: z.number().min(0, "Price must be a positive number"),
+  description: z.string().min(10, "Description must be at least 10 characters long"),
+  features: z.array(z.string()).min(5, "At least five feature is required"),
+  popular: z.boolean(),
 });

@@ -1,11 +1,16 @@
 import { SubscriptionService } from '@/services/subscription.service';
-import { sendSuccess } from '@/utils/responseUtil';
+import { sendError, sendSuccess } from '@/utils/responseUtil';
 import { wrapAsync } from '../utils/wrapAsync'; // adjust path as needed
 
 export const SubscriptionController = {
   createSubscriptionController: wrapAsync(async (req, res) => {
-    const { price, name } = req.body;
-    const created = await SubscriptionService.createSubscription({ price, name });
+    const { price, name,description,features,popular } = req.body;
+    const userId = req.user?.id; 
+    if (!userId) {
+       sendError(res, 400, 'User ID is required');
+       return
+    }
+    const created = await SubscriptionService.createSubscription({ price, name,description,features,popular,userId });
     sendSuccess(res, 201, 'Subscription created', created);
   }),
 
