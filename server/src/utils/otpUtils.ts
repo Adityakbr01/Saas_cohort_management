@@ -1,11 +1,20 @@
 import crypto from "crypto";
 
 import { logger } from "@/utils/logger";
+import { UserDAO } from "@/dao/user.dao";
+import { IUser } from "@/models/userModel";
 
 // Interface for OTP verification result
 interface OTPVerificationResult {
   isValid: boolean;
   error: string | null;
+  isOTPExpired?: boolean;
+  isOTPFormatValid?: boolean;
+  isOTPMatch?: boolean;
+  isOTPHashMatch?: boolean;
+  isOTPHashValid?: boolean;
+  isOTPHashExpired?: boolean;
+  isOTPHashFormatValid?: boolean;
 }
 
 // Interface for OTP remaining time
@@ -89,6 +98,7 @@ export const verifyOTP = (
       return {
         isValid: false,
         error: "OTP has expired",
+        isOTPExpired: true,
       };
     }
 
@@ -183,8 +193,9 @@ export const generateOTPForPurpose = (
 };
 
 // Clean expired OTPs
-export const cleanExpiredOTP = (user: OTPUser): boolean => {
+export const cleanExpiredOTP = (user: IUser): boolean => {
   if (user.otp && user.otpExpiry && isOTPExpired(user.otpExpiry)) {
+    UserDAO.updateUserOTP(user, undefined, undefined);
     user.otp = undefined;
     user.otpExpiry = undefined;
     logger.info("Expired OTP cleaned for user");

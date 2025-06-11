@@ -50,7 +50,9 @@ export const createTransporter = (): Transporter => {
 };
 
 // Send email
-export const sendEmail = async (options: EmailOptions): Promise<EmailSendResult> => {
+export const sendEmail = async (
+  options: EmailOptions
+): Promise<EmailSendResult> => {
   try {
     const transporter = createTransporter();
 
@@ -172,7 +174,9 @@ EduLaunch App Team
             <div class="otp-code">${otp}</div>
         </div>
         
-        <p><strong>Important:</strong> This OTP is valid for <strong>${process.env.OTP_EXPIRY || 2} minutes</strong> only.</p>
+        <p><strong>Important:</strong> This OTP is valid for <strong>${
+          process.env.OTP_EXPIRY || 2
+        } minutes</strong> only.</p>
         
         <div class="warning">
             <strong>Security Notice:</strong> If you didn't request this verification code, please ignore this email. Never share your OTP with anyone.
@@ -411,7 +415,9 @@ export const sendPasswordResetEmail = async (
             <div class="otp-code">${otp}</div>
         </div>
         
-        <p><strong>Important:</strong> This OTP is valid for <strong>${process.env.OTP_EXPIRY || 2} minutes</strong> only.</p>
+        <p><strong>Important:</strong> This OTP is valid for <strong>${
+          process.env.OTP_EXPIRY || 2
+        } minutes</strong> only.</p>
         
         <div class="warning">
             <strong>Security Notice:</strong> If you didn't request a password reset, please ignore this email and consider changing your password for security.
@@ -433,6 +439,104 @@ export const sendPasswordResetEmail = async (
     });
   } catch (error: any) {
     logger.error(`Password reset email sending failed: ${error.message}`);
+    throw error;
+  }
+};
+
+// send password reset susccess email
+export const sendPasswordResetSuccessEmail = async (
+  email: string,
+  firstName: string = "User"
+): Promise<EmailSendResult> => {
+  try {
+    const subject = "Password Reset Successful - EduLaunch";
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Reset Successful</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6; 
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f9f9f9;
+            padding: 30px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .success-box {
+            background-color: #28a745;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;  
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛒 EduLaunch</h1>
+            <h2>Password Reset Successful</h2>
+        </div>
+        <div class="success-box">
+            <h2>Success! 🎉</h2>
+            <p>Your password has been successfully reset.</p>
+        </div>
+        <p>Hello <strong>${firstName}</strong>,</p>
+        <p>Your password has been successfully reset. You can now log in with your new password.</p>
+        <div class="warning">
+            <strong>Security Notice:</strong> If you did not initiate this password reset, please contact our support team immediately.
+        </div>
+        <p>If you have any questions or need assistance, feel free to reach out to our support team.</p>
+        <div class="footer">
+            <p>Best regards,<br>
+            <strong>EduLaunch Team</strong></p>
+            <p>This is an automated email. Please do not reply to this message.</p>
+        </div>
+    </div>
+
+</body>
+</html>
+    `;
+    return await sendEmail({
+      to: email,
+      subject,
+      html,
+    });
+  } catch (error: any) {
+    logger.error(
+      `Password reset success email sending failed: ${error.message}`
+    );
     throw error;
   }
 };

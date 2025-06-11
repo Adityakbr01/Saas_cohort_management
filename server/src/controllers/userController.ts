@@ -32,8 +32,12 @@ export const UserController = {
   //complate Registration
   complateRegisterController: wrapAsync(async (req: Request, res: Response) => {
     const user = await UserService.register(req.body);
-    sendSuccess(res, 201, "User registered successfully", {name: user.name, email: user.email, role: user.role});
-    safeCache.del("AllUserForAdmin")
+    sendSuccess(res, 201, "User registered successfully", {
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+    safeCache.del("AllUserForAdmin");
   }),
   // Resend OTP
   resendOTPController: wrapAsync(async (req: Request, res: Response) => {
@@ -63,8 +67,12 @@ export const UserController = {
       }
       res.cookie("accessToken", result.token, cookieConfig);
       res.cookie("refreshToken", result.refreshToken, cookieConfig);
-      console.log(result)
-      sendSuccess(res, 200, result.message, {result: result.user, token: result.token, refreshToken: result.refreshToken});
+      console.log(result);
+      sendSuccess(res, 200, result.message, {
+        result: result.user,
+        token: result.token,
+        refreshToken: result.refreshToken,
+      });
       return;
     } catch (error: any) {
       logger.error(`Login error: ${error.message}`);
@@ -89,43 +97,43 @@ export const UserController = {
     const userId = req.user?.id;
     await UserService.logout(userId);
     res.clearCookie("refreshToken");
-    res.clearCookie("accessToken")
+    res.clearCookie("accessToken");
     sendSuccess(res, 200, "Logged out successfully from all devices");
   }),
 
- //All users for admin panel
+  //All users for admin panel
   allUsers: wrapAsync(async (req: Request, res: Response) => {
-  const role = req.user?.role;
-  const userId = req.user?.id;
+    const role = req.user?.role;
+    const userId = req.user?.id;
 
-  if (role.toString() !== Role.super_admin.toString()) {
-    throw new ApiError(403, "Access denied. Only super_admins can access this route.");
-  }
+    if (role.toString() !== Role.super_admin.toString()) {
+      throw new ApiError(
+        403,
+        "Access denied. Only super_admins can access this route."
+      );
+    }
 
-  const cached = safeCache.get("AllUserForAdmin");
-  if (cached) {
-    sendSuccess(res, 200, "Users fetched successfully (from cache)", cached);
-    return;
-  }
+    const cached = safeCache.get("AllUserForAdmin");
+    if (cached) {
+      sendSuccess(res, 200, "Users fetched successfully (from cache)", cached);
+      return;
+    }
 
-  const users = await User.find({
-    $and: [
-      { _id: { $ne: userId } },
-      { role: Role.org_admin }
-    ]
-  })
-    .select("-password -otp -otpExpiry -refreshTokens -tokenVersion")
-    .populate("plan", "organization");
+    const users = await User.find({
+      $and: [{ _id: { $ne: userId } }, { role: Role.org_admin }],
+    })
+      .select("-password -otp -otpExpiry -refreshTokens -tokenVersion")
+      .populate("plan", "organization");
 
-  safeCache.set("AllUserForAdmin", users, 600); // Cache for 10 minutes
+    safeCache.set("AllUserForAdmin", users, 600); // Cache for 10 minutes
 
-  sendSuccess(res, 200, "Users fetched successfully", users);
-}),
+    sendSuccess(res, 200, "Users fetched successfully", users);
+  }),
 
   // Delete user by ID (for admin)
   deleteUser: wrapAsync(async (req: Request, res: Response) => {
     const userId = req.params.id;
-    const {targetId} = req.body
+    const { targetId } = req.body;
     const role = req.user?.role;
     if (targetId && role.toString() !== Role.org_admin.toString()) {
     }
@@ -139,21 +147,52 @@ export const UserController = {
     sendSuccess(res, 200, "User deleted successfully");
   }),
 
-
   updateUserRole: wrapAsync(async (req: Request, res: Response) => {
-  const userId = req.params.userId;
-  const { role } = req.body;
-  const currentUserRole = req.user?.role;
+    const userId = req.params.userId;
+    const { role } = req.body;
+    const currentUserRole = req.user?.role;
 
-  if (currentUserRole !== Role.super_admin) {
-    throw new ApiError(403, "Only super_admins can update user roles");
-  }
+    if (currentUserRole !== Role.super_admin) {
+      throw new ApiError(403, "Only super_admins can update user roles");
+    }
 
-  if (!role) {
-    throw new ApiError(400, "New role is required");
-  }
+    if (!role) {
+      throw new ApiError(400, "New role is required");
+    }
 
-  const updatedUser = await UserService.updateUserRole(userId, role);
-  sendSuccess(res, 200, "User role updated successfully", updatedUser);
-}),
+    const updatedUser = await UserService.updateUserRole(userId, role);
+    sendSuccess(res, 200, "User role updated successfully", updatedUser);
+  }),
+
+  initiateforgotPassword: wrapAsync(async (req: Request, res: Response) => {
+    const { email } = req.body;
+    if (!email) {
+      sendError(res, 400, "Email is required");
+      return;
+    }
+    const result = await UserService.initiateForgotPassword(email);
+    if (!result.success) {
+      sendError(res, 400, result.message);
+      return;
+    }
+    sendSuccess(res, 200, result.message);
+  }),
+
+  completeforgotPassword: wrapAsync(async (req: Request, res: Response) => {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      sendError(res, 400, "Email, OTP and new password are required");
+      return;
+    }
+    const result = await UserService.completeForgotPassword(
+      email,
+      otp,
+      newPassword
+    );
+    if (!result.success) {
+      sendError(res, 400, result.message);
+      return;
+    }
+    sendSuccess(res, 200, result.message);
+  }),
 };

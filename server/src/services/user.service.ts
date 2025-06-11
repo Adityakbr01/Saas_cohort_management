@@ -9,7 +9,7 @@ import {
   verifyOTP,
 } from "@/utils/otpUtils";
 import { Types } from "mongoose";
-import { sendOTPEmail } from "./emailService";
+import { sendOTPEmail, sendPasswordResetEmail } from "./emailService";
 import { Role } from "@/configs/roleConfig";
 
 export const UserService = {
@@ -82,15 +82,21 @@ export const UserService = {
       throw new ApiError(409, "User is already verified.");
     }
 
-    cleanExpiredOTP(existingUser); // This should throw if expired
+    cleanExpiredOTP(existingUser);
 
     const otpResult = verifyOTP(
       otp as string,
       existingUser.otp!,
       existingUser.otpExpiry!
     );
+
     if (!otpResult.isValid) {
       throw new ApiError(400, otpResult.error!);
+    }
+
+    if (otpResult.isOTPExpired) {
+      cleanExpiredOTP(existingUser);
+      throw new ApiError(400, "OTP has expired. Please request a new OTP.");
     }
 
     existingUser.password = password;
@@ -162,7 +168,6 @@ export const UserService = {
           "Your account has been suspended. Please contact support."
         );
       }
-
 
       const isPasswordValid = await user.comparePassword(password);
       if (!isPasswordValid) {
@@ -299,5 +304,85 @@ export const UserService = {
     }
 
     return await UserDAO.updateRole(userId, newRole);
+  },
+  async initiateForgotPassword(email: string) {
+    const user = await UserDAO.findByEmailWithPassword(email);
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+    if (!user.isVerified) {
+      throw new ApiError(
+        403,
+        "Please verify your email before resetting password"
+      );
+    }
+
+    if (user.suspended) {
+      throw new ApiError(
+        403,
+        "Your account has been suspended. Please contact support."
+      );
+    }
+
+    const otpData = generateOTPForPurpose("forgot_password");
+    user.otp = otpData.otp;
+    user.otpExpiry = otpData.expiry;
+    await user.save();
+    await sendPasswordResetEmail(email, otpData.otp, user.name);
+    logger.info(`Forgot password OTP sent to ${email}`);
+    return {
+      success: true,
+      message: "OTP sent to your email for password reset",
+      userId: user._id.toString(),
+    };
+  },
+  async completeForgotPassword(
+    email: string,
+    otp: string,
+    newPassword: string
+  ) {
+    if (!email || !otp || !newPassword) {
+      throw new ApiError(400, "Email, OTP and new password are required");
+    }
+
+    const user = await UserDAO.findByEmailWithPassword(email);
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    if (!user.isVerified) {
+      throw new ApiError(
+        403,
+        "Please verify your email before resetting password"
+      );
+    }
+
+    if (user.suspended) {
+      throw new ApiError(
+        403,
+        "Your account has been suspended. Please contact support."
+      );
+    }
+
+    const otpResult = verifyOTP(otp, user.otp!, user.otpExpiry!);
+
+    if (otpResult.isOTPExpired) {
+      cleanExpiredOTP(user);
+
+      throw new ApiError(400, "OTP has expired. Please request a new OTP.");
+    }
+
+    console.log(otpResult);
+    if (!otpResult.isValid) {
+      throw new ApiError(400, otpResult.error!);
+    }
+
+    user.password = newPassword;
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    await user.save();
+
+    logger.info(`Password reset successful for ${email}`);
+    return { success: true, message: "Password reset successfully" };
   },
 };

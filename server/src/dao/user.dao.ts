@@ -107,10 +107,26 @@ export const UserDAO = {
     return User.findByIdAndDelete(id);
   },
   async updateRole(userId: string, newRole: string) {
-  return User.findByIdAndUpdate(
-    userId,
-    { role: newRole },
-    { new: true, runValidators: true }
-  ).select("-password -otp -otpExpiry -refreshTokens -tokenVersion");
-}
+    return User.findByIdAndUpdate(
+      userId,
+      { role: newRole },
+      { new: true, runValidators: true }
+    ).select("-password -otp -otpExpiry -refreshTokens -tokenVersion");
+  },
+  async updateUserOTP(user: IUser, otp?: string, otpExpiry?: Date) {
+    const existingUser = await this.findById(user._id.toString());
+    if (!existingUser) {
+      throw new Error("User not found");
+    }
+
+    if (!otp || !otpExpiry) {
+      existingUser.otp = undefined;
+      existingUser.otpExpiry = undefined;
+    } else {
+      existingUser.otp = otp;
+      existingUser.otpExpiry = otpExpiry;
+    }
+
+    return await existingUser.save();
+  },
 };
