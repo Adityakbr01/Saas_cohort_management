@@ -13,12 +13,10 @@ export const PaymentService = {
     if (!mongoose.isValidObjectId(subscriptionId)) {
       throw new ApiError(400, "Invalid subscription ID");
     }
-
     const subscription = await SubscriptionModel.findById(subscriptionId);
     if (!subscription) {
       throw new ApiError(404, "Subscription not found");
     }
-
     // Validate amount against subscription price
     const expectedAmount = subscription.price * 100; // Convert to paise
     if (amount < expectedAmount) {
@@ -86,20 +84,24 @@ export const PaymentService = {
       throw new ApiError(401, "User not authenticated");
     }
 
+       const now = new Date();
+    const oneMonthLater = new Date(now);
+    oneMonthLater.setMonth(now.getMonth() + 1);
     // Check if payment is already processed
     const isAlreadySubscribed = subscription.subscribers?.includes(new mongoose.Types.ObjectId(userId));
     if (isAlreadySubscribed) {
+      await UserDAO.updateUserPlan(userId, subscription._id, {
+      startDate: now,
+      expiresDate: oneMonthLater,
+      isActive: true,
+      isExpired: false,
+    });
       logger.warn("[PaymentService] User already subscribed:", { userId, subscriptionId });
       throw new ApiError(400, "User already subscribed to this plan");
     }
 
     // Update subscription and user
     subscription.subscribers?.push(new mongoose.Types.ObjectId(userId));
-
-    const now = new Date();
-    const oneMonthLater = new Date(now);
-    oneMonthLater.setMonth(now.getMonth() + 1);
-
     await UserDAO.updateUserPlan(userId, subscription._id, {
       startDate: now,
       expiresDate: oneMonthLater,
