@@ -21,7 +21,7 @@ export const PaymentService = {
 
     // Validate amount against subscription price
     const expectedAmount = subscription.price * 100; // Convert to paise
-    if (amount !== expectedAmount) {
+    if (amount < expectedAmount) {
       throw new ApiError(400, `Amount mismatch: expected ${expectedAmount} paise, received ${amount} paise`);
     }
 
