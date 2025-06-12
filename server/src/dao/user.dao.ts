@@ -1,5 +1,15 @@
 import User, { IUser } from "@/models/userModel";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
+
+
+
+interface SubscriptionMeta {
+  startDate: Date;
+  expiresDate: Date;
+  isActive: boolean;
+  isExpired: boolean;
+}
+
 
 export const findAllUsers = () => User.find().select("-password");
 
@@ -129,4 +139,18 @@ export const UserDAO = {
 
     return await existingUser.save();
   },
+ async  updateUserPlan(
+  userId: string,
+  planId: mongoose.Types.ObjectId,
+  subscriptionMeta: SubscriptionMeta
+) {
+  return await User.findByIdAndUpdate(
+    userId,
+    {
+      plan: planId,
+      subscriptionMeta,
+    },
+    { new: true }
+  );
+}
 };

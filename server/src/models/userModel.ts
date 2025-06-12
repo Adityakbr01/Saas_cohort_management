@@ -41,6 +41,12 @@ export interface IUser extends Document, IUserMethods {
   otp?: string;
   otpExpiry?: Date;
   plan?: Types.ObjectId; // Reference to SubscriptionPlan
+  subscriptionMeta: {
+  startDate: Date; // Start date of the subscription,
+  expiresDate: Date | null; // Nullable for plans that don't expire,
+  isActive: boolean; // Indicates if the subscription is active
+  isExpired: boolean; // Indicates if the subscription is expired
+}
   suspended?: boolean; // Optional field for suspension status
 }
 
@@ -82,11 +88,17 @@ const userSchema = new Schema<IUser, UserModel>(
       default: null,
     },
 
+    subscriptionMeta: {
+      startDate: { type: Date, default: Date.now },
+      expiresDate: { type: Date },
+      isExpired :Boolean,
+      isActive:Boolean,
+    },
     suspended: {
       type: Boolean,
       default: false,
     },
-    
+
     profile: {
       bio: { type: String, default: "" },
       skills: { type: [String], default: [] },

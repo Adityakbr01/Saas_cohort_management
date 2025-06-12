@@ -7,6 +7,7 @@ import { rateLimit } from "express-rate-limit";
 import swaggerUi from "swagger-ui-express";
 import swaggerDocument from "../docs/swagger.json";
 
+
 import { env_config } from "./configs/env";
 
 
@@ -18,6 +19,7 @@ import { swaggerSpec } from "./configs/swagger";
 import userRouter from "@/routes/userRoutes";
 import orgRouter from "@/routes/orgRoutes";
 import subscriptionRouter from "@/routes/subscriptionRoute";
+import paymentRouter from "./routes/paymentRoutes";
 
 
 const app = express();
@@ -81,6 +83,7 @@ app.get("/", (_, res) => {
 // ✅ Routes
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/subscription", subscriptionRouter);
+app.use("/api/v1/payments",paymentRouter)
 app.use("/api/v1/org", orgRouter);
 
 
