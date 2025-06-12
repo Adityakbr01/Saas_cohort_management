@@ -1,4 +1,3 @@
-import AnimatedPencil from "@/components/AnimatedPencil";
 import { getCurrentUserRole } from "@/utils/authUtils";
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
@@ -18,10 +17,8 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     setIsLoading(false);
   }, []);
 
-  
-
   if (isLoading) {
-    return <AnimatedPencil />; 
+    return;
   }
 
   if (!role) {
