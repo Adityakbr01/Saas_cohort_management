@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Check, X, Star, BookOpen, Building2, Sparkles, type LucideIcon } from "lucide-react";
 import RazorpayCheckoutModal from "@/components/razorpay-checkout-modal";
+import { useGetSubscriptionsPlanQuery } from "@/store/features/api/plans/planApi";
 
 // Define interfaces for data structures
 interface Feature {
@@ -23,6 +24,7 @@ interface Plan {
   color: string;
   popular: boolean;
   features: Feature[];
+  _id:string
 }
 
 interface SubscriptionPlans {
@@ -59,150 +61,191 @@ interface CheckoutPlan {
   originalPrice?: number;
   description: string;
   billing: "monthly" | "yearly";
+  planId:string
 }
 
-const subscriptionPlans: SubscriptionPlans = {
+// Interface for API response
+interface ApiPlan {
+  _id: string;
+  name: string;
+  price: number;
+  description: string;
+  features: string[];
+  popular: boolean;
+  subscribers: string[];
+  Owner: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+}
+
+// Function to transform API data into SubscriptionPlans
+const createSubscriptionPlans = (apiPlans: ApiPlan[]): SubscriptionPlans => {
+  const planMap: { [key: string]: Plan } = {};
+  
+  // Map icons and colors
+  const iconMap: { [key: string]: LucideIcon } = {
+    basic: BookOpen,
+    pro: Star,
+    business: Building2,
+  };
+  const colorMap: { [key: string]: string } = {
+    basic: "bg-blue-500",
+    pro: "bg-purple-500",
+    business: "bg-green-500",
+  };
+
+  // Process monthly plans
+  apiPlans.forEach((apiPlan) => {
+    const normalizedName = apiPlan.name.toLowerCase();
+    planMap[normalizedName] = {
+      name: apiPlan.name.charAt(0).toUpperCase() + apiPlan.name.slice(1), // Capitalize name
+      price: apiPlan.price,
+      description: apiPlan.description,
+      icon: iconMap[normalizedName] || BookOpen,
+      color: colorMap[normalizedName] || "bg-blue-500",
+      popular: apiPlan.popular,
+      features: apiPlan.features.map((feature) => ({
+        name: feature,
+        included: true,
+      })),
+      _id:apiPlan._id
+    };
+  });
+
+  // Generate yearly plans (17% discount)
+  const yearlyPlans: { [key: string]: Plan } = {};
+  Object.entries(planMap).forEach(([key, plan]) => {
+    const yearlyPrice = Math.round(plan.price * 12 * 0.83); // 17% discount
+    const originalPrice = plan.price * 12;
+    yearlyPlans[key] = {
+      ...plan,
+      price: yearlyPrice,
+      originalPrice,
+    };
+  });
+
+  return {
+    monthly: {
+      basic: planMap.basic,
+      pro: planMap.pro,
+      business: planMap.business,
+    },
+    yearly: {
+      basic: yearlyPlans.basic,
+      pro: yearlyPlans.pro,
+      business: yearlyPlans.business,
+    },
+  };
+};
+
+// Hardcoded fallback plans (in case API fails)
+const fallbackPlans: SubscriptionPlans = {
   monthly: {
     basic: {
       name: "Basic",
-      price: 29,
-      description: "Perfect for individual learners getting started",
+      price: 0,
+      description: "Ideal for individuals or trial users getting started.",
       icon: BookOpen,
       color: "bg-blue-500",
       popular: false,
       features: [
-        { name: "Access to 100+ courses", included: true },
-        { name: "Standard video quality", included: true },
-        { name: "Mobile app access", included: true },
-        { name: "Basic progress tracking", included: true },
-        { name: "Community forum access", included: true },
-        { name: "Email support", included: true },
-        { name: "Downloadable resources", included: false },
-        { name: "Certificates of completion", included: false },
-        { name: "Live sessions", included: false },
-        { name: "Priority support", included: false },
-        { name: "Advanced analytics", included: false },
-        { name: "Team management", included: false },
+        { name: "Access to 2 cohort", included: true },
+        { name: "Max 10 students per cohort", included: true },
+        { name: "Basic student management", included: true },
+        { name: "Limited analytics dashboard", included: true },
+        { name: "Email support only", included: true },
       ],
+      _id:"123"
     },
     pro: {
       name: "Pro",
-      price: 59,
-      description: "Best for serious learners and professionals",
+      price: 1999,
+      description: "Perfect for small coaching centers managing multiple cohorts.",
       icon: Star,
       color: "bg-purple-500",
       popular: true,
       features: [
-        { name: "Access to 500+ courses", included: true },
-        { name: "HD video quality", included: true },
-        { name: "Mobile app access", included: true },
-        { name: "Advanced progress tracking", included: true },
-        { name: "Community forum access", included: true },
-        { name: "Priority email support", included: true },
-        { name: "Downloadable resources", included: true },
-        { name: "Certificates of completion", included: true },
-        { name: "Monthly live sessions", included: true },
-        { name: "Priority support", included: true },
-        { name: "Advanced analytics", included: false },
-        { name: "Team management", included: false },
+        { name: "Access to 5 cohorts", included: true },
+        { name: "Up to 100 students per cohort", included: true },
+        { name: "Assignments and attendance management", included: true },
+        { name: "Advanced analytics", included: true },
+        { name: "Email + chat support", included: true },
       ],
+        _id:"123"
     },
     business: {
       name: "Business",
-      price: 99,
-      description: "Ideal for teams and organizations",
+      price: 4999,
+      description: "Best for large institutions with complete control and support.",
       icon: Building2,
       color: "bg-green-500",
       popular: false,
       features: [
-        { name: "Access to all courses", included: true },
-        { name: "4K video quality", included: true },
-        { name: "Mobile app access", included: true },
-        { name: "Advanced progress tracking", included: true },
-        { name: "Private team forums", included: true },
-        { name: "24/7 phone & email support", included: true },
-        { name: "Downloadable resources", included: true },
-        { name: "Certificates of completion", included: true },
-        { name: "Weekly live sessions", included: true },
-        { name: "Priority support", included: true },
-        { name: "Advanced analytics", included: true },
-        { name: "Team management (up to 50 users)", included: true },
+        { name: "Unlimited cohorts", included: true },
+        { name: "Unlimited students per cohort", included: true },
+        { name: "Full-featured student & teacher dashboards", included: true },
+        { name: "Custom branding & domain", included: true },
+        { name: "Priority 24/7 support", included: true },
       ],
+        _id:"123"
     },
   },
   yearly: {
     basic: {
       name: "Basic",
-      price: 290,
-      originalPrice: 348,
-      description: "Perfect for individual learners getting started",
+      price: 0,
+      description: "Ideal for individuals or trial users getting started.",
       icon: BookOpen,
       color: "bg-blue-500",
       popular: false,
       features: [
-        { name: "Access to 100+ courses", included: true },
-        { name: "Standard video quality", included: true },
-        { name: "Mobile app access", included: true },
-        { name: "Basic progress tracking", included: true },
-        { name: "Community forum access", included: true },
-        { name: "Email support", included: true },
-        { name: "Downloadable resources", included: false },
-        { name: "Certificates of completion", included: false },
-        { name: "Live sessions", included: false },
-        { name: "Priority support", included: false },
-        { name: "Advanced analytics", included: false },
-        { name: "Team management", included: false },
+        { name: "Access to 2 cohort", included: true },
+        { name: "Max 10 students per cohort", included: true },
+        { name: "Basic student management", included: true },
+        { name: "Limited analytics dashboard", included: true },
+        { name: "Email support only", included: true },
       ],
+        _id:"123"
     },
     pro: {
       name: "Pro",
-      price: 590,
-      originalPrice: 708,
-      description: "Best for serious learners and professionals",
+      price: 19940, // 1999 * 12 * 0.83
+      originalPrice: 23988, // 1999 * 12
+      description: "Perfect for small coaching centers managing multiple cohorts.",
       icon: Star,
       color: "bg-purple-500",
       popular: true,
       features: [
-        { name: "Access to 500+ courses", included: true },
-        { name: "HD video quality", included: true },
-        { name: "Mobile app access", included: true },
-        { name: "Advanced progress tracking", included: true },
-        { name: "Community forum access", included: true },
-        { name: "Priority email support", included: true },
-        { name: "Downloadable resources", included: true },
-        { name: "Certificates of completion", included: true },
-        { name: "Monthly live sessions", included: true },
-        { name: "Priority support", included: true },
-        { name: "Advanced analytics", included: false },
-        { name: "Team management", included: false },
+        { name: "Access to 5 cohorts", included: true },
+        { name: "Up to 100 students per cohort", included: true },
+        { name: "Assignments and attendance management", included: true },
+        { name: "Advanced analytics", included: true },
+        { name: "Email + chat support", included: true },
       ],
+        _id:"123"
     },
     business: {
       name: "Business",
-      price: 990,
-      originalPrice: 1188,
-      description: "Ideal for teams and organizations",
+      price: 49850, // 4999 * 12 * 0.83
+      originalPrice: 59988, // 4999 * 12
+      description: "Best for large institutions with complete control and support.",
       icon: Building2,
       color: "bg-green-500",
       popular: false,
       features: [
-        { name: "Access to all courses", included: true },
-        { name: "4K video quality", included: true },
-        { name: "Mobile app access", included: true },
-        { name: "Advanced progress tracking", included: true },
-        { name: "Private team forums", included: true },
-        { name: "24/7 phone & email support", included: true },
-        { name: "Downloadable resources", included: true },
-        { name: "Certificates of completion", included: true },
-        { name: "Weekly live sessions", included: true },
-        { name: "Priority support", included: true },
-        { name: "Advanced analytics", included: true },
-        { name: "Team management (up to 50 users)", included: true },
+        { name: "Unlimited cohorts", included: true },
+        { name: "Unlimited students per cohort", included: true },
+        { name: "Full-featured student & teacher dashboards", included: true },
+        { name: "Custom branding & domain", included: true },
+        { name: "Priority 24/7 support", included: true },
       ],
+        _id:"123"
     },
   },
 };
 
+// Testimonials (unchanged)
 const testimonials: Testimonial[] = [
   {
     name: "Sarah Johnson",
@@ -235,6 +278,7 @@ const testimonials: Testimonial[] = [
   },
 ];
 
+// FAQs (unchanged)
 const faqs: FAQ[] = [
   {
     question: "Can I change my plan anytime?",
@@ -263,10 +307,19 @@ const faqs: FAQ[] = [
 ];
 
 const SubscriptionPage: React.FC = () => {
+  const { data: plansData, isLoading, isError } = useGetSubscriptionsPlanQuery();
+
+  console.log(plansData);
+
   const [isYearly, setIsYearly] = useState<boolean>(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState<boolean>(false);
   const [checkoutPlan, setCheckoutPlan] = useState<CheckoutPlan | null>(null);
+
+  // Use API data if available, otherwise fallback
+  const subscriptionPlans = plansData?.success && plansData.data
+    ? createSubscriptionPlans(plansData.data)
+    : fallbackPlans;
 
   const currentPlans = isYearly ? subscriptionPlans.yearly : subscriptionPlans.monthly;
 
@@ -278,6 +331,7 @@ const SubscriptionPage: React.FC = () => {
       originalPrice: plan.originalPrice,
       description: plan.description,
       billing: isYearly ? "yearly" : "monthly",
+      planId:plan._id
     });
     setSelectedPlan(planKey);
     setCheckoutModalOpen(true);
@@ -289,9 +343,17 @@ const SubscriptionPage: React.FC = () => {
     setSelectedPlan(null);
   };
 
+  if (isLoading) {
+    return <div className="text-center py-12">Loading plans...</div>;
+  }
+
+  if (isError) {
+    return <div className="text-center py-12 text-red-500">Error loading plans. Using fallback data.</div>;
+  }
+
   return (
     <div className="min-h-screen bg-background w-full">
-      <div className="container mx-auto px-4 py-8 ">
+      <div className="container mx-auto px-4 py-8">
         {/* Back Button */}
         <div className="mb-6">
           <Button variant="ghost" size="sm" asChild>
@@ -354,7 +416,6 @@ const SubscriptionPage: React.FC = () => {
           {Object.entries(currentPlans).map(([key, plan]) => {
             const Icon = plan.icon;
             const isPopular = plan.popular;
-            const priceInINR = Math.round(plan.price * 83);
 
             return (
               <Card
@@ -379,24 +440,23 @@ const SubscriptionPage: React.FC = () => {
 
                   <div className="mt-6">
                     <div className="flex items-center justify-center gap-2 mb-2">
-                      <span className="text-3xl font-bold">₹{priceInINR.toLocaleString()}</span>
+                      <span className="text-3xl font-bold">₹{plan.price.toLocaleString()}</span>
                       <div className="text-left">
                         <div className="text-sm text-muted-foreground">/{isYearly ? "year" : "month"}</div>
                       </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      ${plan.price} USD
-                      {isYearly && plan.originalPrice && (
-                        <span className="line-through ml-2">${plan.originalPrice}</span>
-                      )}
-                    </div>
-                    {isYearly && <p className="text-sm text-green-600 mt-2">2 months free!</p>}
+                    {isYearly && plan.originalPrice && (
+                      <div className="text-sm text-muted-foreground">
+                        <span className="line-through">₹{plan.originalPrice.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {isYearly && plan.price > 0 && <p className="text-sm text-green-600 mt-2">2 months free!</p>}
                   </div>
                 </CardHeader>
 
                 <CardContent className="px-6">
                   <ul className="space-y-3">
-                    {plan.features.slice(0, 6).map((feature, index) => (
+                    {plan.features.map((feature, index) => (
                       <li key={index} className="flex items-center gap-3">
                         {feature.included ? (
                           <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
@@ -443,23 +503,23 @@ const SubscriptionPage: React.FC = () => {
               <tbody>
                 {currentPlans.basic.features.map((_, index) => (
                   <tr key={index} className="border-b hover:bg-muted/50">
-                    <td className="p-4">{currentPlans.basic.features[index].name}</td>
+                    <td className="p-4">{currentPlans.basic.features[index]?.name || "N/A"}</td>
                     <td className="text-center p-4">
-                      {currentPlans.basic.features[index].included ? (
+                      {currentPlans.basic.features[index]?.included ? (
                         <Check className="h-5 w-5 text-green-500 mx-auto" />
                       ) : (
                         <X className="h-5 w-5 text-muted-foreground mx-auto" />
                       )}
                     </td>
                     <td className="text-center p-4">
-                      {currentPlans.pro.features[index].included ? (
+                      {currentPlans.pro.features[index]?.included ? (
                         <Check className="h-5 w-5 text-green-500 mx-auto" />
                       ) : (
                         <X className="h-5 w-5 text-muted-foreground mx-auto" />
                       )}
                     </td>
                     <td className="text-center p-4">
-                      {currentPlans.business.features[index].included ? (
+                      {currentPlans.business.features[index]?.included ? (
                         <Check className="h-5 w-5 text-green-500 mx-auto" />
                       ) : (
                         <X className="h-5 w-5 text-muted-foreground mx-auto" />
