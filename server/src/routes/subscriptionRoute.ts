@@ -21,7 +21,6 @@ router.post(
 
 router.get(
   '/',
-  protect,
   SubscriptionController.getAllSubscriptions
 );
 
