@@ -10,7 +10,25 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Lock, Shield, CheckCircle, AlertCircle } from "lucide-react";
-import { useInitiatePaymentMutation, useVerifyPaymentMutation } from "@/store/features/api/payment/payment";
+import { useCreatePaymentMutation, useValidatePaymentMutation } from "@/store/features/api/payment/payment";
+import { loadStripe } from "@stripe/stripe-js";
+declare global {
+    interface Window {
+        Razorpay: any;
+    }
+}
+
+// Function to load Razorpay SDK (from provided code)
+const loadScript = (src: string) => {
+    return new Promise((resolve) => {
+        console.log("Inserint....")
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+    });
+};
 
 // Define interfaces
 export interface CheckoutPlan {
@@ -41,7 +59,7 @@ interface FormData {
     firstName: string;
     lastName: string;
     company: string;
-    phone: string; // Added for Razorpay prefill
+    phone: string;
     billingAddress: BillingAddress;
     agreeToTerms: boolean;
 }
@@ -51,8 +69,8 @@ interface FormErrors {
 }
 
 const RazorpayCheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, plan }) => {
-    const [initiatePayment, { isLoading: isInitiating, isError: initiateError, error: initiateErrorData }] = useInitiatePaymentMutation();
-    const [verifyPayment, { isLoading: isVerifying, isError: verifyError, error: verifyErrorData }] = useVerifyPaymentMutation();
+    const [createPayment, { data }] = useCreatePaymentMutation();
+    const [validatePayment] = useValidatePaymentMutation();
 
     const [currentStep, setCurrentStep] = useState<number>(1);
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -68,34 +86,11 @@ const RazorpayCheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, 
             city: "",
             state: "",
             zipCode: "",
-            country: "IN", // Default to India
+            country: "IN",
         },
         agreeToTerms: false,
     });
     const [errors, setErrors] = useState<FormErrors>({});
-
-    // Load Razorpay SDK dynamically
-    const loadRazorpayScript = () => {
-        return new Promise<boolean>((resolve) => {
-            if ((window as any).Razorpay) {
-                console.debug("[Razorpay] SDK already loaded");
-                resolve(true);
-                return;
-            }
-            const script = document.createElement("script");
-            script.src = "https://checkout.razorpay.com/v1/checkout.js";
-            script.async = true;
-            script.onload = () => {
-                console.debug("[Razorpay] SDK loaded successfully");
-                resolve(true);
-            };
-            script.onerror = () => {
-                console.error("[Razorpay] Failed to load SDK");
-                resolve(false);
-            };
-            document.body.appendChild(script);
-        });
-    };
 
     if (!plan) {
         console.debug("[Razorpay] No plan selected, rendering null");
@@ -106,7 +101,7 @@ const RazorpayCheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, 
 
     // Calculate tax and total in INR
     const tax = plan.price * 0.18; // 18% GST
-    const total = plan.price + tax;
+    const total = Math.round(plan.price + tax);
 
     const validateStep = (step: number): boolean => {
         const newErrors: FormErrors = {};
@@ -117,7 +112,7 @@ const RazorpayCheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, 
             if (!formData.firstName) newErrors.firstName = "First name is required";
             if (!formData.lastName) newErrors.lastName = "Last name is required";
             if (!formData.phone) newErrors.phone = "Phone number is required";
-            else if (!/^\d{10}$/.test(formData.phone)) newErrors.phone = "Invalid phone number (10 digits)";
+            else if (!/^\d{10}$/.test(formData.phone)) newErrors.phone = "Phone number must be 10 digits";
         }
 
         if (step === 2) {
@@ -125,7 +120,7 @@ const RazorpayCheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, 
             if (!formData.billingAddress.city) newErrors.city = "City is required";
             if (!formData.billingAddress.state) newErrors.state = "State is required";
             if (!formData.billingAddress.zipCode) newErrors.zipCode = "PIN code is required";
-            else if (!/^\d{6}$/.test(formData.billingAddress.zipCode)) newErrors.zipCode = "Invalid PIN code (6 digits)";
+            else if (!/^\d{6}$/.test(formData.billingAddress.zipCode)) newErrors.zipCode = "PIN code must be 6 digits";
             if (!formData.billingAddress.country) newErrors.country = "Country is required";
             if (!formData.agreeToTerms) newErrors.agreeToTerms = "You must agree to the terms and conditions";
         }
@@ -177,176 +172,42 @@ const RazorpayCheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, 
         setCurrentStep(currentStep - 1);
     };
 
-    const handlePayment = async () => {
-        if (!validateStep(2)) {
-            console.debug("[Razorpay] Validation failed for Step 2");
-            return;
-        }
+const handlePayment = async () => {
+  try {
+    const stripe = await loadStripe("pk_test_51QZVRzFmcVwSRAFowZJVSN37k5u3IUyBN8m5961COu12oEz8AGzp29bwMpdRwqE4g9jQCtw2NPzVGD09G7Z1dnph00Y8V6sozf");
 
-        // Skip payment for free plans
-        if (total === 0) {
-            console.debug("[Razorpay] Free plan selected, skipping payment");
-            setPaymentSuccess(true);
-            setCurrentStep(3);
-            return;
-        }
-
-        setIsProcessing(true);
-        console.debug("[Razorpay] Initiating payment process");
-
-        try {
-            // Load Razorpay SDK
-            const scriptLoaded = await loadRazorpayScript();
-            if (!scriptLoaded) {
-                throw new Error("Failed to load Razorpay SDK");
-            }
-
-            // Check if Razorpay is available
-            if (!(window as any).Razorpay) {
-                throw new Error("Razorpay SDK not available after loading");
-            }
-
-            // Initiate Razorpay order
-            console.debug("[Razorpay] Sending initiatePayment request", {
-                subscriptionId: plan.planId,
-                amount: Math.round(total * 100),
-                currency: "INR",
-            });
-            const paymentResponse = await initiatePayment({
-                subscriptionId: plan.planId,
-                amount: Math.round(total * 100),
-                currency: "INR",
-
-            }).unwrap();
-
-            console.debug("[Razorpay] Initiate Payment Response:", JSON.stringify(paymentResponse, null, 2));
-            if (!paymentResponse.success || !paymentResponse.data?.id) {
-                throw new Error(paymentResponse.message || "Failed to create Razorpay order");
-            }
-
-            // Razorpay checkout options
-            const options = {
-                key: "rzp_test_Td92zeWQG08N6d",
-                amount: Math.round(total * 100), // Amount in paise
-                currency: "INR",
-                name: "EduLaunch",
-                description: `${plan.name} Plan Subscription (${plan.billing})`,
-                order_id: paymentResponse.data.id,
-                image: "https://your-logo-url.com/logo.png", // Replace with your logo URL
-                handler: async (response: {
-                    razorpay_payment_id: string;
-                    razorpay_order_id: string;
-                    razorpay_signature: string;
-                }) => {
-                    console.debug("[Razorpay] Payment Response:", JSON.stringify(response, null, 2));
-                    if (!response.razorpay_payment_id || !response.razorpay_order_id || !response.razorpay_signature) {
-                        console.error("[Razorpay] Incomplete payment response");
-                        setErrors({ payment: "Payment incomplete. Please try again." });
-                        return;
-                    }
-                    try {
-                        console.debug("[Razorpay] Sending verifyPayment request", {
-                            razorpay_payment_id: response.razorpay_payment_id,
-                            razorpay_order_id: response.razorpay_order_id,
-                            razorpay_signature: response.razorpay_signature,
-                            subscriptionId: plan.planId,
-                        });
-                        const verifyResponse = await verifyPayment({
-                            razorpay_payment_id: response.razorpay_payment_id,
-                            razorpay_order_id: response.razorpay_order_id,
-                            razorpay_signature: response.razorpay_signature,
-                            subscriptionId: plan.planId,
-                        }).unwrap();
-
-                        console.debug("[Razorpay] Verify Payment Response:", JSON.stringify(verifyResponse, null, 2));
-
-                        if (verifyResponse.success) {
-                            setPaymentSuccess(true);
-                            setCurrentStep(3);
-                        } else {
-                            throw new Error(verifyResponse.message || "Payment verification failed");
-                        }
-                    } catch (error: any) {
-                        console.error("[Razorpay] Verification Error:", error);
-                        setErrors({ payment: error.message || "Payment verification failed. Please try again." });
-                    }
-                },
-                prefill: {
-                    name: `${formData.firstName} ${formData.lastName}`,
-                    email: formData.email,
-                    contact: formData.phone,
-                },
-                notes: {
-                    subscriptionId: plan.planId,
-                    billing_address: `${formData.billingAddress.street}, ${formData.billingAddress.city}, ${formData.billingAddress.state}, ${formData.billingAddress.zipCode}, ${formData.billingAddress.country}`,
-                },
-                theme: {
-                    color: "#3399cc",
-                },
-                modal: {
-                    ondismiss: () => {
-                        console.debug("[Razorpay] Modal dismissed by user");
-                        setIsProcessing(false);
-                        setErrors({ payment: "Payment cancelled. Please try again." });
-                    },
-                },
-                config: {
-                    display: {
-                        blocks: {
-                            banks: {
-                                name: "Pay via",
-                                instruments: [
-                                    { method: "card" },
-                                    { method: "upi" },
-                                    { method: "netbanking" },
-                                    { method: "wallet" },
-                                ],
-                            },
-                        },
-                        sequence: ["block.banks"],
-                        preferences: {
-                            show_default_blocks: true,
-                        },
-                    },
-                },
-            };
-
-            console.debug("[Razorpay] Checkout Options:", JSON.stringify(options, null, 2));
-
-            // Open Razorpay checkout
-            const razorpay = new (window as any).Razorpay(options);
-            razorpay.open();
-            console.debug("[Razorpay] Checkout modal opened");
-
-            // Ensure modal is interactive
-            setTimeout(() => {
-                const razorpayModal = document.querySelector(".razorpay-container");
-                if (razorpayModal) {
-                    console.debug("[Razorpay] Setting modal z-index and focus");
-                    (razorpayModal as HTMLElement).style.zIndex = "10000";
-                    (razorpayModal as HTMLElement).focus();
-                } else {
-                    console.warn("[Razorpay] Modal element not found");
-                }
-            }, 500);
-
-            razorpay.on("payment.failed", (error: any) => {
-                console.error("[Razorpay] Payment Failed:", JSON.stringify(error, null, 2));
-                setErrors({
-                    payment: error.error?.description || "Payment failed. Please try again.",
-                });
-                setIsProcessing(false);
-            });
-        } catch (error: any) {
-            console.error("[Razorpay] Payment Initiation Failed:", error);
-            setErrors({
-                payment: error.message || "Failed to initiate payment. Please try again.",
-            });
-        } finally {
-            setIsProcessing(false);
-            console.debug("[Razorpay] Payment processing completed");
-        }
+    const body = {
+      plan: {
+        currency: "INR",
+        amount: total,
+      },
     };
+
+    const response = await fetch("http://localhost:3000/api/v1/payments/create-checkout-session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json", // ✅ Fixed typo here
+      },
+      body: JSON.stringify(body), // ✅ Fixed typo here
+    });
+
+    const session = await response.json();
+
+    const result = await stripe?.redirectToCheckout({
+      sessionId: session.id, // ✅ Fixed typo (was `sessione.id`)
+    });
+
+    if (result?.error) {
+      console.error(result.error.message);
+    }
+  } catch (error) {
+    console.error("Payment error:", error);
+  }
+};
+
+
+
+    
 
     const renderStep1 = (): JSX.Element => (
         <div className="space-y-6 w-full">
@@ -505,6 +366,12 @@ const RazorpayCheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, 
                     {errors.agreeToTerms && <p className="text-sm text-red-600 mt-2">{errors.agreeToTerms}</p>}
                 </div>
             </div>
+            {isProcessing && (
+                <div className="flex items-center justify-center p-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                    <p className="ml-2 text-sm">Processing payment...</p>
+                </div>
+            )}
             {errors.payment && (
                 <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-700 rounded-md">
                     <AlertCircle className="h-4 w-4 text-red-700" />
@@ -579,26 +446,25 @@ const RazorpayCheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, 
                             <div className="flex items-center justify-center mb-6">
                                 <div className="flex items-center space-x-2">
                                     <div
-                                        className={`flex items-center justify-center w-8 h-8 rounded-full text-sm ${currentStep >= 1 ? "bg-primary text-white" : "bg-gray-200"
-                                            }`}
+                                        className={`flex items-center justify-center w-8 h-8 rounded-full text-sm ${
+                                            currentStep >= 1 ? "bg-primary text-white" : "bg-gray-200"
+                                        }`}
                                     >
                                         1
                                     </div>
+                                    <div className={`h-px w-8 ${currentStep >= 2 ? "bg-primary" : "bg-gray-200"}`} />
                                     <div
-                                        className={`h-px w-8 ${currentStep >= 2 ? "bg-primary" : "bg-gray-200"}`}
-                                    />
-                                    <div
-                                        className={`flex items-center justify-center w-8 h-8 rounded-full text-sm ${currentStep >= 2 ? "bg-primary text-white" : "bg-gray-200"
-                                            }`}
+                                        className={`flex items-center justify-center w-8 h-8 rounded-full text-sm ${
+                                            currentStep >= 2 ? "bg-primary text-white" : "bg-gray-200"
+                                        }`}
                                     >
                                         2
                                     </div>
+                                    <div className={`h-px w-8 ${currentStep >= 3 ? "bg-primary" : "bg-gray-200"}`} />
                                     <div
-                                        className={`h-px w-8 ${currentStep >= 3 ? "bg-primary" : "bg-gray-200"}`}
-                                    />
-                                    <div
-                                        className={`flex items-center justify-center w-8 h-8 rounded-full text-sm ${currentStep >= 3 ? "bg-primary text-white" : "bg-gray-200"
-                                            }`}
+                                        className={`flex items-center justify-center w-8 h-8 rounded-full text-sm ${
+                                            currentStep >= 3 ? "bg-primary text-white" : "bg-gray-200"
+                                        }`}
                                     >
                                         3
                                     </div>
@@ -612,26 +478,18 @@ const RazorpayCheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, 
                             <Button
                                 variant="outline"
                                 onClick={currentStep === 1 ? onClose : handleBack}
-                                disabled={isProcessing || isInitiating || isVerifying}
+                                disabled={isProcessing}
                             >
                                 {currentStep === 1 ? "Cancel" : "Back"}
                             </Button>
                             {currentStep === 1 && (
-                                <Button
-                                    onClick={handleNext}
-                                    disabled={isProcessing || isInitiating || isVerifying}
-                                >
+                                <Button onClick={handleNext} disabled={isProcessing}>
                                     Continue
                                 </Button>
                             )}
                             {currentStep === 2 && (
-                                <Button
-                                    onClick={handlePayment}
-                                    disabled={isProcessing || isInitiating || isVerifying}
-                                >
-                                    {isProcessing || isInitiating || isVerifying
-                                        ? "Processing..."
-                                        : `Pay ₹${total.toFixed(2)}`}
+                                <Button onClick={handlePayment} disabled={isProcessing}>
+                                    {isProcessing ? "Processing..." : `Pay ₹${total.toFixed(2)}`}
                                 </Button>
                             )}
                         </div>

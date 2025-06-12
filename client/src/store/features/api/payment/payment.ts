@@ -27,12 +27,11 @@ export interface RazorpayOrderResponse {
 }
 
 export interface RequiredCredentialForVerifyPayment {
-    razorpay_order_id :string
-    razorpay_signature:string,
-    razorpay_payment_id:string,
-    subscriptionId:string
+  razorpay_order_id: string;
+  razorpay_signature: string;
+  razorpay_payment_id: string;
+  subscriptionId: string;
 }
-
 
 export const paymentApi = createApi({
   reducerPath: "paymentApi",
@@ -43,23 +42,40 @@ export const paymentApi = createApi({
   tagTypes: ["Payment"],
   endpoints: (builder) => ({
     initiatePayment: builder.mutation({
-            query: ({ subscriptionId, amount, currency }) => ({
-                url: `/${subscriptionId}/payment`,
-                method: 'POST',
-                body: { subscriptionId, amount, currency },
-            }),
-        }),
+      query: ({ subscriptionId, amount, currency }) => ({
+        url: `/${subscriptionId}/payment`,
+        method: "POST",
+        body: { subscriptionId, amount, currency },
+      }),
+    }),
 
     verifyPayment: builder.mutation({
-            query: (body) => ({
-                url: '/verify',
-                method: 'POST',
-                body,
-            }),
-        }),
+      query: (body) => ({
+        url: "/verify",
+        method: "POST",
+        body,
+      }),
+    }),
+    createPayment: builder.mutation({
+      query: (body) => ({
+        url: "/create",
+        method: "POST",
+        body: { planId: "68493bd66024452a916d7fd1" },
+      }),
+    }),
+    validatePayment: builder.mutation({
+      query: (body) => ({
+        url: "/validate", // your backend endpoint
+        method: "POST",
+        body, // must contain razorpay_order_id, razorpay_payment_id, razorpay_signature
+      }),
+    }),
   }),
 });
 
-export const { useInitiatePaymentMutation, useVerifyPaymentMutation } = paymentApi;
-
-
+export const {
+  useInitiatePaymentMutation,
+  useVerifyPaymentMutation,
+  useCreatePaymentMutation,
+  useValidatePaymentMutation
+} = paymentApi;

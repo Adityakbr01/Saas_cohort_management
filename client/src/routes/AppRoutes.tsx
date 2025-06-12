@@ -23,11 +23,13 @@ import { Route, Routes } from "react-router-dom";
 import About from "@/components/About";
 import SubscriptionPage from "@/components/Subscription";
 
+
 const AppRoutes = () => {
   return (
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<Home />} />
+
       <Route path="/about"  element={<About/>}/>
       <Route path="/subscription" element={<SubscriptionPage/>}/>
       <Route
