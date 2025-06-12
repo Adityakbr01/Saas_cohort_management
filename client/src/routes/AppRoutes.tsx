@@ -20,12 +20,16 @@ import ProtectedRoute from "@/auth/ProtectedRoute"; // Import ProtectedRoute
 import PublicRoute from "@/auth/PublicRoute"; // Import PublicRoute
 import Unauthorized from "@/pages/Unauthorized";
 import { Route, Routes } from "react-router-dom";
+import About from "@/components/About";
+import SubscriptionPage from "@/components/Subscription";
 
 const AppRoutes = () => {
   return (
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<Home />} />
+      <Route path="/about"  element={<About/>}/>
+      <Route path="/subscription" element={<SubscriptionPage/>}/>
       <Route
         path="/login"
         element={
