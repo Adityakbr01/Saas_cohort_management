@@ -19,16 +19,18 @@ export class SubscriptionDao {
     description: string;
     features: string[];
     popular: boolean;
+    tax:number;
     userId?: string;
   }) {
     try {
-      const { name, price, description, features, popular, userId } = data;
+      const { name, price, description, features, popular,tax, userId } = data;
       const subscription = new SubscriptionModel({
         name,
         price,
         description,
         features,
         popular,
+        tax,
         Owner: userId,
       });
       return await subscription.save();
@@ -49,6 +51,7 @@ export class SubscriptionDao {
       description: string;
       features: string[];
       popular: boolean;
+      tax:number;
       userId?: string;
     }
   ) {

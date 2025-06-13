@@ -8,10 +8,11 @@ type SubscriptionData = {
   features: string[];
   popular: boolean;
   userId?: string;
+  tax:number
 };
 
 export const SubscriptionService = {
-  async createSubscription({ price, name,description,features,popular,userId } : SubscriptionData) {
+  async createSubscription({ price, name,description,features,popular,tax,userId } : SubscriptionData) {
     const existing = await SubscriptionDao.getAllSubscriptions();
     if (existing.some(sub => sub.name === name)) {
       throw new ApiError(400, 'Subscription name already exists');
@@ -19,7 +20,7 @@ export const SubscriptionService = {
     if (existing.length >= 3) {
       throw new ApiError(400, 'Only 3 subscriptions allowed');
     }
-    return SubscriptionDao.createSubscription({ name, price,description,features,popular,userId });
+    return SubscriptionDao.createSubscription({ name, price,description,features,popular,tax,userId });
   },
 
   async getAllSubscriptions() {

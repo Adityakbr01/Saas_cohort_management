@@ -1,7 +1,7 @@
 import mongoose, { Document } from "mongoose";
 
 export interface ISubscriptionPlan extends Document {
-  _id:mongoose.Types.ObjectId,
+  _id: mongoose.Types.ObjectId;
   name: "basic" | "pro" | "business";
   price: number;
   description: string;
@@ -11,6 +11,7 @@ export interface ISubscriptionPlan extends Document {
   createdAt?: Date;
   updatedAt?: Date;
   Owner: mongoose.Types.ObjectId; // Reference to the User who owns this subscription plan
+  tax: number;
 }
 
 const subscriptionPlanSchema = new mongoose.Schema<ISubscriptionPlan>(
@@ -51,8 +52,13 @@ const subscriptionPlanSchema = new mongoose.Schema<ISubscriptionPlan>(
     Owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,}
+      required: true,
+    },
 
+    tax: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );
