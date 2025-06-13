@@ -21,7 +21,7 @@ import PublicRoute from "@/auth/PublicRoute"; // Import PublicRoute
 import Unauthorized from "@/pages/Unauthorized";
 import { Route, Routes } from "react-router-dom";
 import About from "@/components/About";
-import SubscriptionPage from "@/components/Subscription";
+import SubscriptionPage from "@/components/Subscription/Subscription";
 
 
 const AppRoutes = () => {
