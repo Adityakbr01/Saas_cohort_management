@@ -5,11 +5,16 @@ import { z } from "zod";
 
 // import { processPayment, verifyPayment } from "@/controllers/paymentController";
 import { protect, restrictTo } from "@/middleware/authMiddleware";
-import { createPayment, processPayment, ValidatePayment, verifyPayment } from "@/controllers/paymentController";
+import {
+  createPayment,
+  processPayment,
+  ValidatePayment,
+  verifyPayment,
+} from "@/controllers/paymentController";
 import { ApiError } from "@/utils/apiError";
 
 import { validateRequest } from "@/middleware/validateRequest";
-
+import { SubscriptionModel } from "@/models/subscriptionModel";
 
 export const paymentSchema = z.object({
   razorpay_payment_id: z.string().nonempty("Payment ID is required"),
@@ -18,19 +23,13 @@ export const paymentSchema = z.object({
   subscriptionId: z.string().nonempty("Subscription ID is required"),
 });
 
-
-if(!process.env.STRIPE_SECRET_KEY){
-  throw new ApiError(500,"Key Not Defin")
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new ApiError(500, "Key Not Defin");
 }
-
-
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-
 const paymentRouter = express.Router();
-
-
 
 // Payment routes
 
@@ -38,40 +37,76 @@ const paymentRouter = express.Router();
 paymentRouter.post("/:subscriptionId/payment", protect, processPayment);
 
 // Payment verification route
-paymentRouter.post("/verify",validateRequest(paymentSchema), protect, verifyPayment);
+paymentRouter.post(
+  "/verify",
+  validateRequest(paymentSchema),
+  protect,
+  verifyPayment
+);
 
-paymentRouter.post("/create",createPayment)
-paymentRouter.post("/validate",ValidatePayment)
+paymentRouter.post("/create", createPayment);
+paymentRouter.post("/validate", ValidatePayment);
 
 paymentRouter.post("/create-checkout-session", async (req, res) => {
   try {
-    const { amount, currency } = req.body.plan || req.body;
+    const { plan, currency = "INR", formData } = req.body.plan;
 
+    // ✅ Validate required fields
+    if (!plan || !plan.planId) {
+      throw new ApiError(400, "Plan object with valid planId is required.");
+    }
+
+    const existingPlan = await SubscriptionModel.findById(plan.planId);
+    if (!existingPlan) {
+      throw new ApiError(404, "Plan not found. Please contact support.");
+    }
+
+    // ✅ Optional: Validate formData if needed
+    if (!formData?.email || !formData?.billingAddress?.zipCode) {
+      throw new ApiError(400, "Incomplete billing information.");
+    }
+
+    const actualAmount =
+      plan.billing === "monthly"
+        ? existingPlan.price
+        : Number(existingPlan.price) * 2;
+
+    // ✅ Create Stripe session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
+      customer_email: formData.email,
+      metadata: {
+        userName: `${formData.firstName} ${formData.lastName}`,
+        phone: formData.phone || "N/A",
+        planName: existingPlan.name,
+        billingCycle: plan.billing,
+        zipCode: formData.billingAddress.zipCode,
+      },
       line_items: [
         {
           price_data: {
-            currency: currency || "INR",
+            currency,
             product_data: {
-              name: "Custom Plan", // Replace with dynamic value if needed
+              name: `${existingPlan.name.toUpperCase()} (${plan.billing})`,
+              description: existingPlan.description,
             },
-            unit_amount: amount * 100, // Stripe expects amount in paise (for INR)
+            unit_amount: actualAmount * 100, // Convert ₹ to paise
           },
           quantity: 1,
         },
       ],
-      success_url: "http://localhost:5173/profile", // ✅ Update with your frontend success URL
-      cancel_url: "http://localhost:5173/subscription",   // ✅ Update with your frontend cancel URL
+      success_url: "http://localhost:5173/profile?success=true",
+      cancel_url: "http://localhost:5173/subscription?cancelled=true",
     });
 
-    res.json({ id: session.id });
-  } catch (error) {
-    console.error("Stripe Error:", error);
-    res.status(500).json({ error: "Something went wrong" });
+    res.status(200).json({ id: session.id });
+  } catch (error: any) {
+    console.error("Stripe Error:", error.message || error);
+    res.status(error.statusCode || 500).json({
+      error: error.message || "Something went wrong. Please try again.",
+    });
   }
-})
-
+});
 
 export default paymentRouter;
