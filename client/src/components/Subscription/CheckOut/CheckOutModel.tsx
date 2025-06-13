@@ -86,8 +86,8 @@ const CheckOutModel: React.FC<CheckoutModalProps> = ({ isOpen, onClose, plan }) 
 
 
   // Calculate tax and total
-const tax = plan.price * (plan.tax / 100);
-const total = Math.round(plan.price + tax);
+  const tax = plan.price * (plan.tax / 100);
+  const total = Math.round(plan.price + tax);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -138,7 +138,7 @@ const total = Math.round(plan.price + tax);
                 )}
               </Suspense>
             </ErrorBoundary>
-        
+
           </div>
           {!state.paymentSuccess && (
             <ErrorBoundary>
