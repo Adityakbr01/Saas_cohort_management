@@ -52,6 +52,7 @@ export interface CheckoutPlan {
   description: string;
   billing: "monthly" | "yearly";
   planId: string;
+  tax:number
 }
 
 export interface ApiPlan {

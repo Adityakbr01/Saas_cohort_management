@@ -13,6 +13,7 @@ export type SubscriptionPlan = {
   createdAt: string;
   updatedAt: string;
   __v: number;
+  tax:number
 };
 
 export interface GetSubscriptionsResponse {

@@ -24,6 +24,7 @@ const subscriptionSchema = z.object({
   price: z.number().min(0, "Price must be a positive number"),
   features: z.array(z.string().min(1, "Feature cannot be empty")).min(5, "At least five features are required"),
   popular: z.boolean(),
+  tax: z.number().min(0, "Tax must be a positive number"),
 })
 
 type SubscriptionFormData = z.infer<typeof subscriptionSchema>
@@ -42,6 +43,7 @@ export function SubscriptionsPage() {
     price: 0,
     features: [],
     popular: false,
+    tax: 0
   })
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof SubscriptionFormData, string>>>({})
 
@@ -62,6 +64,7 @@ export function SubscriptionsPage() {
         price: subscription.price,
         features: subscription.features,
         popular: subscription.popular,
+        tax: subscription.tax
       })
       setIsCreating(false)
     } else {
@@ -73,6 +76,7 @@ export function SubscriptionsPage() {
         price: 0,
         features: [],
         popular: false,
+        tax: 0
       })
       setIsCreating(true)
     }
@@ -383,11 +387,24 @@ export function SubscriptionsPage() {
                           id="price"
                           type="number"
                           value={formData.price}
-                          onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                          onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value)})}
                           disabled={updateSubscriptionLoading || createSubscriptionLoading}
                           placeholder="Enter price"
                         />
                         {formErrors.price && <p className="text-sm text-red-500">{formErrors.price}</p>}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="price">Tax</Label>
+                        <Input
+                          value={formData.tax}
+                          id="tax"
+                          type="number"
+                          onChange={(e) => setFormData({ ...formData, tax: parseFloat(e.target.value) })}
+                          disabled={updateSubscriptionLoading || createSubscriptionLoading}
+                          placeholder="Enter tax"
+                          max={28}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Features</Label>
@@ -421,6 +438,7 @@ export function SubscriptionsPage() {
                         </div>
                         {formErrors.features && <p className="text-sm text-red-500">{formErrors.features}</p>}
                       </div>
+
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="popular"
@@ -456,8 +474,8 @@ export function SubscriptionsPage() {
                           {updateSubscriptionLoading || createSubscriptionLoading
                             ? "Saving..."
                             : isCreating
-                            ? "Create Plan"
-                            : "Save Changes"}
+                              ? "Create Plan"
+                              : "Save Changes"}
                         </Button>
                       </div>
                     </DialogFooter>

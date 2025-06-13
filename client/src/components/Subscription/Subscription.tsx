@@ -29,6 +29,9 @@ const SubscriptionPage: React.FC = () => {
     ? createSubscriptionPlans(plansData.data)
     : fallbackPlans;
 
+
+    console.log(plansData?.data)
+
   // Memoize currentPlans to ensure proper recomputation
   const currentPlans = useMemo(
     () => (isYearly ? subscriptionPlans.yearly : subscriptionPlans.monthly),
@@ -44,7 +47,10 @@ const SubscriptionPage: React.FC = () => {
       description: plan.description,
       billing: isYearly ? "yearly" : "monthly",
       planId: plan._id,
+      tax: plan.tax
     });
+
+    console.log(checkoutPlan)
     setSelectedPlan(planKey);
     setCheckoutModalOpen(true);
   };
@@ -75,27 +81,27 @@ const SubscriptionPage: React.FC = () => {
               have the perfect plan for your learning journey.
             </p>
             <div className="flex items-center justify-center gap-4 mb-8">
-             <Label
-              htmlFor="billing-toggle"
-              className={`text-lg ${!isYearly ? "text-primary font-medium" : "text-muted-foreground"}`}
-            >
-              Monthly
-            </Label>
-            <Switch
-              id="billing-toggle"
-              checked={isYearly}
-              onCheckedChange={setIsYearly}
-              
-              className="data-[state=checked]:bg-primary cursor-pointer"
-            />
-            <Label
-              htmlFor="billing-toggle"
-              className={`text-lg ${isYearly ? "text-primary font-medium" : "text-muted-foreground"}`}
-            >
-              Yearly
-            </Label>
-           
-          </div>
+              <Label
+                htmlFor="billing-toggle"
+                className={`text-lg ${!isYearly ? "text-primary font-medium" : "text-muted-foreground"}`}
+              >
+                Monthly
+              </Label>
+              <Switch
+                id="billing-toggle"
+                checked={isYearly}
+                onCheckedChange={setIsYearly}
+
+                className="data-[state=checked]:bg-primary cursor-pointer"
+              />
+              <Label
+                htmlFor="billing-toggle"
+                className={`text-lg ${isYearly ? "text-primary font-medium" : "text-muted-foreground"}`}
+              >
+                Yearly
+              </Label>
+
+            </div>
           </header>
         </ErrorBoundary>
 

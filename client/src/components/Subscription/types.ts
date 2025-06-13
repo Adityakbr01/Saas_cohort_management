@@ -15,6 +15,7 @@ export interface Plan {
   popular: boolean;
   features: Feature[];
   _id: string;
+  tax:number
 }
 
 export interface SubscriptionPlans {
@@ -28,6 +29,7 @@ export interface SubscriptionPlans {
     pro: Plan;
     business: Plan;
   };
+
 }
 
 export interface Testimonial {
@@ -52,6 +54,7 @@ export interface CheckoutPlan {
   description: string;
   billing: "monthly" | "yearly";
   planId: string;
+  tax:number
 }
 
 export interface ApiPlan {
@@ -66,4 +69,5 @@ export interface ApiPlan {
   createdAt: string;
   updatedAt: string;
   __v: number;
+  tax:number
 }

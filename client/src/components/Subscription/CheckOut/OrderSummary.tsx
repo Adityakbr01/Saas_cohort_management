@@ -12,6 +12,7 @@ interface OrderSummaryProps {
 }
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({ plan, tax, total }) => {
+  console.log(plan)
   return (
     <Card>
       <CardHeader>
@@ -38,7 +39,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ plan, tax, total }) => {
             </div>
           )}
           <div className="flex justify-between">
-            <span>GST (18%):</span>
+            <span>GST ({plan.tax}%):</span>
             <span>₹{tax.toFixed(2)}</span>
           </div>
           <Separator />

@@ -84,9 +84,10 @@ const CheckOutModel: React.FC<CheckoutModalProps> = ({ isOpen, onClose, plan }) 
     return null;
   }
 
+
   // Calculate tax and total
-  const tax = plan.price * 0.18; // 18% GST
-  const total = Math.round(plan.price + tax);
+const tax = plan.price * (plan.tax / 100);
+const total = Math.round(plan.price + tax);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

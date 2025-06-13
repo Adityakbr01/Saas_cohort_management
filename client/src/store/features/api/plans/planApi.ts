@@ -13,6 +13,7 @@ export type SubscriptionPlan = {
   createdAt: string;
   updatedAt: string;
   __v: number;
+  tax: number;
 };
 
 export interface GetSubscriptionsResponse {
@@ -32,22 +33,21 @@ export const plansApi = createApi({
   tagTypes: ["SubscriptionPlan"],
   endpoints: (builder) => ({
     getSubscriptionsPlan: builder.query<GetSubscriptionsResponse, void>({
-  query: () => ({
-    url: "/",
-    method: "GET",
-  }),
-  providesTags: (result) =>
-    result?.data
-      ? [
-          ...result.data.map(({ _id }) => ({
-            type: "SubscriptionPlan" as const,
-            id: _id,
-          })),
-          { type: "SubscriptionPlan", id: "LIST" },
-        ]
-      : [{ type: "SubscriptionPlan", id: "LIST" }],
-})
-
+      query: () => ({
+        url: "/",
+        method: "GET",
+      }),
+      providesTags: (result) =>
+        result?.data
+          ? [
+              ...result.data.map(({ _id }) => ({
+                type: "SubscriptionPlan" as const,
+                id: _id,
+              })),
+              { type: "SubscriptionPlan", id: "LIST" },
+            ]
+          : [{ type: "SubscriptionPlan", id: "LIST" }],
+    }),
   }),
 });
 

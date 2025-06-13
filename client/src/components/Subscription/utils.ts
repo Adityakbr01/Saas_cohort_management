@@ -1,9 +1,10 @@
 import { BookOpen, Building2, Star, type LucideIcon } from "lucide-react";
 import type { ApiPlan, Plan, SubscriptionPlans } from "./types";
 
-export const createSubscriptionPlans = (apiPlans: ApiPlan[]): SubscriptionPlans => {
+export const createSubscriptionPlans = (
+  apiPlans: ApiPlan[]
+): SubscriptionPlans => {
   const planMap: { [key: string]: Plan } = {};
-
   const iconMap: { [key: string]: LucideIcon } = {
     basic: BookOpen,
     pro: Star,
@@ -15,6 +16,8 @@ export const createSubscriptionPlans = (apiPlans: ApiPlan[]): SubscriptionPlans 
     business: "bg-green-500",
   };
 
+  console.log(apiPlans);
+
   apiPlans.forEach((apiPlan) => {
     const normalizedName = apiPlan.name.toLowerCase();
     planMap[normalizedName] = {
@@ -24,6 +27,7 @@ export const createSubscriptionPlans = (apiPlans: ApiPlan[]): SubscriptionPlans 
       icon: iconMap[normalizedName] || BookOpen,
       color: colorMap[normalizedName] || "bg-blue-500",
       popular: apiPlan.popular,
+      tax: apiPlan.tax ?? 0,
       features: apiPlan.features.map((feature) => ({
         name: feature,
         included: true,
