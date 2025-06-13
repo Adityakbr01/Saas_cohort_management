@@ -1,9 +1,11 @@
 import mongoose, { Document } from "mongoose";
+import { number } from "zod";
 
 export interface ISubscriptionPlan extends Document {
   _id: mongoose.Types.ObjectId;
   name: "basic" | "pro" | "business";
   price: number;
+  yearlyPrice:number;
   description: string;
   features: string[];
   popular?: boolean;
@@ -12,6 +14,7 @@ export interface ISubscriptionPlan extends Document {
   updatedAt?: Date;
   Owner: mongoose.Types.ObjectId; // Reference to the User who owns this subscription plan
   tax: number;
+  discount:number
 }
 
 const subscriptionPlanSchema = new mongoose.Schema<ISubscriptionPlan>(
@@ -24,6 +27,10 @@ const subscriptionPlanSchema = new mongoose.Schema<ISubscriptionPlan>(
     },
     price: {
       type: Number,
+      required: true,
+    },
+    yearlyPrice:{
+      type:Number,
       required: true,
     },
     description: {
@@ -59,6 +66,11 @@ const subscriptionPlanSchema = new mongoose.Schema<ISubscriptionPlan>(
       type: Number,
       default: 0,
     },
+    discount: {
+      type: Number,
+      default: 0,
+    },
+
   },
   { timestamps: true }
 );

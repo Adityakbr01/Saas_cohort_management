@@ -51,7 +51,6 @@ paymentRouter.post("/create-checkout-session", async (req, res) => {
   try {
     const { plan, currency = "INR", formData } = req.body.plan;
 
-    // ✅ Validate required fields
     if (!plan || !plan.planId) {
       throw new ApiError(400, "Plan object with valid planId is required.");
     }
@@ -61,17 +60,23 @@ paymentRouter.post("/create-checkout-session", async (req, res) => {
       throw new ApiError(404, "Plan not found. Please contact support.");
     }
 
-    // ✅ Optional: Validate formData if needed
     if (!formData?.email || !formData?.billingAddress?.zipCode) {
       throw new ApiError(400, "Incomplete billing information.");
     }
 
+    const discountAmount =
+      existingPlan.yearlyPrice * (existingPlan.discount / 100);
+
+    console.log(discountAmount);
+
+    // ✅ Use real price from DB
     const actualAmount =
       plan.billing === "monthly"
         ? existingPlan.price
-        : Number(existingPlan.price) * 2;
+        : existingPlan.yearlyPrice - discountAmount;
+    const taxAmount = actualAmount * (existingPlan.tax / 100);
+    const totalAmount = actualAmount + taxAmount;
 
-    // ✅ Create Stripe session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
@@ -91,7 +96,7 @@ paymentRouter.post("/create-checkout-session", async (req, res) => {
               name: `${existingPlan.name.toUpperCase()} (${plan.billing})`,
               description: existingPlan.description,
             },
-            unit_amount: actualAmount * 100, // Convert ₹ to paise
+            unit_amount: Math.round(totalAmount * 100),
           },
           quantity: 1,
         },
