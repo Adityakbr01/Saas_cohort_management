@@ -12,7 +12,8 @@ interface OrderSummaryProps {
 }
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({ plan, tax, total }) => {
-  console.log(plan)
+  const discountPercentage = plan?.discount ?? 0;
+  const discountAmount = plan.price * (discountPercentage / 100);
   return (
     <Card>
       <CardHeader>
@@ -32,22 +33,26 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ plan, tax, total }) => {
             <span>Subtotal:</span>
             <span>₹{plan.price.toFixed(2)}</span>
           </div>
-          {plan.originalPrice && (
+
+          {discountAmount > 0 && (
             <div className="flex justify-between text-green-600">
-              <span>Discount:</span>
-              <span>-₹{(plan.originalPrice - plan.price).toFixed(2)}</span>
+              <span>Discount ({discountPercentage}%):</span>
+              <span>-₹{discountAmount.toFixed(2)}</span>
             </div>
           )}
+
           <div className="flex justify-between">
             <span>GST ({plan.tax}%):</span>
             <span>₹{tax.toFixed(2)}</span>
           </div>
+
           <Separator />
           <div className="flex justify-between font-medium">
             <span>Total:</span>
-            <span>₹{total.toFixed(2)}</span>
+            <span>₹{Math.round(total-discountAmount)}</span>
           </div>
         </div>
+
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Shield className="h-4 w-4" />
           <span>Secured by Stripe</span>
@@ -56,5 +61,6 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ plan, tax, total }) => {
     </Card>
   );
 };
+
 
 export default memo(OrderSummary);

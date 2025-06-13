@@ -85,6 +85,9 @@ const BillingInfoForm: React.FC<BillingInfoFormProps> = ({
   const handleBlur = (field: string, value: any) => {
     debouncedUpdate(dispatch, field, value);
   };
+   const discountPercentage = plan?.discount ?? 0;
+
+  const discountAmount = plan.price * (discountPercentage / 100);
 
   const handlePayment = async () => {
     const validationErrors = validateStep2(formData);
@@ -138,7 +141,7 @@ const BillingInfoForm: React.FC<BillingInfoFormProps> = ({
         { id: "state", label: "State *" },
         { id: "zipCode", label: "PIN Code *", maxLength: 6 },
       ].map(({ id, label, maxLength }) => (
-        <div key={id}>
+        <div key={id} className="space-y-2">
           <Label htmlFor={id}>{label}</Label>
           <Input
             id={id}
@@ -153,7 +156,7 @@ const BillingInfoForm: React.FC<BillingInfoFormProps> = ({
       ))}
 
       {/* Country Select */}
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="country">Country *</Label>
         <Select
           value={formData.billingAddress.country}
@@ -200,7 +203,7 @@ const BillingInfoForm: React.FC<BillingInfoFormProps> = ({
           Back
         </Button>
         <Button onClick={handlePayment} disabled={isProcessing}>
-          {isProcessing ? "Processing..." : `Pay ₹${total.toFixed(2)}`}
+          {isProcessing ? "Processing..." : `Pay ₹${Math.round(total-discountAmount)}`}
         </Button>
       </div>
     </div>

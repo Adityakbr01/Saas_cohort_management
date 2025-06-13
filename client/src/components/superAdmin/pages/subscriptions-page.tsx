@@ -25,6 +25,8 @@ const subscriptionSchema = z.object({
   features: z.array(z.string().min(1, "Feature cannot be empty")).min(5, "At least five features are required"),
   popular: z.boolean(),
   tax: z.number().min(0, "Tax must be a positive number"),
+  yearlyPrice: z.number().min(0, "Yearly Price must be a positive number"),
+  discount: z.number().min(0, "Discount Price must be a positive number"),
 })
 
 type SubscriptionFormData = z.infer<typeof subscriptionSchema>
@@ -43,7 +45,9 @@ export function SubscriptionsPage() {
     price: 0,
     features: [],
     popular: false,
-    tax: 0
+    tax: 0,
+    yearlyPrice: 0,
+    discount: 0
   })
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof SubscriptionFormData, string>>>({})
 
@@ -64,7 +68,9 @@ export function SubscriptionsPage() {
         price: subscription.price,
         features: subscription.features,
         popular: subscription.popular,
-        tax: subscription.tax
+        tax: subscription.tax,
+        yearlyPrice: subscription.yearlyPrice,
+        discount: subscription.discount
       })
       setIsCreating(false)
     } else {
@@ -76,7 +82,9 @@ export function SubscriptionsPage() {
         price: 0,
         features: [],
         popular: false,
-        tax: 0
+        tax: 0,
+        yearlyPrice: 0,
+        discount: 0
       })
       setIsCreating(true)
     }
@@ -332,7 +340,7 @@ export function SubscriptionsPage() {
                   ))}
                 </ul>
               </CardContent>
-              <CardFooter className="flex flex-col space-y-2">
+              <CardFooter className="flex flex-col space-y-2 ">
                 <Dialog open={open} onOpenChange={setOpen}>
                   <DialogTrigger asChild>
                     <Button
@@ -344,14 +352,14 @@ export function SubscriptionsPage() {
                       Manage Plan
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
+                  <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
                     <DialogHeader>
                       <DialogTitle>{isCreating ? "Create New Plan" : `Edit ${selectedSubscription?.name}`}</DialogTitle>
                       <DialogDescription>
                         {isCreating ? "Enter the details for the new plan" : "Update the details for this plan"}
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
+                    <div className="flex-1 overflow-y-auto space-y-4 py-4">
                       <div className="space-y-2">
                         <Label htmlFor="name">Plan Name</Label>
                         <Select
@@ -387,11 +395,24 @@ export function SubscriptionsPage() {
                           id="price"
                           type="number"
                           value={formData.price}
-                          onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value)})}
+                          onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
                           disabled={updateSubscriptionLoading || createSubscriptionLoading}
                           placeholder="Enter price"
                         />
                         {formErrors.price && <p className="text-sm text-red-500">{formErrors.price}</p>}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="yearlyPrice">YearlyPrice (₹)</Label>
+                        <Input
+                          value={formData.yearlyPrice}
+                          id="yearlyPrice"
+                          type="number"
+                          onChange={(e) => setFormData({ ...formData, yearlyPrice: parseFloat(e.target.value) })}
+                          disabled={updateSubscriptionLoading || createSubscriptionLoading}
+                          placeholder="Enter yearlyPrice"
+
+                        />
                       </div>
 
                       <div className="space-y-2">
@@ -406,6 +427,19 @@ export function SubscriptionsPage() {
                           max={28}
                         />
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="price">discount</Label>
+                        <Input
+                          value={formData.discount}
+                          id="discount"
+                          type="number"
+                          onChange={(e) => setFormData({ ...formData, discount: parseFloat(e.target.value) })}
+                          disabled={updateSubscriptionLoading || createSubscriptionLoading}
+                          placeholder="Enter discount"
+                        />
+                      </div>
+
+
                       <div className="space-y-2">
                         <Label>Features</Label>
                         <div className="space-y-2">

@@ -11,18 +11,41 @@ interface PricingCardsProps {
 }
 
 const PricingCards: React.FC<PricingCardsProps> = ({ plans, onPlanSelect, isYearly }) => {
+  if (!plans || Object.keys(plans).length === 0) {
+    return <div className="text-center text-muted-foreground">No plans available</div>;
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
       {Object.entries(plans).map(([key, plan]) => {
+        if (!plan) return null;
+
+        console.log({
+          planKey: key,
+          isYearly,
+          originalPrice: plan.originalPrice,
+          price: plan.price,
+          yearlyPrice: plan.yearlyPrice,
+          discount: plan.discount,
+          calculatedDiscount: plan.originalPrice && plan.originalPrice - plan.price,
+        });
+
         const Icon = plan.icon;
         const isPopular = plan.popular;
+
+        // Use API discount if available, else calculate
+        const hasDiscount = isYearly && (plan.discount > 0 || (plan.originalPrice && plan.originalPrice > plan.yearlyPrice));
+        const discountPercent = plan.discount > 0 ? plan.discount : plan.originalPrice && plan.yearlyPrice < plan.originalPrice ? Math.round(((plan.originalPrice - plan.yearlyPrice) / plan.originalPrice) * 100) : 0;
+        const discountAmount = plan.originalPrice && discountPercent > 0 ? Math.round((plan.originalPrice * discountPercent) / 100) : 0;
+
+        // Use yearlyPrice for yearly mode, price for monthly mode
+        const displayPrice = isYearly ? plan.yearlyPrice - discountAmount : plan.price;
 
         return (
           <Card
             key={key}
-            className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl ${
-              isPopular ? "border-primary shadow-lg scale-105" : "hover:scale-105"
-            }`}
+            className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl ${isPopular ? "border-primary shadow-lg scale-105" : "hover:scale-105"
+              }`}
             aria-label={`${plan.name} plan card`}
           >
             {isPopular && (
@@ -37,21 +60,28 @@ const PricingCards: React.FC<PricingCardsProps> = ({ plans, onPlanSelect, isYear
               </div>
               <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
               <CardDescription className="text-base">{plan.description}</CardDescription>
+
               <div className="mt-6">
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <span className="text-3xl font-bold">₹{plan.price.toLocaleString()}</span>
+                  <span className="text-3xl font-bold">₹{displayPrice.toLocaleString()}</span>
                   <div className="text-left">
                     <div className="text-sm text-muted-foreground">/{isYearly ? "year" : "month"}</div>
                   </div>
                 </div>
-                {isYearly && plan.originalPrice && (
-                  <div className="text-sm text-muted-foreground">
-                    <span className="line-through">₹{plan.originalPrice.toLocaleString()}</span>
-                  </div>
+
+                {hasDiscount && (
+                  <>
+                    <div className="text-sm text-muted-foreground">
+                      <span className="line-through">₹{plan.originalPrice?.toLocaleString()}</span>
+                    </div>
+                    <p className="text-sm text-green-600 mt-2">
+                      Save ₹{discountAmount.toLocaleString()} ({discountPercent}% off)
+                    </p>
+                  </>
                 )}
-                {isYearly && plan.price > 0 && <p className="text-sm text-green-600 mt-2">2 months free!</p>}
               </div>
             </CardHeader>
+
             <CardContent className="px-6">
               <ul className="space-y-3">
                 {plan.features.map((feature, index) => (
@@ -68,6 +98,7 @@ const PricingCards: React.FC<PricingCardsProps> = ({ plans, onPlanSelect, isYear
                 ))}
               </ul>
             </CardContent>
+
             <div className="p-6 pt-0">
               <Button
                 className="w-full"
@@ -78,7 +109,9 @@ const PricingCards: React.FC<PricingCardsProps> = ({ plans, onPlanSelect, isYear
               >
                 Choose Plan
               </Button>
-              <p className="text-center text-sm text-muted-foreground mt-3">7-day free trial • Cancel anytime</p>
+              <p className="text-center text-sm text-muted-foreground mt-3">
+                7-day free trial • Cancel anytime
+              </p>
             </div>
           </Card>
         );

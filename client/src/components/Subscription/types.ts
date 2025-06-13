@@ -7,7 +7,8 @@ export interface Feature {
 
 export interface Plan {
   name: string;
-  price: number;
+   price: number; // monthlyPrice
+  yearlyPrice: number;
   originalPrice?: number;
   description: string;
   icon: LucideIcon;
@@ -16,18 +17,19 @@ export interface Plan {
   features: Feature[];
   _id: string;
   tax:number
+  discount:number
 }
 
 export interface SubscriptionPlans {
   monthly: {
-    basic: Plan;
-    pro: Plan;
-    business: Plan;
+    basic?: Plan;
+    pro?: Plan;
+    business?: Plan;
   };
   yearly: {
-    basic: Plan;
-    pro: Plan;
-    business: Plan;
+    basic?: Plan;
+    pro?: Plan;
+    business?: Plan;
   };
 
 }
@@ -55,6 +57,7 @@ export interface CheckoutPlan {
   billing: "monthly" | "yearly";
   planId: string;
   tax:number
+  discount:number
 }
 
 export interface ApiPlan {
@@ -70,4 +73,6 @@ export interface ApiPlan {
   updatedAt: string;
   __v: number;
   tax:number
+  discount:number
+  yearlyPrice:number
 }

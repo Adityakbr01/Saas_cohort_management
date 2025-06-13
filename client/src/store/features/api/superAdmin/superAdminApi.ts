@@ -14,6 +14,8 @@ export type SubscriptionPlan = {
   updatedAt: string;
   __v: number;
   tax:number
+  yearlyPrice:number
+  discount:number
 };
 
 export interface GetSubscriptionsResponse {

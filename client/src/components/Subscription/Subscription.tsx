@@ -40,16 +40,20 @@ const SubscriptionPage: React.FC = () => {
 
   const handlePlanSelect = (planKey: string) => {
     const plan = currentPlans[planKey as keyof typeof currentPlans];
-    setCheckoutPlan({
+    if(plan){
+  setCheckoutPlan({
       name: plan.name,
       price: plan.price,
       originalPrice: plan.originalPrice,
       description: plan.description,
       billing: isYearly ? "yearly" : "monthly",
       planId: plan._id,
-      tax: plan.tax
+      tax: plan.tax,
+      discount:plan.discount
     });
 
+    }
+  
     console.log(checkoutPlan)
     setSelectedPlan(planKey);
     setCheckoutModalOpen(true);
