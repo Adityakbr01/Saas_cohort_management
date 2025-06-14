@@ -48,9 +48,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 
-app.use(express.json({ limit: "24kb" }));
-app.use(express.urlencoded({ extended: true, limit: "24kb" }));
-app.use(cookieParser());
+
 
 app.use(
   cors({
@@ -60,6 +58,15 @@ app.use(
     maxAge: 86400,
   })
 );
+
+
+app.use(cookieParser());
+
+app.use("/api/v1/payments",paymentRouter)
+
+app.use(express.json({ limit: "24kb" }));
+app.use(express.urlencoded({ extended: true, limit: "24kb" }));
+
 
 
 app.use((_, res, next) => {

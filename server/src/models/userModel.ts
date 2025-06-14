@@ -87,7 +87,6 @@ const userSchema = new Schema<IUser, UserModel>(
       required: false, // Optional field for subscription plan
       default: null,
     },
-
     subscriptionMeta: {
       startDate: { type: Date, default: Date.now },
       expiresDate: { type: Date },
