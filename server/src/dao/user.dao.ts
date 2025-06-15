@@ -63,6 +63,19 @@ export const UserDAO = {
     return User.findById(userId);
   },
 
+ async getProfileById(userId: string): Promise<IUser | null> {
+  try {
+    const user = await User.findById(userId)
+      .select("-password -refreshTokens") // 🛠️ '-' lagana na bhoolein before field
+      .lean(); // Optional: Returns plain JS object instead of Mongoose doc
+
+    return user as IUser | null;
+  } catch (error) {
+    console.error("Error in getProfileById:", error);
+    return null;
+  }
+},
+
   async updateUser(id: string, updates: Partial<IUser>): Promise<IUser | null> {
     return User.findByIdAndUpdate(
       id,
