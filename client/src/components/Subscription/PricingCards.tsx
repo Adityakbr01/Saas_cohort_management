@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, Sparkles, X } from "lucide-react";
 import { type Plan } from "./types";
+import { useSelector } from "react-redux";
+import { selectCurrentUser } from "@/store/features/slice/UserAuthSlice";
 
 interface PricingCardsProps {
   plans: { [key: string]: Plan };
@@ -15,12 +17,16 @@ const PricingCards: React.FC<PricingCardsProps> = ({ plans, onPlanSelect, isYear
     return <div className="text-center text-muted-foreground">No plans available</div>;
   }
 
+  const user = useSelector(selectCurrentUser);
+  user?.plan // plan id hai 
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
       {Object.entries(plans).map(([key, plan]) => {
         if (!plan) return null;
 
         console.log({
+          plan,
           planKey: key,
           isYearly,
           originalPrice: plan.originalPrice,
@@ -101,13 +107,14 @@ const PricingCards: React.FC<PricingCardsProps> = ({ plans, onPlanSelect, isYear
 
             <div className="p-6 pt-0">
               <Button
-                className="w-full"
+                className="w-full cursor-pointer"
                 size="lg"
                 variant={isPopular ? "default" : "outline"}
                 onClick={() => onPlanSelect(key)}
-                aria-label={`Choose ${plan.name} plan`}
+                aria-label={`${user?.plan === key ? "Extend Plan" : `Choose ${plan.name} plan`}`}
+                disabled={user?.plan === key}
               >
-                Choose Plan
+                {user?.plan === plan._id ? "Extend Plan" : "Choose Plan"}
               </Button>
               <p className="text-center text-sm text-muted-foreground mt-3">
                 7-day free trial • Cancel anytime

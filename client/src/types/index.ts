@@ -7,6 +7,7 @@ export interface User {
   avatarUrl?: string;    // optional user avatar image URL
   createdAt: string;     // ISO date string
   updatedAt: string;
+  plan:any
 }
 
 // Organization type
