@@ -50,7 +50,7 @@ const PricingCards: React.FC<PricingCardsProps> = ({ plans, onPlanSelect, isYear
         return (
           <Card
             key={key}
-            className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl ${isPopular ? "border-primary shadow-lg scale-105" : "hover:scale-105"
+            className={`relative font-NeuMechina overflow-hidden transition-all duration-300 hover:shadow-xl ${isPopular ? "border-primary shadow-lg scale-105" : "hover:scale-105"
               }`}
             aria-label={`${plan.name} plan card`}
           >

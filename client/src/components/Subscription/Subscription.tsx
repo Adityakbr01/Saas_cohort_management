@@ -76,7 +76,7 @@ const SubscriptionPage: React.FC = () => {
         </Button>
 
         <ErrorBoundary>
-          <header className="text-center mb-12">
+          <header className="text-center mb-12 font-NeuMechina">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
               Choose Your <span className="text-primary">Learning Plan</span>
             </h1>

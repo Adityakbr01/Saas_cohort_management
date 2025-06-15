@@ -7,7 +7,7 @@ export default function HeroSection() {
     <section className="relative py-20 lg:py-32 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
+          <h1 className="font-NeuMechina text-4xl md:text-6xl font-bold tracking-tight mb-6">
             Transform Your Learning
             <span className="text-primary block">Journey Today</span>
           </h1>
@@ -18,13 +18,13 @@ export default function HeroSection() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Button size="lg" className="text-lg px-8 py-6" asChild>
-              <Link to="/courses">
+              <Link to="/courses" className="font-NeuMechina">
                 Explore Courses
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             <Button variant="outline" size="lg" className="text-lg px-8 py-6" asChild>
-              <Link to="/demo">Watch Demo</Link>
+              <Link to="/demo" className="font-NeuMechina">Watch Demo</Link>
             </Button>
           </div>
 
