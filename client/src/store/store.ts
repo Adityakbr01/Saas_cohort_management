@@ -5,8 +5,13 @@ import {subscriptionApi} from "@/store/features/api/superAdmin/superAdminApi"
 import { plansApi } from "./features/api/plans/planApi";
 import { paymentApi } from "./features/api/payment/payment";
 
+
+
+import authReducer from "@/store/features/slice/UserAuthSlice"; // ✅ correct path lagayein
+
 export const store = configureStore({
   reducer: {
+    auth: authReducer,
     [authApi.reducerPath]: authApi.reducer,
     [subscriptionApi.reducerPath]: subscriptionApi.reducer,
     [plansApi.reducerPath] : plansApi.reducer,
