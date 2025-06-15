@@ -76,10 +76,7 @@ export const authApi = createApi({
         body: email,
       }),
     }),
-    initiateForgotPassword: builder.mutation<
-      AuthResponse,
-      { email: string }
-    >({ 
+    initiateForgotPassword: builder.mutation<AuthResponse, { email: string }>({
       query: (email) => ({
         url: "/initiate-forgot-password",
         method: "POST",
@@ -103,6 +100,10 @@ export const authApi = createApi({
         body: email,
       }),
     }),
+
+    getProfile: builder.query({
+      query: () => "/profile",
+    }),
   }),
 });
 
@@ -114,4 +115,5 @@ export const {
   useInitiateForgotPasswordMutation,
   useComplateForgotPasswordMutation,
   useResendForgotPasswordOtpMutation,
+  useGetProfileQuery,
 } = authApi;
