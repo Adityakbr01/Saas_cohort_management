@@ -19,6 +19,7 @@ import type {
   FormData,
   FormErrors,
 } from "./types";
+import { useCreate_checkout_sessionMutation } from "@/store/features/api/payment/payment";
 
 interface BillingInfoFormProps {
   formData: FormData;
@@ -67,6 +68,12 @@ const BillingInfoForm: React.FC<BillingInfoFormProps> = ({
   total,
   isProcessing,
 }) => {
+
+  //rtk
+  const [useCreate_checkout] = useCreate_checkout_sessionMutation()
+
+
+
   const handleChange = (field: string, value: any) => {
     if (typeof value === "boolean") {
       dispatch({ type: "UPDATE_FORM_DATA", payload: { [field]: value } });
@@ -85,7 +92,7 @@ const BillingInfoForm: React.FC<BillingInfoFormProps> = ({
   const handleBlur = (field: string, value: any) => {
     debouncedUpdate(dispatch, field, value);
   };
-   const discountPercentage = plan?.discount ?? 0;
+  const discountPercentage = plan?.discount ?? 0;
 
   const discountAmount = plan.price * (discountPercentage / 100);
 
@@ -106,11 +113,9 @@ const BillingInfoForm: React.FC<BillingInfoFormProps> = ({
         },
       };
 
-      const response = await fetch("http://localhost:3000/api/v1/payments/create-checkout-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const response = await useCreate_checkout(body).unwrap()
+
+      console.log(response)
 
       if (!response.ok) throw new Error("Failed to create checkout session");
 
@@ -203,7 +208,7 @@ const BillingInfoForm: React.FC<BillingInfoFormProps> = ({
           Back
         </Button>
         <Button onClick={handlePayment} disabled={isProcessing}>
-          {isProcessing ? "Processing..." : `Pay ₹${Math.round(total-discountAmount)}`}
+          {isProcessing ? "Processing..." : `Pay ₹${Math.round(total - discountAmount)}`}
         </Button>
       </div>
     </div>

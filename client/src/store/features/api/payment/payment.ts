@@ -70,6 +70,13 @@ export const paymentApi = createApi({
         body, // must contain razorpay_order_id, razorpay_payment_id, razorpay_signature
       }),
     }),
+    create_checkout_session:builder.mutation({
+      query:(body)=>({
+        url:"/create-checkout-session",
+        method: "POST",
+        body,
+      })
+    })
   }),
 });
 
@@ -77,5 +84,6 @@ export const {
   useInitiatePaymentMutation,
   useVerifyPaymentMutation,
   useCreatePaymentMutation,
-  useValidatePaymentMutation
+  useValidatePaymentMutation,
+  useCreate_checkout_sessionMutation
 } = paymentApi;
