@@ -233,7 +233,7 @@ export const UserService = {
   },
 
   async getProfile(userId: string) {
-    const user = await UserDAO.findById(userId);
+    const user = await UserDAO.getProfileById(userId);
     if (!user) throw new ApiError(404, "User not found");
     return user;
   },
