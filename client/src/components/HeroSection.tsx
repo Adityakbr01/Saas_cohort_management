@@ -4,7 +4,35 @@ import { Link } from "react-router-dom"
 
 export default function HeroSection() {
   return (
-    <section className="relative py-20 lg:py-32 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+
+    //bg-gradient-to-br from-primary/5 via-background to-secondary/5
+    <section className="relative py-20 lg:py-32 ">
+  <div
+  className="absolute top-0 left-0 w-full h-80 pointer-events-none z-0 overflow-hidden"
+  style={{
+    background: `linear-gradient(to right, rgba(255, 99, 8, 0.1), rgba(255, 99, 8, 0.1), rgba(189, 201, 230, 0.1), rgba(151, 196, 255, 0.1), rgba(151, 196, 255, 0.1))`,
+    maskImage: `radial-gradient(ellipse at top, black, transparent 70%)`,
+    WebkitMaskImage: `radial-gradient(ellipse at top, black, transparent 70%)`,
+  }}
+>
+  {Array.from({ length: 20 }).map((_, i) => (
+    <span
+      key={i}
+      className="absolute w-1 h-1 bg-white rounded-full opacity-40 animate-pulse"
+      style={{
+        top: `${Math.random() * 100}%`,
+        left: `${Math.random() * 100}%`,
+        animationDuration: `${3 + Math.random() * 2}s`,
+        animationName: "moveParticle",
+        animationTimingFunction: "ease-in-out",
+        animationIterationCount: "infinite",
+        animationDirection: "alternate",
+      }}
+    />
+  ))}
+</div>
+
+
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="font-NeuMechina text-4xl md:text-6xl font-bold tracking-tight mb-6">

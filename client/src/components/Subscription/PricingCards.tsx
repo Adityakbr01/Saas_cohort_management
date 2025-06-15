@@ -55,6 +55,18 @@ const PricingCards: React.FC<PricingCardsProps> = ({ plans, onPlanSelect, isYear
             aria-label={`${plan.name} plan card`}
           >
             {isPopular && (
+                          <div
+  className="absolute -top-12 left-0 w-full h-80 pointer-events-none z-0"
+  style={{
+    background: `linear-gradient(to right, rgba(255, 99, 8, 0.2), rgba(255, 99, 8, 0.2), rgba(189, 201, 230, 0.2), rgba(151, 196, 255, 0.2), rgba(151, 196, 255, 0.2))`,
+    maskImage: `radial-gradient(ellipse at top, black, transparent 80%)`,
+    WebkitMaskImage: `radial-gradient(ellipse at top, black, transparent 80%)`,
+  }}
+/>
+            )}
+
+
+            {isPopular && (
               <div className="absolute top-0 left-0 right-0 bg-primary text-primary-foreground text-center py-2 text-sm font-medium">
                 <Sparkles className="inline h-4 w-4 mr-1" aria-hidden="true" />
                 Most Popular
