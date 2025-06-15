@@ -3,11 +3,11 @@ import { UserService } from "@/services/user.service";
 import { sendError, sendSuccess } from "@/utils/responseUtil";
 import { wrapAsync } from "@/utils/wrapAsync";
 import { logger } from "@/utils/logger";
-import { cookieConfig } from "@/configs/cookieConfig";
 import User from "@/models/userModel";
 import { ApiError } from "@/utils/apiError";
 import safeCache from "@/utils/cache";
 import { Role } from "@/configs/roleConfig";
+import { getCookieConfig } from "@/configs/cookieConfig";
 
 export interface LoginData {
   email: string;
@@ -65,8 +65,12 @@ export const UserController = {
         sendError(res, 400, result.message);
         return;
       }
-      res.cookie("accessToken", result.token, cookieConfig);
-      res.cookie("refreshToken", result.refreshToken, cookieConfig);
+      res.cookie("accessToken", result.token, getCookieConfig());
+      res.cookie(
+        "refreshToken",
+        result.refreshToken,
+        getCookieConfig(30 * 24 * 60 * 60 * 1000)
+      );
       console.log(result);
       sendSuccess(res, 200, result.message, {
         result: result.user,
@@ -195,19 +199,17 @@ export const UserController = {
     }
     sendSuccess(res, 200, result.message);
   }),
-  resendForgotPasswordOtp : wrapAsync(
-    async (req: Request, res: Response) => {
-      const { email } = req.body;
-      if (!email) {
-        sendError(res, 400, "Email is required");
-        return;
-      }
-      const result = await UserService.initiateForgotPassword(email);
-      if (!result.success) {
-        sendError(res, 400, result.message);
-        return;
-      }
-      sendSuccess(res, 200, result.message);
+  resendForgotPasswordOtp: wrapAsync(async (req: Request, res: Response) => {
+    const { email } = req.body;
+    if (!email) {
+      sendError(res, 400, "Email is required");
+      return;
     }
-  )
+    const result = await UserService.initiateForgotPassword(email);
+    if (!result.success) {
+      sendError(res, 400, result.message);
+      return;
+    }
+    sendSuccess(res, 200, result.message);
+  }),
 };
