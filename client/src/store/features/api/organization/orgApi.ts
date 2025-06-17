@@ -1,23 +1,28 @@
-// src/features/organization/orgApi.ts
-import { apiSlice } from "@/store/features/api/apiSlice";
-import type { Organization } from "@/types";
+import { Backend_URL } from "@/config/constant";
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-export const orgApi = apiSlice.injectEndpoints({
+export const orgApi = createApi({
+  reducerPath: "orgApi",
+  baseQuery: fetchBaseQuery({
+    baseUrl: `${Backend_URL}/org`,
+    credentials: "include", // sends cookies with requests
+  }),
+  tagTypes: ["Org"], // Add more tags if needed
   endpoints: (builder) => ({
-    fetchOrganizations: builder.query<Organization[], void>({
-      query: () => "/organizations",
-      providesTags: ["Organization"],
-    }),
-    createOrganization: builder.mutation<Organization, Partial<Organization>>({
-      query: (body) => ({
-        url: "/organizations/create",
-        method: "POST",
-        body,
+    myOrg: builder.query<any, void>({
+      query: () => ({
+        url: `/myOrg`,
+        method: "GET", // 🟡 POST is uncommon for fetching data
       }),
-      invalidatesTags: ["Organization"],
+    }),
+    createOrg: builder.mutation({
+      query: (formData: FormData) => ({
+        url: `/create`,
+        method: "POST",
+        body: formData,
+      }),
     }),
   }),
-  overrideExisting: false,
 });
 
-export const { useFetchOrganizationsQuery, useCreateOrganizationMutation } = orgApi;
+export const { useMyOrgQuery,useCreateOrgMutation } = orgApi;

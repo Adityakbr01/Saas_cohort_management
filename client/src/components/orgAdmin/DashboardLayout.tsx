@@ -42,6 +42,8 @@ import {
 } from "lucide-react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { ModeToggle } from "../Theme/mode-toggle";
+import { useMyOrgQuery } from "@/store/features/api/organization/orgApi";
+import { useOrganizationCheck } from "@/hooks/useOrganizationCheck";
 
 const data = {
   navMain: [
@@ -65,7 +67,17 @@ const data = {
 };
 
 export function ORG_DashboardLayout() {
+
+
+const { orgData, isLoading } = useOrganizationCheck("/create-org");
+
+  if (isLoading) {
+    return <div>Loading organization data...</div>;
+  }
+  
   const location = useLocation();
+
+
 
   const getCurrentPageTitle = () => {
     const allItems = [...data.navMain, ...data.navSecondary, ...data.navSupport];
@@ -187,7 +199,7 @@ export function ORG_DashboardLayout() {
               </BreadcrumbList>
             </Breadcrumb>
             <div className="ml-auto">
-             <ModeToggle />
+              <ModeToggle />
             </div>
           </header>
           <main className="flex flex-1 flex-col gap-4 p-4 pt-0 min-h-[calc(100vh-4rem)]">

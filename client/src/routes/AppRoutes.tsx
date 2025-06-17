@@ -22,8 +22,9 @@ import Unauthorized from "@/pages/Unauthorized";
 import { Route, Routes } from "react-router-dom";
 import About from "@/components/About";
 import SubscriptionPage from "@/components/Subscription/Subscription";
-import Org_admin_Dashboard from "@/components/orgAdmin/Org_admin_Dashboard";
+// import Org_admin_Dashboard from "@/components/orgAdmin/Org_admin_Dashboard";
 import { ORG_DashboardLayout } from "@/components/orgAdmin/DashboardLayout";
+import CreateOrg from "@/components/orgAdmin/pages/CreateOrg";
 // import { Org_Overview } from "@/components/orgAdmin/pages/overview";
 
 
@@ -33,8 +34,8 @@ const AppRoutes = () => {
       {/* Public Routes */}
       <Route path="/" element={<Home />} />
 
-      <Route path="/about"  element={<About/>}/>
-      <Route path="/subscription" element={<SubscriptionPage/>}/>
+      <Route path="/about" element={<About />} />
+      <Route path="/subscription" element={<SubscriptionPage />} />
       <Route
         path="/login"
         element={
@@ -79,8 +80,8 @@ const AppRoutes = () => {
       </Route>
 
       {/* Protected org admin Routes */}
-      <Route path="/dashboard/org_admin" 
-       element={
+      <Route path="/dashboard/org_admin"
+        element={
           <ProtectedRoute allowedRoles={["org_admin"]}>
             <ORG_DashboardLayout />
           </ProtectedRoute>
@@ -88,7 +89,17 @@ const AppRoutes = () => {
       >
 
         <Route path="/dashboard/org_admin" element={<h1>Overview</h1>} />
+
       </Route>
+
+      <Route
+        path="/create-org"
+        element={
+          <ProtectedRoute allowedRoles={["org_admin"]}>
+            <CreateOrg />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Fallback Routes */}
       <Route path="/unauthorized" element={<Unauthorized />} />

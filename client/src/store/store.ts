@@ -4,6 +4,7 @@ import { authApi } from "./features/auth/authApi";
 import {subscriptionApi} from "@/store/features/api/superAdmin/superAdminApi"
 import { plansApi } from "./features/api/plans/planApi";
 import { paymentApi } from "./features/api/payment/payment";
+import { orgApi } from "./features/api/organization/orgApi";
 
 
 
@@ -15,10 +16,11 @@ export const store = configureStore({
     [authApi.reducerPath]: authApi.reducer,
     [subscriptionApi.reducerPath]: subscriptionApi.reducer,
     [plansApi.reducerPath] : plansApi.reducer,
-    [paymentApi.reducerPath]:paymentApi.reducer
+    [paymentApi.reducerPath]:paymentApi.reducer,
+    [orgApi.reducerPath]:orgApi.reducer
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(authApi.middleware, subscriptionApi.middleware,plansApi.middleware,paymentApi.middleware),
+    getDefaultMiddleware().concat(authApi.middleware, subscriptionApi.middleware,plansApi.middleware,paymentApi.middleware,orgApi.middleware),
   devTools: process.env.NODE_ENV !== "production",
 });
 
