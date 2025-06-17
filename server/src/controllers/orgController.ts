@@ -1,3 +1,4 @@
+import Organization from "@/models/organizationModel";
 import { OrganizationService } from "@/services/organization.service";
 import { sendSuccess } from "@/utils/responseUtil";
 import { wrapAsync } from "@/utils/wrapAsync";
@@ -8,6 +9,7 @@ export const orgController = {
     const { name, logo } = req.body;
     const userId = req.user?.id;
 
+    console.log(req.body)
     const organization = await OrganizationService.createOrganization({
       name,
       logo,
@@ -17,6 +19,16 @@ export const orgController = {
     sendSuccess(res, 201, "Organization created successfully", organization);
   }),
 
+  getmyOrg:wrapAsync(async(req: Request, res: Response)=>{
+
+    const userId = req.user.id
+
+    const org = await Organization.findOne({ownerId:userId})
+
+    console.log(org)
+    sendSuccess(res,200,"Org fetch succces",org)
+
+  }),
   // Fetch all organizations for a super admin
   getAllOrgs: wrapAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id;

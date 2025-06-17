@@ -1,3 +1,4 @@
+// backend/middleware/validateRequest.ts
 import { sendError } from "@/utils/responseUtil";
 import { NextFunction, Request, Response, RequestHandler } from "express";
 import { ZodSchema } from "zod";
@@ -5,17 +6,24 @@ import { ZodSchema } from "zod";
 export const validateRequest = (schema: ZodSchema<any>): RequestHandler => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      if (!req.body || Object.keys(req.body).length === 0) {
-         sendError(res, 400, "Request body is missing");
-         return
+      // For multipart/form-data, req.body contains text fields, req.file contains the file
+      const requestData = {
+        ...req.body,
+        logo: req.file, // Add the file (if any) to the validation object
+      };
+
+      if (!requestData || Object.keys(requestData).length === 0) {
+        sendError(res, 400, "Request body is missing");
+        return;
       }
 
-      schema.parse(req.body);
+      schema.parse(requestData);
+      // Attach parsed data to req for the controller to use
+      req.body = requestData;
       next();
     } catch (err: any) {
-       sendError(res, 400, "Validation failed", err.errors);
-       return
+      sendError(res, 400, "Validation failed", err.errors);
+      return;
     }
   };
 };
-

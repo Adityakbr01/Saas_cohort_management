@@ -17,7 +17,6 @@ export const OrganizationService = {
         throw new ApiError(400, "You already own an organization");
       }
     }
-
     if (!name) {
       throw new ApiError(400, "Organization name is required");
     }
@@ -26,7 +25,6 @@ export const OrganizationService = {
     if (existingOrg) {
       throw new ApiError(409, "Organization with this name already exists");
     }
-
     return OrganizationDAO.createOrg({ name, slug, logo, ownerId });
   },
 async getAllOrg({ userId, page, limit }: { userId: string, page: number, limit: number }) {
