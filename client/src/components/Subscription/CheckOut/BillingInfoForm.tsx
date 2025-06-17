@@ -112,15 +112,11 @@ const BillingInfoForm: React.FC<BillingInfoFormProps> = ({
           plan
         },
       };
+      const response = await useCreate_checkout(body).unwrap();
 
-      const response = await useCreate_checkout(body).unwrap()
+      if (!response?.id) throw new Error("Failed to create checkout session");
 
-      console.log(response)
-
-      if (!response.ok) throw new Error("Failed to create checkout session");
-
-      const session = await response.json();
-      const result = await stripe?.redirectToCheckout({ sessionId: session.id });
+      const result = await stripe?.redirectToCheckout({ sessionId: response.id });
 
       if (result?.error) {
         dispatch({ type: "SET_ERRORS", payload: { payment: result.error.message! } });

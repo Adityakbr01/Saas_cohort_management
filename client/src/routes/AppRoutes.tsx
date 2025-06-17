@@ -22,6 +22,9 @@ import Unauthorized from "@/pages/Unauthorized";
 import { Route, Routes } from "react-router-dom";
 import About from "@/components/About";
 import SubscriptionPage from "@/components/Subscription/Subscription";
+import Org_admin_Dashboard from "@/components/orgAdmin/Org_admin_Dashboard";
+import { ORG_DashboardLayout } from "@/components/orgAdmin/DashboardLayout";
+// import { Org_Overview } from "@/components/orgAdmin/pages/overview";
 
 
 const AppRoutes = () => {
@@ -73,6 +76,18 @@ const AppRoutes = () => {
         <Route path="/help" element={<HelpPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/profile" element={<UserProfilePage />} />
+      </Route>
+
+      {/* Protected org admin Routes */}
+      <Route path="/dashboard/org_admin" 
+       element={
+          <ProtectedRoute allowedRoles={["org_admin"]}>
+            <ORG_DashboardLayout />
+          </ProtectedRoute>
+        }
+      >
+
+        <Route path="/dashboard/org_admin" element={<h1>Overview</h1>} />
       </Route>
 
       {/* Fallback Routes */}

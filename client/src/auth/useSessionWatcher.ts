@@ -16,15 +16,15 @@ const useSessionWatcher = () => {
 
       try {
         const { token } = JSON.parse(userStr);
-        console.log("Token:", token);
+        // console.log("Token:", token);
 
         if (!token) {
-          console.warn("No token found in user object");
+          // console.warn("No token found in user object");
           return;
         }
 
         const decoded: DecodedToken = jwtDecode(token);
-        console.log("Decoded token:", decoded);
+        // console.log("Decoded token:", decoded);
 
         const isExpired = decoded.exp * 1000 < Date.now();
         if (isExpired) logout();

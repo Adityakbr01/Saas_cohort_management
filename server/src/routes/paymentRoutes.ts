@@ -157,6 +157,8 @@ paymentRouter.post(
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
 
+      
+
       console.log("✅ Payment Success");
       console.log("Email:", session.customer_email);
       console.log("Metadata:", session.metadata);
@@ -234,6 +236,7 @@ paymentRouter.post(
           console.log("Creating new subscription for user:", userId);
         }
 
+
         // 📅 Calculate new expiry
         if (billingCycle === "yearly") {
           newExpiryDate.setFullYear(newExpiryDate.getFullYear() + 1);
@@ -249,7 +252,7 @@ paymentRouter.post(
         // ✅ Update user
         user.plan = plan.id;
         user.role = Role.org_admin;
-        user.subscriptionMeta = {
+        user.subscriptionMeta = { //todo fix if payment was failed then dont add subscriptionMeta
           startDate: currentDate,
           expiresDate: newExpiryDate,
           isActive: true,

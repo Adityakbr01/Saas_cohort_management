@@ -16,11 +16,11 @@ export default function Navigation() {
 
   const navItems = useMemo(() => {
     // Common items
-    const items = [{ name: "Home", href: "/" }, { name: "About", href: "/about" }]
+    const items = [{ name: "Home", href: "/" }]
 
     if (!userRole) {
       items.push({ name: "Courses", href: "/courses" })
-      items.push({ name: "Sign Up", href: "/signup" })
+      items.push({ name: "Sign Up", href: "/login" })
     }
 
     if (userRole === Role.student) {
@@ -33,6 +33,13 @@ export default function Navigation() {
 
     ) {
       items.push({ name: "Dashboard", href: "/dashboard/super_admin" })
+    }
+
+      if (
+      userRole === Role.org_admin
+
+    ) {
+      items.push({ name: "Dashboard", href: "/dashboard/org_admin" })
     }
 
 

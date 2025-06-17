@@ -25,16 +25,16 @@ const PricingCards: React.FC<PricingCardsProps> = ({ plans, onPlanSelect, isYear
       {Object.entries(plans).map(([key, plan]) => {
         if (!plan) return null;
 
-        console.log({
-          plan,
-          planKey: key,
-          isYearly,
-          originalPrice: plan.originalPrice,
-          price: plan.price,
-          yearlyPrice: plan.yearlyPrice,
-          discount: plan.discount,
-          calculatedDiscount: plan.originalPrice && plan.originalPrice - plan.price,
-        });
+        // console.log({
+        //   plan,
+        //   planKey: key,
+        //   isYearly,
+        //   originalPrice: plan.originalPrice,
+        //   price: plan.price,
+        //   yearlyPrice: plan.yearlyPrice,
+        //   discount: plan.discount,
+        //   calculatedDiscount: plan.originalPrice && plan.originalPrice - plan.price,
+        // });
 
         const Icon = plan.icon;
         const isPopular = plan.popular;
