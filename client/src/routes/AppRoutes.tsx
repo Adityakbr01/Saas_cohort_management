@@ -1,3 +1,7 @@
+import ProtectedRoute from "@/auth/ProtectedRoute"; // Import ProtectedRoute
+import PublicRoute from "@/auth/PublicRoute"; // Import PublicRoute
+import About from "@/components/About";
+import SubscriptionPage from "@/components/Subscription/Subscription";
 import { DashboardLayout } from "@/components/superAdmin/DashboardLayout";
 import { AnalyticsPage } from "@/components/superAdmin/pages/analytics-page";
 import { CalendarPage } from "@/components/superAdmin/pages/calendar-page";
@@ -16,18 +20,11 @@ import Login from "@/pages/Auth/Login";
 import Register from "@/pages/Auth/Register";
 import Home from "@/pages/Home";
 import NotFound from "@/pages/NotFound";
-import ProtectedRoute from "@/auth/ProtectedRoute"; // Import ProtectedRoute
-import PublicRoute from "@/auth/PublicRoute"; // Import PublicRoute
 import Unauthorized from "@/pages/Unauthorized";
 import { Route, Routes } from "react-router-dom";
-import About from "@/components/About";
-import SubscriptionPage from "@/components/Subscription/Subscription";
 // import Org_admin_Dashboard from "@/components/orgAdmin/Org_admin_Dashboard";
-import { ORG_DashboardLayout } from "@/components/orgAdmin/DashboardLayout";
+import OrgAdminDashboard from "@/components/orgAdmin/DashboardLayout";
 import CreateOrg from "@/components/orgAdmin/pages/CreateOrg";
-import Overview_org from "@/components/orgAdmin/pages/Overview_org.tsx";
-import CohortManagement_Org from "@/components/orgAdmin/pages/Cohort_org.tsx";
-import MentorManagement from "@/components/orgAdmin/pages/Mentors.tsx";
 
 const AppRoutes = () => {
   return (
@@ -82,24 +79,13 @@ const AppRoutes = () => {
 
       {/* Protected org admin Routes */}
       <Route
+        path="/dashboard/org_admin"
         element={
-          <ProtectedRoute allowedRoles={["org_admin"]}>
-            <ORG_DashboardLayout />
+          <ProtectedRoute allowedRoles={["super_admin", "org_admin"]}>
+            <OrgAdminDashboard />
           </ProtectedRoute>
         }
       >
-          <Route path="/dashboard/org_admin" element={<Overview_org />} />
-          <Route path="/cohorts" element={<CohortManagement_Org />} />
-          <Route path="/mentors" element={<MentorManagement />} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/users" element={<UserManagementPage />} />
-          <Route path="/permissions" element={<PermissionsPage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
-          <Route path="/calendar" element={<CalendarPage />} />
-          <Route path="/help" element={<HelpPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/profile" element={<UserProfilePage />} />
       </Route>
 
       <Route

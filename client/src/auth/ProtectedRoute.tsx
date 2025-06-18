@@ -29,7 +29,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/unauthorized" replace />;
   }
 
-  return <>{children}</>;
+  return <div className="w-full">{children}</div>;
 };
 
 export default ProtectedRoute;
