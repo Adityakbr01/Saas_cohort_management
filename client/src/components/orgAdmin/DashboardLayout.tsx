@@ -8,7 +8,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
+import {Separator} from "@/components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
@@ -25,13 +25,12 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { UserNav } from "@/components/user-nav";
+import {UserNav} from "@/components/user-nav";
 import {
   BarChart3,
   Bell,
   Building2,
   Calendar,
-  CreditCard,
   FileText,
   HelpCircle,
   Home,
@@ -40,16 +39,15 @@ import {
   User,
   Users
 } from "lucide-react";
-import { Link, Outlet, useLocation } from "react-router-dom";
-import { ModeToggle } from "../Theme/mode-toggle";
-import { useMyOrgQuery } from "@/store/features/api/organization/orgApi";
-import { useOrganizationCheck } from "@/hooks/useOrganizationCheck";
+import {Link, Outlet, useLocation} from "react-router-dom";
+import {ModeToggle} from "../Theme/mode-toggle";
+import {useOrganizationCheck} from "@/hooks/useOrganizationCheck";
 
 const data = {
   navMain: [
     { title: "Overview", url: "/dashboard/org_admin", icon: Home },
-    { title: "Mentors", url: "/Mentors", icon: Building2 },
     { title: "Cohorts", url: "/cohorts", icon: Building2 },
+    { title: "Mentors", url: "/mentors", icon: Building2 },
     { title: "Analytics", url: "/analytics", icon: BarChart3 },
   ],
   navSecondary: [
@@ -69,7 +67,7 @@ const data = {
 export function ORG_DashboardLayout() {
 
 
-const { orgData, isLoading } = useOrganizationCheck("/create-org");
+const {  isLoading } = useOrganizationCheck("/create-org");
 
   if (isLoading) {
     return <div>Loading organization data...</div>;
