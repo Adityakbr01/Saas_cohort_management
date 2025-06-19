@@ -25,6 +25,7 @@ import { Route, Routes } from "react-router-dom";
 // import Org_admin_Dashboard from "@/components/orgAdmin/Org_admin_Dashboard";
 import OrgAdminDashboard from "@/components/orgAdmin/DashboardLayout";
 import CreateOrg from "@/components/orgAdmin/pages/CreateOrg";
+import MentorPage from "@/components/mentorDashboard/MentorPage";
 
 const AppRoutes = () => {
   return (
@@ -93,6 +94,17 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={["org_admin"]}>
             <CreateOrg />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Mentor Routes */}
+
+      <Route
+        path="/dashboard/mentor"
+        element={
+          <ProtectedRoute allowedRoles={["mentor","org_admin"]}>
+            <MentorPage />
           </ProtectedRoute>
         }
       />

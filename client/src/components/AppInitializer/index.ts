@@ -15,8 +15,6 @@ const AppInitializer = () => {
           authApi.endpoints.getProfile.initiate(undefined)
         ).unwrap();
 
-        console.log(user?.data)
-
         dispatch(setUser(user?.data));
       } catch (err) {
         console.error("User fetch failed:", err);
