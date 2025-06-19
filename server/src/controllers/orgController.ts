@@ -1,4 +1,5 @@
 import { UserDAO } from "@/dao/user.dao";
+import Mentor from "@/models/mentorModel";
 import Organization from "@/models/organizationModel";
 import PendingInvite from "@/models/PendingInvite";
 import { sendInviteEmail } from "@/services/emailService";
@@ -28,7 +29,9 @@ export const orgController = {
   getmyOrg: wrapAsync(async (req: Request, res: Response) => {
     const userId = req.user.id;
 
-    const org = await Organization.findOne({ ownerId: userId }).populate("Members");
+    const org = await Organization.findOne({ ownerId: userId }).populate(
+      "Members"
+    );
 
     console.log(org);
     sendSuccess(res, 200, "Org fetch succces", org);
@@ -64,19 +67,32 @@ export const orgController = {
   }),
 
   inviteUserToOrg: wrapAsync(async (req: Request, res: Response) => {
-    const { name,phone,specialization,experience,bio,certifications, email, role = "mentor" } = req.body;
+    const {
+      name,
+      phone,
+      specialization,
+      experience,
+      bio,
+      certifications,
+      email,
+      role = "mentor",
+    } = req.body;
     const invitedBy = req.user.id;
 
     try {
-
       const org = await Organization.findOne({ ownerId: invitedBy });
       if (!org) {
         throw new ApiError(404, "Organization not found");
       }
       const orgId = org.id;
       const orgName = org.name;
-    
 
+      const isAllreadyMentor = await Mentor.findOne({ email, orgId });
+
+      if (isAllreadyMentor) {
+        sendError(res, 400, "User is already a mentor in this organization");
+        return;
+      }
 
       const result = OrganizationService.inviteUserToOrg({
         email,
@@ -93,8 +109,10 @@ export const orgController = {
       });
       sendSuccess(res, 200, (await result).message);
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Failed to send invitation." });
+      if (err instanceof ApiError) {
+        sendError(res, err.statusCode, err.message);
+        return;
+      }
     }
   }),
 
@@ -117,8 +135,8 @@ export const orgController = {
   finalizeInvite: wrapAsync(async (req: Request, res: Response) => {
     const { inviteId } = req.body;
     try {
-    const result = await OrganizationService.finalizeInvite(inviteId);
-    sendSuccess(res, 200, result.message);
+      const result = await OrganizationService.finalizeInvite(inviteId);
+      sendSuccess(res, 200, result.message);
     } catch (err) {
       if (err instanceof ApiError) {
         sendError(res, err.statusCode, err.message);
@@ -126,6 +144,4 @@ export const orgController = {
       }
     }
   }),
-
 };
-

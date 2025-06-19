@@ -144,13 +144,13 @@ export const OrganizationService = {
       throw new ApiError(409, "Invite already sent");
     }
 
-    const token = generateInviteToken({ email, orgId, role });
-
     const userExist = await UserDAO.findByEmailWithPassword(email);
 
     if (!userExist) {
       throw new ApiError(404, "User not found");
     }
+
+    const token = generateInviteToken({ email, orgId, role });
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 2);
@@ -226,15 +226,20 @@ export const OrganizationService = {
       }
 
       if (invite.status !== "PENDING_ADMIN") {
-        console.error(`❌ Invalid invite state. Expected: PENDING_ADMIN or PENDING_USER, Got: ${invite.status}`);
-        throw new ApiError(400, `Invalid invite state: ${invite.status}. Expected: PENDING_ADMIN`);
+        console.error(
+          `❌ Invalid invite state. Expected: PENDING_ADMIN or PENDING_USER, Got: ${invite.status}`
+        );
+        throw new ApiError(
+          400,
+          `Invalid invite state: ${invite.status}. Expected: PENDING_ADMIN`
+        );
       }
 
       console.log(`✅ Invite found and validated:`, {
         email: invite.email,
         orgId: invite.orgId,
         status: invite.status,
-        role: invite.role
+        role: invite.role,
       });
 
       // Step 2: Validate and fetch organization
@@ -249,8 +254,14 @@ export const OrganizationService = {
       console.log(`✅ Organization found: ${org.name} (ID: ${org._id})`);
 
       // Step 3: Check if user is already a member (only if invite status is PENDING_ADMIN)
-      if (invite.status === "PENDING_ADMIN" && invite.userId && org.Members?.includes(invite.userId)) {
-        console.error(`❌ User ${invite.userId} already exists in organization ${org._id}`);
+      if (
+        invite.status === "PENDING_ADMIN" &&
+        invite.userId &&
+        org.Members?.includes(invite.userId)
+      ) {
+        console.error(
+          `❌ User ${invite.userId} already exists in organization ${org._id}`
+        );
         throw new ApiError(409, "User already exists in this organization");
       }
 
@@ -260,21 +271,31 @@ export const OrganizationService = {
 
       if (validationErrors.length > 0) {
         console.error(`❌ Mentor data validation failed:`, validationErrors);
-        throw new ApiError(400, `Mentor data validation failed: ${validationErrors.join(', ')}`);
+        throw new ApiError(
+          400,
+          `Mentor data validation failed: ${validationErrors.join(", ")}`
+        );
       }
 
       console.log(`✅ Mentor data validation passed`);
 
       // Step 5: Check for existing mentor with same email in organization
-      console.log(`🔍 Checking for existing mentor with email: ${invite.email} in org: ${invite.orgId}`);
+      console.log(
+        `🔍 Checking for existing mentor with email: ${invite.email} in org: ${invite.orgId}`
+      );
       const existingMentor = await Mentor.findOne({
         email: invite.email,
-        orgId: invite.orgId
+        orgId: invite.orgId,
       });
 
       if (existingMentor) {
-        console.error(`❌ Mentor already exists with email ${invite.email} in organization ${invite.orgId}`);
-        throw new ApiError(409, "Mentor with this email already exists in the organization");
+        console.error(
+          `❌ Mentor already exists with email ${invite.email} in organization ${invite.orgId}`
+        );
+        throw new ApiError(
+          409,
+          "Mentor with this email already exists in the organization"
+        );
       }
 
       // Step 6: Prepare mentor data with proper type conversion
@@ -284,7 +305,7 @@ export const OrganizationService = {
         email: mentorData.email,
         name: mentorData.name,
         specialization: mentorData.specialization,
-        certificationsCount: mentorData.certifications.length
+        certificationsCount: mentorData.certifications.length,
       });
 
       // Step 7: Create mentor record
@@ -299,7 +320,7 @@ export const OrganizationService = {
       console.log(`✅ Mentor created successfully:`, {
         mentorId: newMentor._id,
         email: newMentor.email,
-        name: newMentor.name
+        name: newMentor.name,
       });
 
       // Step 8: Update organization membership
@@ -310,7 +331,9 @@ export const OrganizationService = {
         }
         org.Members.push(invite.userId);
         await org.save();
-        console.log(`✅ User ${invite.userId} added to organization ${org._id}`);
+        console.log(
+          `✅ User ${invite.userId} added to organization ${org._id}`
+        );
       }
 
       // Step 9: Update invite status
@@ -320,14 +343,15 @@ export const OrganizationService = {
       await invite.save();
       console.log(`✅ Invite status updated to ACCEPTED`);
 
-      console.log(`🎉 finalizeInvite completed successfully for invite: ${inviteId}`);
+      console.log(
+        `🎉 finalizeInvite completed successfully for invite: ${inviteId}`
+      );
       return {
         success: true,
         message: "Mentor successfully added to organization",
         mentorId: newMentor._id,
-        mentorEmail: newMentor.email
+        mentorEmail: newMentor.email,
       };
-
     } catch (error) {
       // Re-throw ApiError as-is, wrap other errors
       if (error instanceof ApiError) {
@@ -335,7 +359,9 @@ export const OrganizationService = {
       } else {
         throw new ApiError(
           500,
-          `Failed to finalize invite: ${error instanceof Error ? error.message : 'Unknown error'}`
+          `Failed to finalize invite: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
         );
       }
     }
@@ -351,49 +377,73 @@ function validateMentorData(invite: any): string[] {
   const errors: string[] = [];
 
   // Required fields validation
-  if (!invite.email || typeof invite.email !== 'string' || !invite.email.includes('@')) {
-    errors.push('Valid email is required');
+  if (
+    !invite.email ||
+    typeof invite.email !== "string" ||
+    !invite.email.includes("@")
+  ) {
+    errors.push("Valid email is required");
   }
 
-  if (!invite.name || typeof invite.name !== 'string' || invite.name.trim().length === 0) {
-    errors.push('Name is required');
+  if (
+    !invite.name ||
+    typeof invite.name !== "string" ||
+    invite.name.trim().length === 0
+  ) {
+    errors.push("Name is required");
   }
 
-  if (!invite.phone || typeof invite.phone !== 'string' || invite.phone.trim().length === 0) {
-    errors.push('Phone is required');
+  if (
+    !invite.phone ||
+    typeof invite.phone !== "string" ||
+    invite.phone.trim().length === 0
+  ) {
+    errors.push("Phone is required");
   }
 
-  if (!invite.specialization || typeof invite.specialization !== 'string' || invite.specialization.trim().length === 0) {
-    errors.push('Specialization is required');
+  if (
+    !invite.specialization ||
+    typeof invite.specialization !== "string" ||
+    invite.specialization.trim().length === 0
+  ) {
+    errors.push("Specialization is required");
   }
 
-  if (!invite.experience || typeof invite.experience !== 'string' || invite.experience.trim().length === 0) {
-    errors.push('Experience is required');
+  if (
+    !invite.experience ||
+    typeof invite.experience !== "string" ||
+    invite.experience.trim().length === 0
+  ) {
+    errors.push("Experience is required");
   }
 
   if (!invite.orgId) {
-    errors.push('Organization ID is required');
+    errors.push("Organization ID is required");
   }
 
   if (!invite.invitedBy) {
-    errors.push('InvitedBy user ID is required');
+    errors.push("InvitedBy user ID is required");
   }
 
-  if (!invite.token || typeof invite.token !== 'string' || invite.token.trim().length === 0) {
-    errors.push('Token is required');
+  if (
+    !invite.token ||
+    typeof invite.token !== "string" ||
+    invite.token.trim().length === 0
+  ) {
+    errors.push("Token is required");
   }
 
   if (!invite.expiresAt || !(invite.expiresAt instanceof Date)) {
-    errors.push('Valid expiration date is required');
+    errors.push("Valid expiration date is required");
   }
 
   // Optional field validation (if provided, must be valid)
-  if (invite.bio && typeof invite.bio !== 'string') {
-    errors.push('Bio must be a string');
+  if (invite.bio && typeof invite.bio !== "string") {
+    errors.push("Bio must be a string");
   }
 
-  if (invite.certifications && typeof invite.certifications !== 'string') {
-    errors.push('Certifications must be a string');
+  if (invite.certifications && typeof invite.certifications !== "string") {
+    errors.push("Certifications must be a string");
   }
 
   return errors;
@@ -406,30 +456,44 @@ function validateMentorData(invite: any): string[] {
  */
 function prepareMentorData(invite: any): MentorCreationData {
   // Parse certifications from string to array format
-  let certificationsArray: Array<{ name: string; issuer: string; date: Date }> = [];
+  let certificationsArray: Array<{ name: string; issuer: string; date: Date }> =
+    [];
 
-  if (invite.certifications && typeof invite.certifications === 'string') {
+  if (invite.certifications && typeof invite.certifications === "string") {
     try {
       // Remove extra quotes if present and clean the string
       let cleanCertifications = invite.certifications.trim();
 
       // Remove surrounding single or double quotes
-      if ((cleanCertifications.startsWith("'") && cleanCertifications.endsWith("'")) ||
-          (cleanCertifications.startsWith('"') && cleanCertifications.endsWith('"'))) {
+      if (
+        (cleanCertifications.startsWith("'") &&
+          cleanCertifications.endsWith("'")) ||
+        (cleanCertifications.startsWith('"') &&
+          cleanCertifications.endsWith('"'))
+      ) {
         cleanCertifications = cleanCertifications.slice(1, -1);
       }
 
       // Split comma-separated certifications and create objects
-      const certNames = cleanCertifications.split(',').map((cert: string) => cert.trim()).filter((cert: string) => cert.length > 0);
+      const certNames = cleanCertifications
+        .split(",")
+        .map((cert: string) => cert.trim())
+        .filter((cert: string) => cert.length > 0);
       certificationsArray = certNames.map((name: string) => ({
         name,
-        issuer: 'Self-reported', // Default issuer
-        date: new Date() // Default to current date
+        issuer: "Self-reported", // Default issuer
+        date: new Date(), // Default to current date
       }));
 
-      console.log(`✅ Parsed ${certificationsArray.length} certifications:`, certificationsArray.map(c => c.name));
+      console.log(
+        `✅ Parsed ${certificationsArray.length} certifications:`,
+        certificationsArray.map((c) => c.name)
+      );
     } catch (error) {
-      console.warn(`⚠️ Failed to parse certifications: ${invite.certifications}`, error);
+      console.warn(
+        `⚠️ Failed to parse certifications: ${invite.certifications}`,
+        error
+      );
       // Keep empty array as fallback
     }
   }
@@ -438,20 +502,20 @@ function prepareMentorData(invite: any): MentorCreationData {
     email: invite.email.toLowerCase().trim(),
     userId: invite.userId,
     orgId: invite.orgId,
-    role: invite.role || 'mentor',
+    role: invite.role || "mentor",
     invitedBy: invite.invitedBy,
-    status: 'ACCEPTED',
+    status: "ACCEPTED",
     token: invite.token,
     expiresAt: invite.expiresAt,
     name: invite.name.trim(),
     phone: invite.phone.trim(),
     specialization: invite.specialization.trim(),
     experience: invite.experience.trim(),
-    bio: invite.bio ? invite.bio.trim() : '',
+    bio: invite.bio ? invite.bio.trim() : "",
     certifications: certificationsArray,
     rating: 0, // Default rating
     studentsCount: 0, // Default student count
     cohortsCount: 0, // Default cohort count
-    lastActive: new Date() // Set to current time
+    lastActive: new Date(), // Set to current time
   };
 }
