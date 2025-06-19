@@ -191,7 +191,7 @@ function MentorsTab({ onViewMentor, apiBaseUrl = '/api' }: MentorsTabProps) {
         // } catch (error) {
         //     console.error('Error fetching mentors:', error)
         //     toast.error("Failed to load mentors. Using mock data.")
-            
+
         // } finally {
         //     setIsLoading(false)
         // }
@@ -257,16 +257,17 @@ function MentorsTab({ onViewMentor, apiBaseUrl = '/api' }: MentorsTabProps) {
 
     // Create a new mentor with validation
     const handleCreateMentor = async () => {
+        // Validate form before submission
+        if (!validateForm()) {
+            return;
+        }
+
+        setIsCreating(true);
+
+        // Show loading toast
+        const loadingToastId = toast.loading("Sending invitation...");
+
         try {
-            // Validate form before submission
-            if (!validateForm()) {
-                return;
-            }
-
-            setIsCreating(true);
-
-            // Show loading toast
-            const loadingToastId = toast.loading("Sending invitation...");
 
             // The API expects certifications as a string (backend will parse it)
             const inviteData = {
@@ -297,8 +298,10 @@ function MentorsTab({ onViewMentor, apiBaseUrl = '/api' }: MentorsTabProps) {
                 refetchPendingInvites();
             }
         } catch (error) {
-            console.error('Error creating mentor:', error);
+            // Dismiss loading toast
+            toast.dismiss(loadingToastId);
 
+            console.error('Error creating mentor:', error);
             // Handle RTK Query error format
             let errorMessage = "Failed to send mentor invitation. Please try again.";
 
