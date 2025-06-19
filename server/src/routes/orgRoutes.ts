@@ -3,7 +3,9 @@ import { orgController } from "@/controllers/orgController";
 import { protect, restrictTo } from "@/middleware/authMiddleware";
 import { uploadLogo } from "@/middleware/multerConfig";
 import { validateRequest } from "@/middleware/validateRequest";
+import Organization from "@/models/organizationModel";
 import PendingInvite from "@/models/PendingInvite";
+import User from "@/models/userModel";
 import { createOrgSchema } from "@/utils/zod/org";
 import express from "express";
 const router = express.Router();
@@ -38,10 +40,16 @@ router.get(
   protect,
   restrictTo(Role.org_admin),
   async (req, res) => {
-    const { orgId } = req.params;
-    console.log(orgId);
+
+  
+
+   const user =  await User.findById(req.user.id);
+
+   const org = await Organization.findOne({ ownerId: user?.id });
+   console.log(org);
+
     const invites = await PendingInvite.find({
-      orgId,
+      orgId:org?.id,
       status: { $in: ["PENDING_USER", "PENDING_ADMIN"] },
     });
     console.log(invites);

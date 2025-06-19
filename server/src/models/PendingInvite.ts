@@ -39,6 +39,32 @@ const pendingInviteSchema = new mongoose.Schema(
       required: true,
       index: { expires: 0 } // will auto-delete after expiration
     },
+
+    name: {
+      type: String,
+      required: true,
+    },
+    phone: {
+      type: String,
+      required: true,
+    },
+    specialization: {
+      type: String,
+      required: true,
+    },
+    experience: {
+      type: String,
+      required: true,
+    },
+    bio: {
+      type: String,
+      required: true,
+    },
+    certifications: {
+      type: String,
+      required: true,
+    },
+
   },
   { timestamps: true }
 );

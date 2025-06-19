@@ -4,10 +4,11 @@ import PendingInvite from "@/models/PendingInvite";
 import { sendInviteEmail } from "@/services/emailService";
 import { OrganizationService } from "@/services/organization.service";
 import { ApiError } from "@/utils/apiError";
-import { sendSuccess } from "@/utils/responseUtil";
+import { sendError, sendSuccess } from "@/utils/responseUtil";
 import { generateInviteToken, verifyInviteToken } from "@/utils/tokenUtil";
 import { wrapAsync } from "@/utils/wrapAsync";
 import { Request, Response } from "express";
+import { unknown } from "zod";
 
 export const orgController = {
   createOrg: wrapAsync(async (req: Request, res: Response) => {
@@ -27,11 +28,12 @@ export const orgController = {
   getmyOrg: wrapAsync(async (req: Request, res: Response) => {
     const userId = req.user.id;
 
-    const org = await Organization.findOne({ ownerId: userId });
+    const org = await Organization.findOne({ ownerId: userId }).populate("Members");
 
     console.log(org);
     sendSuccess(res, 200, "Org fetch succces", org);
   }),
+
   // Fetch all organizations for a super admin
   getAllOrgs: wrapAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -62,13 +64,19 @@ export const orgController = {
   }),
 
   inviteUserToOrg: wrapAsync(async (req: Request, res: Response) => {
-    const { email, orgId, role = "mentor", orgName } = req.body;
+    const { name,phone,specialization,experience,bio,certifications, email, role = "mentor" } = req.body;
     const invitedBy = req.user.id;
 
     try {
-      if (!email || !orgId || !orgName) {
-        throw new ApiError(400, "Email, orgId and orgName are required");
+
+      const org = await Organization.findOne({ ownerId: invitedBy });
+      if (!org) {
+        throw new ApiError(404, "Organization not found");
       }
+      const orgId = org.id;
+      const orgName = org.name;
+    
+
 
       const result = OrganizationService.inviteUserToOrg({
         email,
@@ -76,6 +84,12 @@ export const orgController = {
         role,
         orgName,
         invitedBy,
+        name,
+        phone,
+        specialization,
+        experience,
+        bio,
+        certifications,
       });
       sendSuccess(res, 200, (await result).message);
     } catch (err) {
@@ -106,8 +120,10 @@ export const orgController = {
     const result = await OrganizationService.finalizeInvite(inviteId);
     sendSuccess(res, 200, result.message);
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Failed to finalize invite." });
+      if (err instanceof ApiError) {
+        sendError(res, err.statusCode, err.message);
+        return;
+      }
     }
   }),
 
