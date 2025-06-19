@@ -25,7 +25,6 @@ export const orgController = {
 
     sendSuccess(res, 201, "Organization created successfully", organization);
   }),
-
   getmyOrg: wrapAsync(async (req: Request, res: Response) => {
     const userId = req.user.id;
 
@@ -36,7 +35,6 @@ export const orgController = {
     console.log(org);
     sendSuccess(res, 200, "Org fetch succces", org);
   }),
-
   // Fetch all organizations for a super admin
   getAllOrgs: wrapAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -116,6 +114,51 @@ export const orgController = {
     }
   }),
 
+  resendInvite: wrapAsync(async (req: Request, res: Response) => {
+    const { inviteId } = req.query;
+    try {
+      await OrganizationService.resendInvite(inviteId as string);
+      sendSuccess(res, 200, "Invite resent successfully");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        sendError(res, err.statusCode, err.message);
+        return;
+      }
+    }
+  }),
+
+  cancelInvite: wrapAsync(async (req: Request, res: Response) => {
+    const { inviteId } = req.body;
+    try {
+      await OrganizationService.cancelInvite(inviteId);
+      sendSuccess(res, 200, "Invite cancelled successfully");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        sendError(res, err.statusCode, err.message);
+        return;
+      }
+    }
+  }),
+
+  deleteMentor: wrapAsync(async (req: Request, res: Response) => {
+    const { mentorId } = req.body;
+
+    if(!mentorId){
+      sendError(res, 400, "Mentor ID is required");
+      return;
+    }
+
+    try {
+      await OrganizationService.deleteMentor(mentorId);
+      sendSuccess(res, 200, "Mentor deleted successfully");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        sendError(res, err.statusCode, err.message);
+        return;
+      }
+    }
+  }),
+
   acceptInvite: wrapAsync(async (req: Request, res: Response) => {
     const { token } = req.query;
     try {
@@ -137,6 +180,35 @@ export const orgController = {
     try {
       const result = await OrganizationService.finalizeInvite(inviteId);
       sendSuccess(res, 200, result.message);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        sendError(res, err.statusCode, err.message);
+        return;
+      }
+    }
+  }),
+
+  getOrgMentors: wrapAsync(async (req: Request, res: Response) => {
+    const orgId = req.user.id;
+    try {
+      const org = await Organization.findOne({ ownerId: orgId }).populate(
+        "Members"
+      );
+      if (!org) {
+        throw new ApiError(404, "Organization not found");
+      }
+
+
+
+      const mentors = await Mentor.find({
+        userId: { $in: org.Members },
+      }).populate("userId", "name email role");
+
+      mentors.forEach((mentor) => {
+        mentor.userId = mentor.userId._id;
+      });
+
+      sendSuccess(res, 200, "Mentors fetched successfully",mentors);
     } catch (err) {
       if (err instanceof ApiError) {
         sendError(res, err.statusCode, err.message);

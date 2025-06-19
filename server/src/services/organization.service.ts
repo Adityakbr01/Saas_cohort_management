@@ -184,6 +184,77 @@ export const OrganizationService = {
     });
     return { success: true, message: "Invitation sent successfully." };
   },
+  async resendInvite(inviteId: string) {
+    const invite = await PendingInvite.findById(inviteId);
+    if (!invite) {
+      throw new ApiError(404, "Invite not found");
+    }
+    if (invite.status !== "PENDING_USER") {
+      throw new ApiError(400, "Invite is not pending user action");
+    }
+    console.log(invite);
+    const org = await Organization.findById(invite.orgId);
+    if (!org) {
+      throw new ApiError(404, "Organization not found");
+    }
+
+    await sendInviteEmail({
+      email: invite.email,
+      token: invite.token,
+      orgName: org?.name,
+      role: invite.role,
+      firstName: invite.name,
+      specialization: invite.specialization,
+      experience: invite.experience,
+      bio: invite.bio,
+      certifications: invite.certifications,
+    });
+
+    return { success: true, message: "Invitation resent successfully." };
+  },
+  async cancelInvite(inviteId: string) {
+    const invite = await PendingInvite.findById(inviteId);
+    if (!invite) {
+      throw new ApiError(404, "Invite not found");
+    }
+    if (invite.status !== "PENDING_USER") {
+      throw new ApiError(400, "Invite is not pending user action");
+    }
+    await invite.deleteOne();
+    return { success: true, message: "Invitation cancelled successfully." };
+  },
+  async deleteMentor(mentorId: string) {
+    const mentor = await Mentor.findById(mentorId);
+    if (!mentor) {
+      throw new ApiError(404, "Mentor not found");
+    }
+
+    const org = await Organization.findById(mentor.orgId);
+    if (!org) {
+      throw new ApiError(404, "Organization not found");
+    }
+
+    if (!org.Members) {
+      throw new ApiError(404, "Organization members not found");
+    }
+
+    if (!org.Members.includes(mentor.userId)) {
+      throw new ApiError(404, "Mentor not found in organization");
+    }
+
+    org.Members = org.Members?.filter((member) => {
+      console.log(member.toString(), mentorId.toString());
+      //6852e7bc39e38dbfbad31860 6853ec538080e796a4b2f176
+      member.toString() !== mentorId.toString();
+    });
+    await org.save();
+    console.log(org.Members);
+
+    await PendingInvite.deleteOne({ userId: mentor.userId });
+
+    await mentor.deleteOne();
+    return { success: true, message: "Mentor deleted successfully." };
+  },
   async acceptInvite(decoded: any) {
     const { email, orgId, role } = decoded;
 
@@ -368,11 +439,6 @@ export const OrganizationService = {
   },
 };
 
-/**
- * Validates mentor data before creation
- * @param invite - The pending invite object
- * @returns Array of validation error messages
- */
 function validateMentorData(invite: any): string[] {
   const errors: string[] = [];
 
@@ -449,11 +515,6 @@ function validateMentorData(invite: any): string[] {
   return errors;
 }
 
-/**
- * Prepares mentor data for creation with proper type conversion
- * @param invite - The pending invite object
- * @returns Properly formatted mentor data
- */
 function prepareMentorData(invite: any): MentorCreationData {
   // Parse certifications from string to array format
   let certificationsArray: Array<{ name: string; issuer: string; date: Date }> =

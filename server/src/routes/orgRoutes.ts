@@ -28,6 +28,11 @@ router.post(
   restrictTo(Role.org_admin),
   orgController.inviteUserToOrg
 );
+
+router.get("/resend-invite", orgController.resendInvite);
+router.post("/cencel-invite", orgController.cancelInvite);
+router.delete("/delete-Mentor", orgController.deleteMentor);
+
 router.get("/accept-invite", orgController.acceptInvite);
 // POST /api/org/approve-invite
 router.post(
@@ -64,10 +69,10 @@ router.get(
   orgController.getAllOrgs
 );
 router.get(
-  "/:orgId/users",
+  "/getOrgMentors",
   protect,
-  restrictTo(Role.org_admin, Role.mentor),
-  orgController.getOrgUsers
+  restrictTo(Role.org_admin),
+  orgController.getOrgMentors
 );
 
 export default router;
