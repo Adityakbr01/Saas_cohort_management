@@ -16,13 +16,17 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
 import {
+    useCancelInviteMutation,
+    useDeleteMentorMutation,
+    useFinalizeInviteMutation,
+    useGetOrgMentorsQuery,
     useInviteMentorsMutation,
     useMyOrgQuery,
     usePendingInvitesQuery,
-    useFinalizeInviteMutation
+    useResendInviteMutation
 } from '@/store/features/api/organization/orgApi'
 import {
     Clock,
@@ -61,6 +65,9 @@ interface Mentor {
     avatar?: string;
     bio?: string;
     certifications?: string[];
+    userId?: string;
+    orgId?: string;
+    _id?: string;
 }
 
 // Interface for creating a new mentor
@@ -138,7 +145,7 @@ interface FormErrors {
     certifications?: string;
 }
 
-function MentorsTab({ onViewMentor, apiBaseUrl = '/api' }: MentorsTabProps) {
+function MentorsTab({ onViewMentor }: MentorsTabProps) {
     const [mentors, setMentors] = useState<Mentor[]>([])
     const [searchTerm, setSearchTerm] = useState("")
     const [specializationFilter, setSpecializationFilter] = useState("all")
@@ -166,6 +173,10 @@ function MentorsTab({ onViewMentor, apiBaseUrl = '/api' }: MentorsTabProps) {
     // API hooks
     const { data: orgData } = useMyOrgQuery()
     const [invitementor] = useInviteMentorsMutation()
+    const [resendInvite] = useResendInviteMutation()
+    const [cancelInvite] = useCancelInviteMutation()
+    const [deleteMentor] = useDeleteMentorMutation()
+    const { data: getOrgMentors } = useGetOrgMentorsQuery(undefined)
     const { data: pendingInvitesData, isLoading: pendingInvitesLoading, refetch: refetchPendingInvites } = usePendingInvitesQuery(
         orgData?.data?.ownerId || '',
         {
@@ -176,26 +187,17 @@ function MentorsTab({ onViewMentor, apiBaseUrl = '/api' }: MentorsTabProps) {
     console.log(pendingInvitesData)
     const [finalizeInvite] = useFinalizeInviteMutation()
 
-    // Fetch mentors from API
-    const fetchMentors = useCallback(async () => {
-        setIsLoading(false)
-        setMentors(getMockMentors)
-        // try {
-        //     setIsLoading(true)
-        //     const response = await fetch(`${apiBaseUrl}/mentors`)
-        //     if (!response.ok) {
-        //         throw new Error('Failed to fetch mentors')
-        //     }
-        //     const data = await response.json()
-        //     setMentors(data)
-        // } catch (error) {
-        //     console.error('Error fetching mentors:', error)
-        //     toast.error("Failed to load mentors. Using mock data.")
+    useEffect(() => {
+        if (getOrgMentors?.data) {
+            setMentors(getOrgMentors?.data)
+            setIsLoading(false)
+        }
+        console.log(getOrgMentors)
 
-        // } finally {
-        //     setIsLoading(false)
-        // }
-    }, [apiBaseUrl])
+    }, [getOrgMentors])
+
+
+
 
     // Validation functions
     const validateField = useCallback((fieldName: keyof FormErrors, value: string) => {
@@ -329,28 +331,24 @@ function MentorsTab({ onViewMentor, apiBaseUrl = '/api' }: MentorsTabProps) {
     // Delete mentor
     const handleDeleteMentor = async (mentorId: string) => {
         try {
-            const response = await fetch(`${apiBaseUrl}/mentors/${mentorId}`, {
-                method: 'DELETE',
-            })
-
-            if (!response.ok) {
-                throw new Error('Failed to delete mentor')
+            console.log(mentorId)
+            const response = await deleteMentor(mentorId).unwrap()
+            if (response.success) {
+                toast.success("Mentor deleted successfully!")
+                setMentors(mentors.filter(mentor => mentor.id !== mentorId))
             }
-
-            setMentors(prev => prev.filter(mentor => mentor.id !== mentorId))
-            toast.success("Mentor removed successfully!")
         } catch (error) {
             console.error('Error deleting mentor:', error)
-            toast.error("Failed to remove mentor. Please try again.")
+            toast.error("Failed to delete mentor. Please try again.")
         }
     }
-
     // Handle pending invitation actions
     const handleResendInvitation = async (inviteId: string) => {
         try {
-            console.log('Resending invitation for:', inviteId)
-            // TODO: Implement actual resend invitation API call
-            toast.success("Invitation resent successfully!")
+            const response = await resendInvite(inviteId).unwrap()
+            if (response.success) {
+                toast.success("Invitation resent successfully!")
+            }
             refetchPendingInvites()
         } catch (error) {
             console.error('Error resending invitation:', error)
@@ -360,9 +358,10 @@ function MentorsTab({ onViewMentor, apiBaseUrl = '/api' }: MentorsTabProps) {
 
     const handleCancelInvitation = async (inviteId: string) => {
         try {
-            console.log('Cancelling invitation for:', inviteId)
-            // TODO: Implement actual cancel invitation API call
-            toast.success("Invitation cancelled successfully!")
+            const response = await cancelInvite(inviteId).unwrap()
+            if (response.success) {
+                toast.success("Invitation cancelled successfully!")
+            }
             refetchPendingInvites()
         } catch (error) {
             console.error('Error cancelling invitation:', error)
@@ -376,7 +375,7 @@ function MentorsTab({ onViewMentor, apiBaseUrl = '/api' }: MentorsTabProps) {
             if (response.success) {
                 toast.success("Mentor invitation finalized successfully!")
                 refetchPendingInvites()
-                fetchMentors()
+                setMentors([...mentors, response.data])
             }
         } catch (error) {
             console.error('Error finalizing invitation:', error)
@@ -384,48 +383,16 @@ function MentorsTab({ onViewMentor, apiBaseUrl = '/api' }: MentorsTabProps) {
         }
     }
 
-    // Mock data fallback
-    const getMockMentors = (): Mentor[] => [
-        {
-            id: "1",
-            name: "Dr. Sarah Johnson",
-            email: "sarah.johnson@edulaunch.com",
-            phone: "+1 (555) 123-4567",
-            specialization: "Data Science",
-            experience: "8 years",
-            rating: 4.9,
-            studentsCount: 45,
-            cohortsCount: 3,
-            status: "active",
-            lastActive: "2 hours ago",
-            avatar: "/placeholder.svg?height=40&width=40",
-            bio: "Experienced data scientist with expertise in machine learning and AI.",
-            certifications: ["AWS Certified", "Google Cloud Professional"],
-        },
-        {
-            id: "2",
-            name: "Michael Chen",
-            email: "michael.chen@edulaunch.com",
-            phone: "+1 (555) 234-5678",
-            specialization: "Web Development",
-            experience: "6 years",
-            rating: 4.8,
-            studentsCount: 38,
-            cohortsCount: 2,
-            status: "active",
-            lastActive: "1 day ago",
-            avatar: "/placeholder.svg?height=40&width=40",
-            bio: "Full-stack developer specializing in modern web technologies.",
-            certifications: ["React Certified", "Node.js Expert"],
-        },
-    ]
 
     // Filter functions
     const filteredMentors = mentors.filter(mentor => {
-        const matchesSearch = mentor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            mentor.email.toLowerCase().includes(searchTerm.toLowerCase())
+        // Add null/undefined checks for mentor object
+        if (!mentor) return false;
+
+        const matchesSearch = (mentor?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+            (mentor?.email?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
         const matchesSpecialization = specializationFilter === "all" ||
-            mentor.specialization.toLowerCase().includes(specializationFilter.toLowerCase())
+            (mentor?.specialization?.toLowerCase().includes(specializationFilter.toLowerCase()) || false)
         return matchesSearch && matchesSpecialization
     })
 
@@ -437,15 +404,28 @@ function MentorsTab({ onViewMentor, apiBaseUrl = '/api' }: MentorsTabProps) {
             : []
 
     const filteredPendingInvites = pendingInvitesArray.filter((invite: PendingInvite) => {
-        const matchesSearch = invite.name.toLowerCase().includes(pendingSearchTerm.toLowerCase()) ||
-            invite.email.toLowerCase().includes(pendingSearchTerm.toLowerCase())
-        const matchesStatus = pendingStatusFilter === "all" || invite.status === pendingStatusFilter
-        return matchesSearch && matchesStatus
-    })
+        // Add comprehensive null/undefined checks for invite object
+        if (!invite || typeof invite !== 'object') {
+            console.warn('⚠️ Invalid invite object found:', invite);
+            return false;
+        }
 
-    useEffect(() => {
-        fetchMentors()
-    }, [apiBaseUrl, fetchMentors])
+        // Check if required properties exist before accessing them
+        if (!invite.name || !invite.email) {
+            console.warn('⚠️ Invite missing required properties:', invite);
+            return false;
+        }
+
+        try {
+            const matchesSearch = invite.name.toLowerCase().includes(pendingSearchTerm.toLowerCase()) ||
+                invite.email.toLowerCase().includes(pendingSearchTerm.toLowerCase())
+            const matchesStatus = pendingStatusFilter === "all" || invite.status === pendingStatusFilter
+            return matchesSearch && matchesStatus
+        } catch (error) {
+            console.error('❌ Error filtering pending invite:', error, invite);
+            return false;
+        }
+    })
 
     return (
         <div className='space-y-6'>
@@ -700,67 +680,71 @@ function MentorsTab({ onViewMentor, apiBaseUrl = '/api' }: MentorsTabProps) {
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
-                                            filteredMentors.map((mentor) => (
-                                                <TableRow key={mentor.id} className="cursor-pointer hover:bg-muted/50">
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-3">
-                                                            <Avatar>
-                                                                <AvatarImage src={mentor.avatar || "/placeholder.svg"} alt={mentor.name} />
-                                                                <AvatarFallback>
-                                                                    {mentor.name
-                                                                        .split(" ")
-                                                                        .map((n) => n[0])
-                                                                        .join("")}
-                                                                </AvatarFallback>
-                                                            </Avatar>
-                                                            <div>
-                                                                <p className="font-medium">{mentor.name}</p>
-                                                                <p className="text-sm text-muted-foreground">{mentor.email}</p>
+                                            filteredMentors.map((mentor) => {
+
+                                                return (
+                                                    <TableRow key={mentor.id} className="cursor-pointer hover:bg-muted/50">
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-3">
+                                                                <Avatar>
+                                                                    <AvatarImage src={mentor.avatar || "/placeholder.svg"} alt={mentor.name || 'Mentor'} />
+                                                                    <AvatarFallback>
+                                                                        {mentor.name
+                                                                            ? mentor.name.split(" ").map((n) => n[0]).join("")
+                                                                            : "M"}
+                                                                    </AvatarFallback>
+                                                                </Avatar>
+                                                                <div>
+                                                                    <p className="font-medium">{mentor.name || 'Unknown'}</p>
+                                                                    <p className="text-sm text-muted-foreground">{mentor.email || 'No email'}</p>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>{mentor.specialization}</TableCell>
-                                                    <TableCell>{mentor.studentsCount}</TableCell>
-                                                    <TableCell>{mentor.cohortsCount}</TableCell>
-                                                    <TableCell>{mentor.rating}</TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={mentor.status === "active" ? "default" : "secondary"}>{mentor.status}</Badge>
-                                                    </TableCell>
-                                                    <TableCell>{mentor.lastActive}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                                    <MoreHorizontal className="h-4 w-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                                <DropdownMenuItem onClick={() => handleViewMentor(mentor.id)}>
-                                                                    <Eye className="mr-2 h-4 w-4" />
-                                                                    View Profile
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem>
-                                                                    <Edit className="mr-2 h-4 w-4" />
-                                                                    Edit Profile
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem>
-                                                                    <Mail className="mr-2 h-4 w-4" />
-                                                                    Send Message
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem
-                                                                    className="text-red-600"
-                                                                    onClick={() => handleDeleteMentor(mentor.id)}
-                                                                >
-                                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                                    Remove Mentor
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
+                                                        </TableCell>
+                                                        <TableCell>{mentor.specialization || 'N/A'}</TableCell>
+                                                        <TableCell>{mentor.studentsCount || 0}</TableCell>
+                                                        <TableCell>{mentor.cohortsCount || 0}</TableCell>
+                                                        <TableCell>{mentor.rating || 0}</TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={mentor.status === "active" ? "default" : "secondary"}>
+                                                                {mentor.status || 'inactive'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell>{mentor.lastActive || 'Never'}</TableCell>
+                                                        <TableCell className="text-right">
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                        <MoreHorizontal className="h-4 w-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                                    <DropdownMenuItem onClick={() => handleViewMentor(mentor.id)}>
+                                                                        <Eye className="mr-2 h-4 w-4" />
+                                                                        View Profile
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem>
+                                                                        <Edit className="mr-2 h-4 w-4" />
+                                                                        Edit Profile
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem>
+                                                                        <Mail className="mr-2 h-4 w-4" />
+                                                                        Send Message
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuSeparator />
+                                                                    <DropdownMenuItem
+                                                                        className="text-red-600"
+                                                                        onClick={() => handleDeleteMentor(mentor._id!)}
+                                                                    >
+                                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                                        Remove Mentor
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })
                                         )}
                                     </TableBody>
                                 </Table>
@@ -831,69 +815,80 @@ function MentorsTab({ onViewMentor, apiBaseUrl = '/api' }: MentorsTabProps) {
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
-                                            filteredPendingInvites.map((invite: PendingInvite) => (
-                                                <TableRow key={invite._id} className="hover:bg-muted/50">
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-3">
-                                                            <Avatar>
-                                                                <AvatarFallback>
-                                                                    {invite.name
-                                                                        .split(" ")
-                                                                        .map((n) => n[0])
-                                                                        .join("")}
-                                                                </AvatarFallback>
-                                                            </Avatar>
-                                                            <div>
-                                                                <p className="font-medium">{invite.name}</p>
-                                                                <p className="text-sm text-muted-foreground">{invite.email}</p>
+                                            filteredPendingInvites.map((invite: PendingInvite) => {
+                                                // Additional safety check for invite object
+                                                if (!invite || !invite._id) {
+                                                    console.warn('⚠️ Invalid invite object in render:', invite);
+                                                    return null;
+                                                }
+
+                                                return (
+                                                    <TableRow key={invite._id} className="hover:bg-muted/50">
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-3">
+                                                                <Avatar>
+                                                                    <AvatarFallback>
+                                                                        {invite.name
+                                                                            ? invite.name.split(" ").map((n) => n[0]).join("")
+                                                                            : "I"}
+                                                                    </AvatarFallback>
+                                                                </Avatar>
+                                                                <div>
+                                                                    <p className="font-medium">{invite.name || 'Unknown'}</p>
+                                                                    <p className="text-sm text-muted-foreground">{invite.email || 'No email'}</p>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>{invite.specialization}</TableCell>
-                                                    <TableCell>{invite.experience}</TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={invite.status === "PENDING_USER" ? "secondary" : "outline"}>
-                                                            {invite.status === "PENDING_USER" ? "Awaiting User" : "Awaiting Admin"}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>{new Date(invite.createdAt).toLocaleDateString()}</TableCell>
-                                                    <TableCell>{new Date(invite.expiresAt).toLocaleDateString()}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                                    <MoreHorizontal className="h-4 w-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                                {invite.status === "PENDING_ADMIN" && (
-                                                                    <DropdownMenuItem onClick={() => handleFinalizeInvitation(invite._id)}>
-                                                                        <UserCheck className="mr-2 h-4 w-4" />
-                                                                        Approve Invitation
+                                                        </TableCell>
+                                                        <TableCell>{invite.specialization || 'N/A'}</TableCell>
+                                                        <TableCell>{invite.experience || 'N/A'}</TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={invite.status === "PENDING_USER" ? "secondary" : "outline"}>
+                                                                {invite.status === "PENDING_USER" ? "Awaiting User" : "Awaiting Admin"}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {invite.createdAt ? new Date(invite.createdAt).toLocaleDateString() : 'N/A'}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {invite.expiresAt ? new Date(invite.expiresAt).toLocaleDateString() : 'N/A'}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                        <MoreHorizontal className="h-4 w-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                                    {invite.status === "PENDING_ADMIN" && (
+                                                                        <DropdownMenuItem onClick={() => handleFinalizeInvitation(invite._id)}>
+                                                                            <UserCheck className="mr-2 h-4 w-4" />
+                                                                            Approve Invitation
+                                                                        </DropdownMenuItem>
+                                                                    )}
+                                                                    <DropdownMenuItem onClick={() => handleResendInvitation(invite._id)}>
+                                                                        <Send className="mr-2 h-4 w-4" />
+                                                                        Resend Invitation
                                                                     </DropdownMenuItem>
-                                                                )}
-                                                                <DropdownMenuItem onClick={() => handleResendInvitation(invite._id)}>
-                                                                    <Send className="mr-2 h-4 w-4" />
-                                                                    Resend Invitation
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem>
-                                                                    <Eye className="mr-2 h-4 w-4" />
-                                                                    View Details
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem
-                                                                    className="text-red-600"
-                                                                    onClick={() => handleCancelInvitation(invite._id)}
-                                                                >
-                                                                    <UserX className="mr-2 h-4 w-4" />
-                                                                    Cancel Invitation
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
+                                                                    <DropdownMenuItem>
+                                                                        <Eye className="mr-2 h-4 w-4" />
+                                                                        View Details
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuSeparator />
+                                                                    <DropdownMenuItem
+                                                                        className="text-red-600"
+                                                                        onClick={() => handleCancelInvitation(invite._id)}
+                                                                    >
+                                                                        <UserX className="mr-2 h-4 w-4" />
+                                                                        Cancel Invitation
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })
                                         )}
                                     </TableBody>
                                 </Table>

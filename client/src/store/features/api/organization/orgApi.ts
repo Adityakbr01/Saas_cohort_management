@@ -18,6 +18,7 @@ export interface MyOrgResponse {
   message: string;
   data: Organization;
   timestamp: string;
+  
 }
 
 export interface InviteMentorRequest {
@@ -43,7 +44,7 @@ export const orgApi = createApi({
     baseUrl: `${Backend_URL}/org`,
     credentials: "include", // sends cookies with requests
   }),
-  tagTypes: ["Org"], // Add more tags if needed
+  tagTypes: ["Org","myOrgMentors"], // Add more tags if needed
   endpoints: (builder) => ({
     myOrg: builder.query<MyOrgResponse, void>({
       query: () => ({
@@ -58,13 +59,33 @@ export const orgApi = createApi({
         body: formData,
       }),
     }),
-
     inviteMentors: builder.mutation<InviteMentorResponse, InviteMentorRequest>({
       query: (data: InviteMentorRequest) => ({
         url: `/invite`,
         method: "POST",
         body: data,
       }),
+    }),
+    resendInvite: builder.mutation({
+      query: (inviteId: string) => ({
+        url: `/resend-invite?inviteId=${inviteId}`,
+        method: "GET",
+      }),
+    }),
+    cancelInvite: builder.mutation({
+      query: (inviteId: string) => ({
+        url: `/cencel-invite`,
+        method: "POST",
+        body: { inviteId },
+      }),
+    }),
+    deleteMentor: builder.mutation({
+      query: (mentorId: string) => ({
+        url: `/delete-Mentor`,
+        method: "DELETE",
+        body: { mentorId },
+      }),
+      invalidatesTags: ["myOrgMentors"],
     }),
     pendingInvites: builder.query({
       query: (org_ownerId: string) => ({
@@ -77,17 +98,26 @@ export const orgApi = createApi({
         url: `/accept-invite?token=${token}`,
         method: "GET",
       }),
+       invalidatesTags: ["myOrgMentors"],
     }),
     finalizeInvite: builder.mutation({
       query: (inviteId: string) => ({
         url: `/approve-invite`,
         method: "POST",
         body: { inviteId },
+         invalidatesTags: ["myOrgMentors"],
       }),
+    }),
+    getOrgMentors: builder.query({
+      query: () => ({
+        url: `/getOrgMentors`,
+        method: "GET",
+      }),
+      providesTags: ["myOrgMentors"],
     }),
 
 
   }),
 });
 
-export const { useMyOrgQuery, useCreateOrgMutation,useInviteMentorsMutation,usePendingInvitesQuery,useAcceptInviteMutation,useFinalizeInviteMutation } = orgApi;
+export const { useMyOrgQuery, useCreateOrgMutation,useInviteMentorsMutation,useResendInviteMutation,useCancelInviteMutation,useDeleteMentorMutation,usePendingInvitesQuery,useAcceptInviteMutation,useFinalizeInviteMutation,useGetOrgMentorsQuery } = orgApi;
