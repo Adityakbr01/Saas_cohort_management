@@ -6,7 +6,7 @@ import { validateRequest } from "@/middleware/validateRequest";
 import Organization from "@/models/organizationModel";
 import PendingInvite from "@/models/PendingInvite";
 import User from "@/models/userModel";
-import { createOrgSchema } from "@/utils/zod/org";
+import { createOrgSchema, inviteMentorSchema } from "@/utils/zod/org";
 import express from "express";
 const router = express.Router();
 
@@ -23,6 +23,7 @@ router.get("/myOrg", protect, orgController.getmyOrg);
 
 router.post(
   "/invite",
+  validateRequest(inviteMentorSchema),
   protect,
   restrictTo(Role.org_admin),
   orgController.inviteUserToOrg
