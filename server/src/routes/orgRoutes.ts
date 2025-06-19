@@ -3,6 +3,7 @@ import { orgController } from "@/controllers/orgController";
 import { protect, restrictTo } from "@/middleware/authMiddleware";
 import { uploadLogo } from "@/middleware/multerConfig";
 import { validateRequest } from "@/middleware/validateRequest";
+import PendingInvite from "@/models/PendingInvite";
 import { createOrgSchema } from "@/utils/zod/org";
 import express from "express";
 const router = express.Router();
@@ -16,9 +17,48 @@ router.post(
   orgController.createOrg
 );
 
-router.get("/myOrg",protect,orgController.getmyOrg)
+router.get("/myOrg", protect, orgController.getmyOrg);
 
-router.get("/", protect,restrictTo(Role.super_admin), orgController.getAllOrgs);
-router.get("/:orgId/users",protect, restrictTo(Role.org_admin,Role.mentor), orgController.getOrgUsers);
+router.post(
+  "/invite",
+  protect,
+  restrictTo(Role.org_admin),
+  orgController.inviteUserToOrg
+);
+router.get("/accept-invite", orgController.acceptInvite);
+// POST /api/org/approve-invite
+router.post(
+  "/approve-invite",
+  protect,
+  restrictTo(Role.org_admin),
+  orgController.finalizeInvite
+);
+router.get(
+  "/pending-invites/:orgId",
+  protect,
+  restrictTo(Role.org_admin),
+  async (req, res) => {
+    const { orgId } = req.params;
+    console.log(orgId);
+    const invites = await PendingInvite.find({
+      orgId,
+      status: { $in: ["PENDING_USER", "PENDING_ADMIN"] },
+    });
+    console.log(invites);
+    res.json(invites);
+  }
+);
+router.get(
+  "/",
+  protect,
+  restrictTo(Role.super_admin),
+  orgController.getAllOrgs
+);
+router.get(
+  "/:orgId/users",
+  protect,
+  restrictTo(Role.org_admin, Role.mentor),
+  orgController.getOrgUsers
+);
 
 export default router;

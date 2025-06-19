@@ -553,3 +553,152 @@ export const verifyEmailConfig = async (): Promise<boolean> => {
     return false;
   }
 };
+
+// create a send email to join organization
+export const sendEmailToJoinOrganization = async (
+  email: string,
+  orgName: string,
+  firstName: string = "User",
+  role: string = "mentor",
+  orgId: string
+): Promise<EmailSendResult> => {
+  const backend_URL = process.env.backend_URL!;
+
+  try {
+    const subject = "Invitation to join EduLaunch Organization";
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invitation to join EduLaunch Organization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f9f9f9;
+            padding: 30px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .invitation-box {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .org-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛒 EduLaunch</h1>
+            <h2>Invitation to join Organization</h2>
+        </div>
+        
+        <div class="invitation-box">
+            <h2>Join Our Organization!</h2>
+            <p>You have been invited to join the ${orgName} organization on EduLaunch as a ${role}.</p>
+        </div>
+        
+        <p>Hello <strong>${firstName}</strong>,</p>
+        
+        <p>You have been invited to join the ${orgName} organization on EduLaunch. Please click the button below to accept the invitation.</p>
+
+        <p>Thank you for considering our invitation. We look forward to having you on board!</p>
+
+        <button style="background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+            <a href="${backend_URL}/org/accept-mentor-request?email=${email}?orgId=${orgId}" style="color: white; text-decoration: none;">Accept Invitation</a>
+        </button>
+        
+        <p>If you have any questions or need assistance, please contact our support team.</p>
+        
+        <div class="footer">
+            <p>Best regards,<br>
+            <strong>EduLaunch Team</strong></p>
+            <p>This is an automated email. Please do not reply to this message.</p>
+        </div>
+    </div>
+</body>
+</html>
+    `;
+
+    return await sendEmail({
+      to: email,
+      subject,
+      html,
+    });
+  } catch (error: any) {
+    logger.error(`Email to join organization sending failed: ${error.message}`);
+    throw error;
+  }
+};
+
+
+const frontend_URL = process.env.FRONTEND_URL;
+const backend_URL = process.env.backend_URL;
+
+
+export const sendInviteEmail = async ({
+  email,
+  token,
+  orgName,
+  role,
+  firstName,
+}: {
+  email: string;
+  token: string;
+  orgName: string;
+  role: string;
+  firstName?: string;
+}) => {
+  const inviteLink = `${backend_URL}/org/accept-invite?token=${token}`;
+
+  const subject = `Invitation to join ${orgName} on EduLaunch`;
+
+  const html = `
+    <div style="font-family: Arial; padding: 20px;">
+      <h2>Hi ${firstName || "User"},</h2>
+      <p>You are invited to join the <strong>${orgName}</strong> organization as a <strong>${role}</strong>.</p>
+      <p>Click the button below to accept:</p>
+      <a href="${inviteLink}"
+         style="background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">
+         Accept Invitation
+      </a>
+      <p>This link will expire in 2 days.</p>
+    </div>
+  `;
+
+  return await sendEmail({
+    to: email,
+    subject,
+    html,
+  });
+};

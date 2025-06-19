@@ -20,3 +20,19 @@ export const generateToken = (userId: string, role: string): string => {
     }
   );
 };
+
+
+
+export const generateInviteToken = (data: {
+  email: string;
+  orgId: string;
+  role: string;
+}) => {
+  return jwt.sign(data, process.env.JWT_SECRET!, {
+    expiresIn: "2d",
+  });
+};
+
+export const verifyInviteToken = (token: string) => {
+  return jwt.verify(token, process.env.JWT_SECRET!);
+};

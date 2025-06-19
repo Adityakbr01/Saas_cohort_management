@@ -1,6 +1,11 @@
+import { UserDAO } from "@/dao/user.dao";
 import Organization from "@/models/organizationModel";
+import PendingInvite from "@/models/PendingInvite";
+import { sendInviteEmail } from "@/services/emailService";
 import { OrganizationService } from "@/services/organization.service";
+import { ApiError } from "@/utils/apiError";
 import { sendSuccess } from "@/utils/responseUtil";
+import { generateInviteToken, verifyInviteToken } from "@/utils/tokenUtil";
 import { wrapAsync } from "@/utils/wrapAsync";
 import { Request, Response } from "express";
 
@@ -9,7 +14,7 @@ export const orgController = {
     const { name, logo } = req.body;
     const userId = req.user?.id;
 
-    console.log(req.body)
+    console.log(req.body);
     const organization = await OrganizationService.createOrganization({
       name,
       logo,
@@ -19,15 +24,13 @@ export const orgController = {
     sendSuccess(res, 201, "Organization created successfully", organization);
   }),
 
-  getmyOrg:wrapAsync(async(req: Request, res: Response)=>{
+  getmyOrg: wrapAsync(async (req: Request, res: Response) => {
+    const userId = req.user.id;
 
-    const userId = req.user.id
+    const org = await Organization.findOne({ ownerId: userId });
 
-    const org = await Organization.findOne({ownerId:userId})
-
-    console.log(org)
-    sendSuccess(res,200,"Org fetch succces",org)
-
+    console.log(org);
+    sendSuccess(res, 200, "Org fetch succces", org);
   }),
   // Fetch all organizations for a super admin
   getAllOrgs: wrapAsync(async (req: Request, res: Response) => {
@@ -57,4 +60,56 @@ export const orgController = {
     const data = await OrganizationService.getOrgUsers({ orgId, page, limit });
     sendSuccess(res, 200, "Organization users fetched successfully", data);
   }),
+
+  inviteUserToOrg: wrapAsync(async (req: Request, res: Response) => {
+    const { email, orgId, role = "mentor", orgName } = req.body;
+    const invitedBy = req.user.id;
+
+    try {
+      if (!email || !orgId || !orgName) {
+        throw new ApiError(400, "Email, orgId and orgName are required");
+      }
+
+      const result = OrganizationService.inviteUserToOrg({
+        email,
+        orgId,
+        role,
+        orgName,
+        invitedBy,
+      });
+      sendSuccess(res, 200, (await result).message);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to send invitation." });
+    }
+  }),
+
+  acceptInvite: wrapAsync(async (req: Request, res: Response) => {
+    const { token } = req.query;
+    try {
+      const decoded = verifyInviteToken(token as string);
+
+      if (!decoded) {
+        throw new ApiError(400, "faild to verify Token");
+      }
+      const result = await OrganizationService.acceptInvite(decoded);
+      sendSuccess(res, 200, result.message);
+    } catch (err) {
+      console.error(err);
+      res.status(400).json({ error: "Invalid or expired token" });
+    }
+  }),
+
+  finalizeInvite: wrapAsync(async (req: Request, res: Response) => {
+    const { inviteId } = req.body;
+    try {
+    const result = await OrganizationService.finalizeInvite(inviteId);
+    sendSuccess(res, 200, result.message);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to finalize invite." });
+    }
+  }),
+
 };
+
