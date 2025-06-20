@@ -105,8 +105,8 @@ export const orgApi = createApi({
         url: `/approve-invite`,
         method: "POST",
         body: { inviteId },
-         invalidatesTags: ["myOrgMentors"],
       }),
+       invalidatesTags: ["myOrgMentors"],
     }),
     getOrgMentors: builder.query({
       query: () => ({
