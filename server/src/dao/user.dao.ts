@@ -74,23 +74,29 @@ export const UserDAO = {
   async updateUser(id: string, updates: Partial<IUser>): Promise<any> {
     console.log("Incoming Education Data:", updates.Education);
 
-    const updatedUser = await User.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          name: updates.name,
-          profile: updates.profile,
-          Education: updates.Education,
-          Experience: updates.Experience,
-          Skills: updates.Skills,
-          Certifications: updates.Certifications,
-        },
+    const updatedUser = await User.findByIdAndUpdate(id, {
+      $set: {
+        name: updates.name,
+        profile: updates.profile,
+        Education: updates.Education,
+        Experience: updates.Experience,
+        Skills: updates.Skills,
+        Certifications: updates.Certifications,
       },
-    );
+    });
 
+    if (!updatedUser) {
+      throw new Error("User not found");
+    }
 
-    
-    return updatedUser;
+    return {
+      id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      isVerified: updatedUser.isVerified,
+      lastLogin: updatedUser.lastLogin || new Date(),
+    };
   },
   storeRefreshToken: async (userId: string, refreshToken: string) => {
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
