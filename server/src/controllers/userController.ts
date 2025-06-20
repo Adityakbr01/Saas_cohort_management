@@ -93,6 +93,7 @@ export const UserController = {
 
   updateProfile: wrapAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id;
+    const role = req.user.role
     const user = await UserService.updateProfile(userId, req.body);
     sendSuccess(res, 200, "User profile updated", user);
   }),

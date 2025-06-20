@@ -50,11 +50,13 @@ export interface IUser extends Document, IUserMethods {
   suspended?: boolean; // Optional field for suspension status
 
   //New fields
-  Education?: {
-    degree: string;
-    institution: string;
-    year: string;
-  };
+  Education?: [
+    {
+      degree: string;
+      institution: string;
+      year: string;
+    }
+  ];
   Experience?: {
     role: string;
     company: string;
@@ -152,11 +154,13 @@ const userSchema = new Schema<IUser, UserModel>(
       },
     ],
     //New fields
-    Education: {
-      degree: String,
-      institution: String,
-      year: String,
-    },
+    Education: [
+      {
+        degree: String,
+        institution: String,
+        year: String,
+      },
+    ],
     Experience: {
       role: String,
       company: String,

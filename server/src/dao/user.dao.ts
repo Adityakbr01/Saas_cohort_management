@@ -1,7 +1,6 @@
 import User, { IUser } from "@/models/userModel";
+import { Console } from "console";
 import mongoose, { Types } from "mongoose";
-
-
 
 interface SubscriptionMeta {
   startDate: Date;
@@ -9,7 +8,6 @@ interface SubscriptionMeta {
   isActive: boolean;
   isExpired: boolean;
 }
-
 
 export const findAllUsers = () => User.find().select("-password");
 
@@ -58,35 +56,42 @@ export const UserDAO = {
     const user = new User(data);
     return user.save();
   },
-
   async findById(userId: string): Promise<IUser | null> {
     return User.findById(userId);
   },
+  async getProfileById(userId: string): Promise<IUser | null> {
+    try {
+      const user = await User.findById(userId)
+        .select("-password -refreshTokens") // 🛠️ '-' lagana na bhoolein before field
+        .lean(); // Optional: Returns plain JS object instead of Mongoose doc
 
- async getProfileById(userId: string): Promise<IUser | null> {
-  try {
-    const user = await User.findById(userId)
-      .select("-password -refreshTokens") // 🛠️ '-' lagana na bhoolein before field
-      .lean(); // Optional: Returns plain JS object instead of Mongoose doc
+      return user as IUser | null;
+    } catch (error) {
+      console.error("Error in getProfileById:", error);
+      return null;
+    }
+  },
+  async updateUser(id: string, updates: Partial<IUser>): Promise<any> {
+    console.log("Incoming Education Data:", updates.Education);
 
-    return user as IUser | null;
-  } catch (error) {
-    console.error("Error in getProfileById:", error);
-    return null;
-  }
-},
-
-  async updateUser(id: string, updates: Partial<IUser>): Promise<IUser | null> {
-    return User.findByIdAndUpdate(
+    const updatedUser = await User.findByIdAndUpdate(
       id,
       {
-        name: updates.name,
-        profile: updates.profile,
+        $set: {
+          name: updates.name,
+          profile: updates.profile,
+          Education: updates.Education,
+          Experience: updates.Experience,
+          Skills: updates.Skills,
+          Certifications: updates.Certifications,
+        },
       },
-      { new: true }
     );
-  },
 
+
+    
+    return updatedUser;
+  },
   storeRefreshToken: async (userId: string, refreshToken: string) => {
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
     return await User.findByIdAndUpdate(
@@ -103,7 +108,6 @@ export const UserDAO = {
       { new: true }
     );
   },
-
   invalidateAllTokens: async (userId: string) => {
     return await User.findByIdAndUpdate(
       userId,
@@ -114,7 +118,6 @@ export const UserDAO = {
       { new: true }
     );
   },
-
   async getAllUsers({ role }: { role?: string }): Promise<IUser[]> {
     const filter: any = {};
 
@@ -152,18 +155,18 @@ export const UserDAO = {
 
     return await existingUser.save();
   },
- async  updateUserPlan(
-  userId: string,
-  planId: mongoose.Types.ObjectId,
-  subscriptionMeta: SubscriptionMeta
-) {
-  return await User.findByIdAndUpdate(
-    userId,
-    {
-      plan: planId,
-      subscriptionMeta,
-    },
-    { new: true }
-  );
-}
+  async updateUserPlan(
+    userId: string,
+    planId: mongoose.Types.ObjectId,
+    subscriptionMeta: SubscriptionMeta
+  ) {
+    return await User.findByIdAndUpdate(
+      userId,
+      {
+        plan: planId,
+        subscriptionMeta,
+      },
+      { new: true }
+    );
+  },
 };
