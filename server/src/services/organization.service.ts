@@ -8,7 +8,7 @@ import { findUserByEmail, UserDAO } from "@/dao/user.dao";
 import PendingInvite from "@/models/PendingInvite";
 import { generateInviteToken } from "@/utils/tokenUtil";
 import Mentor from "@/models/mentorModel";
-import User from "@/models/userModel";
+
 
 // Types for better type safety
 interface MentorCreationData {
@@ -394,11 +394,6 @@ export const OrganizationService = {
         email: newMentor.email,
         name: newMentor.name,
       });
-
-      //change role of user to mentor
-
-      await UserDAO.updateRole(invite.userId.toString(), "mentor");
-
 
       // Step 8: Update organization membership
       console.log(`🏢 Adding user to organization members`);

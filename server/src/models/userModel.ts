@@ -42,33 +42,12 @@ export interface IUser extends Document, IUserMethods {
   otpExpiry?: Date;
   plan?: Types.ObjectId; // Reference to SubscriptionPlan
   subscriptionMeta: {
-    startDate: Date; // Start date of the subscription,
-    expiresDate: Date | null; // Nullable for plans that don't expire,
-    isActive: boolean; // Indicates if the subscription is active
-    isExpired: boolean; // Indicates if the subscription is expired
-  };
+  startDate: Date; // Start date of the subscription,
+  expiresDate: Date | null; // Nullable for plans that don't expire,
+  isActive: boolean; // Indicates if the subscription is active
+  isExpired: boolean; // Indicates if the subscription is expired
+}
   suspended?: boolean; // Optional field for suspension status
-
-  //New fields
-  Education?: [
-    {
-      degree: string;
-      institution: string;
-      year: string;
-    }
-  ];
-  Experience?: {
-    role: string;
-    company: string;
-    year: string;
-  };
-  Skills?: string[];
-
-  Certifications?: {
-    name: string;
-    issuer: string;
-    date: Date;
-  }[];
 }
 
 // Static methods
@@ -111,8 +90,8 @@ const userSchema = new Schema<IUser, UserModel>(
     subscriptionMeta: {
       startDate: { type: Date, default: Date.now },
       expiresDate: { type: Date },
-      isExpired: Boolean,
-      isActive: Boolean,
+      isExpired :Boolean,
+      isActive:Boolean,
     },
     suspended: {
       type: Boolean,
@@ -151,27 +130,6 @@ const userSchema = new Schema<IUser, UserModel>(
         token: { type: String, required: true },
         expiresAt: { type: Date, required: true },
         createdAt: { type: Date, default: Date.now },
-      },
-    ],
-    //New fields
-    Education: [
-      {
-        degree: String,
-        institution: String,
-        year: String,
-      },
-    ],
-    Experience: {
-      role: String,
-      company: String,
-      year: String,
-    },
-    Skills: [String],
-    Certifications: [
-      {
-        name: String,
-        issuer: String,
-        date: Date,
       },
     ],
   },
