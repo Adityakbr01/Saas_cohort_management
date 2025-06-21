@@ -8,9 +8,7 @@ const connectDB = async () => {
       throw new Error('MONGODB_URI is not defined in environment variables');
     }
 
-    await mongoose.connect(MONGODB_URI, {
-      dbName: 'stackgen_db',
-    });
+    await mongoose.connect(MONGODB_URI);
     logger.info('MongoDB connected successfully');
   } catch (error) {
     logger.error('MongoDB connection error:', error);

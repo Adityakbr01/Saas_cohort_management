@@ -3,6 +3,8 @@ import crypto from "crypto";
 import { logger } from "@/utils/logger";
 import { UserDAO } from "@/dao/user.dao";
 import { IUser } from "@/models/userModel";
+import { IStudent } from "@/models/student";
+import { StudentDAO } from "@/dao/studentDao";
 
 // Interface for OTP verification result
 interface OTPVerificationResult {
@@ -193,11 +195,11 @@ export const generateOTPForPurpose = (
 };
 
 // Clean expired OTPs
-export const cleanExpiredOTP = (user: IUser): boolean => {
-  if (user.otp && user.otpExpiry && isOTPExpired(user.otpExpiry)) {
-    UserDAO.updateUserOTP(user, undefined, undefined);
-    user.otp = undefined;
-    user.otpExpiry = undefined;
+export const cleanExpiredOTP = (student: IStudent): boolean => {
+  if (student.otp && student.otpExpiry && isOTPExpired(student.otpExpiry)) {
+    StudentDAO.updateUserOTP(student, undefined, undefined);
+    student.otp = undefined;
+    student.otpExpiry = undefined;
     logger.info("Expired OTP cleaned for user");
     return true;
   }

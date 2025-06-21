@@ -2,11 +2,10 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-interface IStudent extends Document {
-  cohortId: Types.ObjectId;
-  mentorId?: Types.ObjectId;
-  userId?: Types.ObjectId;
-  orgId?: Types.ObjectId;
+export interface IStudent extends Document {
+    _id: Types.ObjectId;
+  role: "student";
+  cohorts: Types.ObjectId[];
   name: string;
   email: string;
   password: string;
@@ -63,7 +62,13 @@ interface IStudent extends Document {
     title: string;
     author: string;
     date: Date;
-    type: "general" | "performance" | "engagement" | "intervention" | "goal" | "other";
+    type:
+      | "general"
+      | "performance"
+      | "engagement"
+      | "intervention"
+      | "goal"
+      | "other";
     content: string;
     tags: string[];
     visibility: "private" | "mentor" | "all";
@@ -112,10 +117,12 @@ interface IStudentModel extends mongoose.Model<IStudent> {
 // Define the Mongoose schema
 const studentSchema = new Schema<IStudent>(
   {
-    cohortId: { type: Schema.Types.ObjectId, ref: "Cohort", required: true },
-    mentorId: { type: Schema.Types.ObjectId, ref: "Mentor" },
-    userId: { type: Schema.Types.ObjectId, ref: "User" },
-    orgId: { type: Schema.Types.ObjectId, ref: "Organization" },
+    
+    role: {
+      type: String,
+      default: "student",
+    },
+    cohorts: [{ type: Schema.Types.ObjectId, ref: "Cohort" }],
     name: { type: String, required: true, trim: true },
     email: {
       type: String,
@@ -128,7 +135,7 @@ const studentSchema = new Schema<IStudent>(
         "Please enter a valid email",
       ],
     },
-    password: { type: String, required: true },
+    password: { type: String, required: true,select: false },
     xp: { type: Number, default: 0 },
     streak: { type: Number, default: 0 },
     isVerified: {
@@ -168,7 +175,21 @@ const studentSchema = new Schema<IStudent>(
     grade: {
       type: String,
       default: "N/A",
-      enum: ["A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-", "F", "N/A"],
+      enum: [
+        "A",
+        "A-",
+        "B+",
+        "B",
+        "B-",
+        "C+",
+        "C",
+        "C-",
+        "D+",
+        "D",
+        "D-",
+        "F",
+        "N/A",
+      ],
     },
     overallProgress: { type: Number, default: 0, min: 0, max: 100 },
     attendanceRate: { type: Number, default: 0, min: 0, max: 100 },
@@ -178,7 +199,7 @@ const studentSchema = new Schema<IStudent>(
     bio: { type: String, default: "" },
     goals: { type: String, default: "" },
     learningStyle: { type: String, default: "" },
-    timezone: { type: String, required: true },
+    timezone: { type: String, required: false },
     background: {
       education: { type: String, default: "" },
       previousCourses: [{ type: String }],
@@ -219,7 +240,14 @@ const studentSchema = new Schema<IStudent>(
         date: { type: Date, default: Date.now },
         type: {
           type: String,
-          enum: ["general", "performance", "engagement", "intervention", "goal", "other"],
+          enum: [
+            "general",
+            "performance",
+            "engagement",
+            "intervention",
+            "goal",
+            "other",
+          ],
           default: "general",
         },
         content: { type: String, default: "" },
@@ -227,7 +255,7 @@ const studentSchema = new Schema<IStudent>(
         visibility: {
           type: String,
           enum: ["private", "mentor", "all"],
-          default: "mentor"
+          default: "mentor",
         },
         priority: {
           type: String,
@@ -262,13 +290,13 @@ const studentSchema = new Schema<IStudent>(
         type: {
           type: String,
           enum: ["message", "forum_post", "office_hours"],
-          required: true
+          required: true,
         },
         title: { type: String, required: true },
         date: { type: Date, default: Date.now },
         from: { type: String, required: true },
-        content: { type: String, required: true }
-      }
+        content: { type: String, required: true },
+      },
     ],
 
     performanceMetrics: {
@@ -295,7 +323,6 @@ const studentSchema = new Schema<IStudent>(
 studentSchema.index({ userId: 1, orgId: 1 });
 studentSchema.index({ cohortId: 1 });
 studentSchema.index({ mentorId: 1 });
-studentSchema.index({ email: 1 });
 studentSchema.index({ status: 1 });
 studentSchema.index({ isActive: 1 });
 
@@ -351,5 +378,8 @@ studentSchema.statics.findByEmailWithPassword = function (email: string) {
 };
 
 // Create and export the model
-const Student = mongoose.model<IStudent, IStudentModel>("Student", studentSchema);
+const Student = mongoose.model<IStudent, IStudentModel>(
+  "Student",
+  studentSchema
+);
 export default Student;

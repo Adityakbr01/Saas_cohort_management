@@ -26,10 +26,6 @@ const organizationSchema = new Schema<IOrganization>(
       lowercase: true,
       trim: true,
     },
-    ownerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
     logo: {
       type: String, // URL or path to logo image
       default: "",
@@ -44,7 +40,6 @@ const organizationSchema = new Schema<IOrganization>(
 
   {
     timestamps: true, // Auto adds createdAt and updatedAt
-    versionKey: false, // Remove __v version key
   }
 );
 

@@ -17,9 +17,10 @@ import errorHandler from "@/middleware/errorHandler";
 import { swaggerSpec } from "./configs/swagger";
 
 import userRouter from "@/routes/userRoutes";
-import orgRouter from "@/routes/orgRoutes";
+// import orgRouter from "@/routes/orgRoutes";
 import subscriptionRouter from "@/routes/subscriptionRoute";
 import paymentRouter from "./routes/paymentRoutes";
+import studentRouter from "./routes/studentRouter";
 
 
 const app = express();
@@ -88,10 +89,13 @@ app.get("/", (_, res) => {
 });
 
 // ✅ Routes
+
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/subscription", subscriptionRouter);
 app.use("/api/v1/payments",paymentRouter)
-app.use("/api/v1/org", orgRouter);
+// app.use("/api/v1/org", orgRouter);
+
+app.use("/api/v1/students", studentRouter);
 
 
 // ✅ Error Handling
