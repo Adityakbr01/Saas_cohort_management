@@ -7,6 +7,10 @@ import { ApiError } from "@/utils/apiError";
 import { wrapAsync } from "@/utils/wrapAsync";
 import { sendError } from "@/utils/responseUtil";
 import { generateOTPForPurpose } from "@/utils/otpUtils";
+import { getUserByRole } from "@/utils/modelUtils";
+import { sendOTPEmail } from "@/services/emailService";
+import { logger } from "@/utils/logger";
+import { ResendOTPBody } from "@/utils/zod";
 
 interface RegisterBody {
   email: string;
@@ -204,6 +208,43 @@ export const verifyEmail = wrapAsync(async (req: Request, res: Response) => {
   });
 });
 
+export const resendOTP = wrapAsync(async (req: Request, res: Response) => {
+  // Validation is handled by validateRequest middleware
+  const { email, role } = req.body as ResendOTPBody;
+
+  // Fetch user by role
+  const user = await getUserByRole(role, email, "+otp +otpExpiry");
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (user.isVerified) {
+    throw new ApiError(409, "User is already verified");
+  }
+
+  // Optional: Check if previous OTP is still valid
+  if (user.otpExpiry && user.otpExpiry > new Date()) {
+    throw new ApiError(429, "Previous OTP is still valid. Please try again later.");
+  }
+
+  try {
+    const otpData = generateOTPForPurpose("verification");
+    user.otp = otpData.otp;
+    user.otpExpiry = otpData.expiry;
+    await user.save();
+
+    await sendOTPEmail(email, otpData.otp, user.name);
+  } catch (error: any) {
+    logger.error(`Failed to resend OTP for ${email}: ${error.message}`);
+    throw new ApiError(500, "Failed to resend OTP");
+  }
+
+  res.status(200).json({
+    status: "success",
+    message: "OTP sent to your email for verification",
+  });
+});
 export const login = wrapAsync(async (req: Request, res: Response) => {
   const { email, password, role }: LoginBody = req.body;
 
