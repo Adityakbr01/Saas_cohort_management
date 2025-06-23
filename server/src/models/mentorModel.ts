@@ -1,13 +1,14 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Document, Schema, Model, Types } from "mongoose";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
-interface IMentor extends Document {
+export interface IMentor extends Document {
+  _id: Types.ObjectId;
   email: string;
   password: string;
   name: string;
   phone: string;
   role: string;
-  token: string;
-  expiresAt: Date;
   otp?: string;
   otpExpiry?: Date;
   isVerified: boolean;
@@ -15,11 +16,11 @@ interface IMentor extends Document {
   lastLogin?: Date;
   lastActive: Date;
 
-  orgId: {
-    org: mongoose.Types.ObjectId;
-    invitedBy: mongoose.Types.ObjectId;
+  orgId?: {
+    org: Types.ObjectId;
+    invitedBy: Types.ObjectId;
   };
-  cohorts: mongoose.Types.ObjectId[];
+  cohorts?: Types.ObjectId[];
 
   specialization: string;
   experience: string;
@@ -84,18 +85,29 @@ interface IMentor extends Document {
 
   createdAt: Date;
   updatedAt: Date;
+
+
+   // Methods
+  comparePassword(candidatePassword: string): Promise<boolean>;
+  generateAuthToken(): string;
+  generateRefreshToken(): string;
+  invalidateAllTokens(): Promise<void>;
+}
+
+
+
+interface IMentorModel extends mongoose.Model<IMentor> {
+  findByEmailWithPassword(email: string): Promise<IMentor | null>;
 }
 
 const mentorSchema = new Schema<IMentor>(
   {
     // Auth & Personal Info
     email: { type: String, required: true, lowercase: true, trim: true },
-    password: { type: String, required: true },
+    password: { type: String, required: true, select: false },
     name: { type: String, required: true, trim: true },
     phone: { type: String, required: true },
     role: { type: String, default: "mentor" },
-    token: { type: String, required: true },
-    expiresAt: { type: Date, required: true, index: { expires: 0 } },
     otp: String,
     otpExpiry: Date,
     isVerified: { type: Boolean, default: false },
@@ -104,11 +116,21 @@ const mentorSchema = new Schema<IMentor>(
     lastActive: { type: Date, default: Date.now },
 
     // Org & Cohort
-    orgId: {
-      org: { type: Schema.Types.ObjectId, ref: "Organization", required: true },
-      invitedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    },
-    cohorts: [{ type: Schema.Types.ObjectId, ref: "Cohort" }],
+    orgId: [
+      {
+        org: {
+          type: Schema.Types.ObjectId,
+          ref: "Organization",
+          required: false,
+        },
+        invitedBy: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          required: false,
+        },
+      },
+    ],
+    cohorts: [{ type: Schema.Types.ObjectId, ref: "Cohort", required: false }],
 
     // Professional Info
     specialization: { type: String, required: true },
@@ -207,5 +229,56 @@ const mentorSchema = new Schema<IMentor>(
   }
 );
 
-const Mentor = mongoose.model<IMentor>("Mentor", mentorSchema);
+// Pre-save hash
+mentorSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+
+// Instance methods
+mentorSchema.methods.comparePassword = async function (
+  candidatePassword: string
+): Promise<boolean> {
+  return bcrypt.compare(candidatePassword, this.password);
+};
+
+mentorSchema.methods.generateAuthToken = function (): string {
+  const payload = {
+    id: this._id,
+    email: this.email,
+    role: "student", // Fixed: added role since it was referenced but not defined
+    tokenVersion: this.tokenVersion,
+  };
+  return jwt.sign(payload, process.env.JWT_SECRET as string, {
+    expiresIn: "12h",
+  });
+};
+
+mentorSchema.methods.generateRefreshToken = function (): string {
+  const payload = {
+    id: this._id,
+    email: this.email,
+    tokenVersion: this.tokenVersion,
+  };
+  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET as string, {
+    expiresIn: "30d",
+  });
+};
+
+mentorSchema.methods.invalidateAllTokens = async function (): Promise<void> {
+  this.tokenVersion += 1;
+  this.refreshTokens = [];
+  await this.save();
+};
+
+// Static method
+mentorSchema.statics.findByEmailWithPassword = function (email: string) {
+  return this.findOne({ email }).select(
+    "+password +otp +otpExpiry +refreshTokens"
+  );
+};
+
+const Mentor = mongoose.model<IMentor, IMentorModel>("Meantor", mentorSchema);
 export default Mentor;

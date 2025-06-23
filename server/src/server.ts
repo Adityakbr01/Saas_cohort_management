@@ -20,7 +20,9 @@ import userRouter from "@/routes/userRoutes";
 // import orgRouter from "@/routes/orgRoutes";
 import subscriptionRouter from "@/routes/subscriptionRoute";
 import paymentRouter from "./routes/paymentRoutes";
-import studentRouter from "./routes/studentRouter";
+import studentRouter from "@/routes/studentRouter";
+import mentorRouter from "@/routes/mentorRoutes";
+import authRoutes from "@/routes/auth.routes";
 
 
 const app = express();
@@ -96,6 +98,9 @@ app.use("/api/v1/payments",paymentRouter)
 // app.use("/api/v1/org", orgRouter);
 
 app.use("/api/v1/students", studentRouter);
+app.use("/api/v1/mentors", mentorRouter);
+
+app.use("/api/v1/auth", authRoutes);
 
 
 // ✅ Error Handling

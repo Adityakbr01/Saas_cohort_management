@@ -5,6 +5,8 @@ import { UserDAO } from "@/dao/user.dao";
 import { IUser } from "@/models/userModel";
 import { IStudent } from "@/models/student";
 import { StudentDAO } from "@/dao/studentDao";
+import { IMentor } from "@/models/mentorModel";
+import { MentorDAO } from "@/dao/mentorDao";
 
 // Interface for OTP verification result
 interface OTPVerificationResult {
@@ -194,12 +196,25 @@ export const generateOTPForPurpose = (
   };
 };
 
-// Clean expired OTPs
+// Clean expired OTPs Student
 export const cleanExpiredOTP = (student: IStudent): boolean => {
   if (student.otp && student.otpExpiry && isOTPExpired(student.otpExpiry)) {
     StudentDAO.updateUserOTP(student, undefined, undefined);
     student.otp = undefined;
     student.otpExpiry = undefined;
+    logger.info("Expired OTP cleaned for user");
+    return true;
+  }
+  return false;
+};
+
+
+// Clean expired OTPs mentor
+export const cleanExpiredOTPMentor = (mentor: IMentor): boolean => {
+  if (mentor.otp && mentor.otpExpiry && isOTPExpired(mentor.otpExpiry)) {
+    MentorDAO.updateUserOTP(mentor, undefined, undefined);
+    mentor.otp = undefined;
+    mentor.otpExpiry = undefined;
     logger.info("Expired OTP cleaned for user");
     return true;
   }

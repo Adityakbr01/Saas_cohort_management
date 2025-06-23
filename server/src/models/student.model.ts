@@ -1,14 +1,12 @@
-import mongoose, { Document, Schema, Types } from "mongoose";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+// student.model.ts
+import mongoose, { Schema, Model } from "mongoose";
+import baseUserSchema, { IBaseUser } from "./base.model";
+import { Types } from "mongoose";
+import noteSchema from "./note.schema";
 
-export interface IStudent extends Document {
-    _id: Types.ObjectId;
-  role: "student";
+export interface IStudent extends IBaseUser {
   cohorts: Types.ObjectId[];
   name: string;
-  email: string;
-  password: string;
   phone: string;
   status: "active" | "inactive" | "suspended";
   grade: string;
@@ -23,17 +21,6 @@ export interface IStudent extends Document {
   timezone: string;
   xp: number;
   streak: number;
-  isVerified: boolean;
-  otp?: string;
-  otpExpiry?: Date;
-  isActive: boolean;
-  lastLogin?: Date;
-  tokenVersion: number;
-  refreshTokens: Array<{
-    token: string;
-    expiresAt: Date;
-    createdAt: Date;
-  }>;
   background: {
     education: string;
     previousCourses: string[];
@@ -90,7 +77,7 @@ export interface IStudent extends Document {
   }>;
   performanceMetrics: {
     weeklyProgress: Array<{
-      week: number;
+      week: Number;
       progress: number;
       engagement: number;
       attendance: number;
@@ -100,72 +87,16 @@ export interface IStudent extends Document {
       level: number;
     }>;
   };
-  createdAt: Date;
-  updatedAt: Date;
-
-  // Methods
-  comparePassword(candidatePassword: string): Promise<boolean>;
-  generateAuthToken(): string;
-  generateRefreshToken(): string;
-  invalidateAllTokens(): Promise<void>;
 }
 
-interface IStudentModel extends mongoose.Model<IStudent> {
+interface IStudentModel extends Model<IStudent> {
   findByEmailWithPassword(email: string): Promise<IStudent | null>;
 }
 
-// Define the Mongoose schema
 const studentSchema = new Schema<IStudent>(
   {
-    
-    role: {
-      type: String,
-      default: "student",
-    },
     cohorts: [{ type: Schema.Types.ObjectId, ref: "Cohort" }],
     name: { type: String, required: true, trim: true },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-      match: [
-        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-        "Please enter a valid email",
-      ],
-    },
-    password: { type: String, required: true,select: false },
-    xp: { type: Number, default: 0 },
-    streak: { type: Number, default: 0 },
-    isVerified: {
-      type: Boolean,
-      default: false,
-    },
-    otp: {
-      type: String,
-      select: false,
-    },
-    otpExpiry: {
-      type: Date,
-      select: false,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-    lastLogin: { type: Date },
-    tokenVersion: {
-      type: Number,
-      default: 0,
-    },
-    refreshTokens: [
-      {
-        token: { type: String, required: true },
-        expiresAt: { type: Date, required: true },
-        createdAt: { type: Date, default: Date.now },
-      },
-    ],
     phone: { type: String, required: true },
     status: {
       type: String,
@@ -200,6 +131,8 @@ const studentSchema = new Schema<IStudent>(
     goals: { type: String, default: "" },
     learningStyle: { type: String, default: "" },
     timezone: { type: String, required: false },
+    xp: { type: Number, default: 0 },
+    streak: { type: Number, default: 0 },
     background: {
       education: { type: String, default: "" },
       previousCourses: [{ type: String }],
@@ -232,45 +165,8 @@ const studentSchema = new Schema<IStudent>(
         },
       ],
     },
-
-    notes: [
-      {
-        title: { type: String, default: "" },
-        author: { type: String, required: true },
-        date: { type: Date, default: Date.now },
-        type: {
-          type: String,
-          enum: [
-            "general",
-            "performance",
-            "engagement",
-            "intervention",
-            "goal",
-            "other",
-          ],
-          default: "general",
-        },
-        content: { type: String, default: "" },
-        tags: [{ type: String }],
-        visibility: {
-          type: String,
-          enum: ["private", "mentor", "all"],
-          default: "mentor",
-        },
-        priority: {
-          type: String,
-          enum: ["low", "medium", "high"],
-          default: "low",
-        },
-      },
-    ],
-
-    sessionAttendance: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-
+     notes: [noteSchema],
+    sessionAttendance: { type: Number, default: 0, min: 0 },
     attendanceHistory: [
       {
         date: { type: Date, default: Date.now },
@@ -284,7 +180,6 @@ const studentSchema = new Schema<IStudent>(
         notes: { type: String, default: "" },
       },
     ],
-
     interactions: [
       {
         type: {
@@ -298,7 +193,6 @@ const studentSchema = new Schema<IStudent>(
         content: { type: String, required: true },
       },
     ],
-
     performanceMetrics: {
       weeklyProgress: [
         {
@@ -319,67 +213,18 @@ const studentSchema = new Schema<IStudent>(
   { timestamps: true }
 );
 
-// Indexes for better query performance
+// Combine base schema with student schema
+studentSchema.add(baseUserSchema);
+
+// Set default role
+studentSchema.path("role").default("student");
+
+// Indexes
 studentSchema.index({ userId: 1, orgId: 1 });
 studentSchema.index({ cohortId: 1 });
 studentSchema.index({ mentorId: 1 });
 studentSchema.index({ status: 1 });
 studentSchema.index({ isActive: 1 });
 
-// Pre-save hash
-studentSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
-});
-
-// Instance methods
-studentSchema.methods.comparePassword = async function (
-  candidatePassword: string
-): Promise<boolean> {
-  return bcrypt.compare(candidatePassword, this.password);
-};
-
-studentSchema.methods.generateAuthToken = function (): string {
-  const payload = {
-    id: this._id,
-    email: this.email,
-    role: "student", // Fixed: added role since it was referenced but not defined
-    tokenVersion: this.tokenVersion,
-  };
-  return jwt.sign(payload, process.env.JWT_SECRET as string, {
-    expiresIn: "12h",
-  });
-};
-
-studentSchema.methods.generateRefreshToken = function (): string {
-  const payload = {
-    id: this._id,
-    email: this.email,
-    tokenVersion: this.tokenVersion,
-  };
-  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET as string, {
-    expiresIn: "30d",
-  });
-};
-
-studentSchema.methods.invalidateAllTokens = async function (): Promise<void> {
-  this.tokenVersion += 1;
-  this.refreshTokens = [];
-  await this.save();
-};
-
-// Static method
-studentSchema.statics.findByEmailWithPassword = function (email: string) {
-  return this.findOne({ email }).select(
-    "+password +otp +otpExpiry +refreshTokens"
-  );
-};
-
-// Create and export the model
-const Student = mongoose.model<IStudent, IStudentModel>(
-  "Studenta",
-  studentSchema
-);
+const Student = mongoose.model<IStudent, IStudentModel>("Student", studentSchema);
 export default Student;
