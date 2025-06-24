@@ -11,11 +11,12 @@ import { getUserByRole } from "@/utils/modelUtils";
 import { sendOTPEmail } from "@/services/emailService";
 import { logger } from "@/utils/logger";
 import { ResendOTPBody } from "@/utils/zod";
+import SuperAdmin, { ISuperAdmin } from "@/models/superAdmin.model";
 
 interface RegisterBody {
   email: string;
   password: string;
-  role: "mentor" | "student" | "organization";
+  role: "mentor" | "student" | "organization" | "super_admin";
   name: string;
   phone?: string;
   slug?: string;
@@ -23,18 +24,19 @@ interface RegisterBody {
   experience?: string;
   yearsOfExperience?: number;
   skillsExpertise?: string[];
+  adminPrivileges?: string[];
 }
 
 interface VerifyEmailBody {
   email: string;
   otp: string;
-  role: "mentor" | "student" | "organization";
+  role: "mentor" | "student" | "organization" | "super_admin";
 }
 
 interface LoginBody {
   email: string;
   password: string;
-  role: "mentor" | "student" | "organization";
+  role: "mentor" | "student" | "organization" | "super_admin";
 }
 
 export const register = wrapAsync(async (req: Request, res: Response) => {
@@ -49,6 +51,7 @@ export const register = wrapAsync(async (req: Request, res: Response) => {
     experience,
     yearsOfExperience,
     skillsExpertise,
+    adminPrivileges,
   }: RegisterBody = req.body;
 
   if (!email || !password || !role || !name) {
@@ -57,7 +60,7 @@ export const register = wrapAsync(async (req: Request, res: Response) => {
   }
 
   // Check if email already exists
-  let existingUser: IMentor | IStudent | IOrganization | null;
+  let existingUser: IMentor | IStudent | IOrganization | ISuperAdmin | null;
   switch (role) {
     case "mentor":
       existingUser = await Mentor.findOne({ email });
@@ -67,6 +70,9 @@ export const register = wrapAsync(async (req: Request, res: Response) => {
       break;
     case "organization":
       existingUser = await Organization.findOne({ email });
+      break;
+    case "super_admin":
+      existingUser = await SuperAdmin.findOne({ email });
       break;
     default:
       sendError(res, 400, "Invalid role");
@@ -80,7 +86,7 @@ export const register = wrapAsync(async (req: Request, res: Response) => {
     );
   }
 
-  let user: IMentor | IStudent | IOrganization;
+  let user: IMentor | IStudent | IOrganization | ISuperAdmin;
 
   switch (role) {
     case "mentor":
@@ -115,6 +121,9 @@ export const register = wrapAsync(async (req: Request, res: Response) => {
     case "organization":
       if (!slug) throw new ApiError(400, "Slug is required for organizations");
       user = new Organization({ email, password, role, name, slug });
+      break;
+    case "super_admin":
+      user = new SuperAdmin({ email, password, role, name, adminPrivileges });
       break;
     default:
       sendError(res, 400, "Invalid role");
@@ -158,7 +167,6 @@ export const register = wrapAsync(async (req: Request, res: Response) => {
     },
   });
 });
-
 export const verifyEmail = wrapAsync(async (req: Request, res: Response) => {
   const { email, otp, role }: VerifyEmailBody = req.body;
 
@@ -167,7 +175,7 @@ export const verifyEmail = wrapAsync(async (req: Request, res: Response) => {
     return;
   }
 
-  let user: IMentor | IStudent | IOrganization | null;
+  let user: IMentor | IStudent | IOrganization | ISuperAdmin | null;
 
   switch (role) {
     case "mentor":
@@ -179,6 +187,10 @@ export const verifyEmail = wrapAsync(async (req: Request, res: Response) => {
     case "organization":
       user = await Organization.findOne({ email }).select("+otp +otpExpiry");
       break;
+    case "super_admin":
+      user = await SuperAdmin.findOne({ email }).select("+otp +otpExpiry");
+      break;
+
     default:
       sendError(res, 400, "Invalid role");
       return;
@@ -207,7 +219,6 @@ export const verifyEmail = wrapAsync(async (req: Request, res: Response) => {
     message: "Email verified successfully",
   });
 });
-
 export const resendOTP = wrapAsync(async (req: Request, res: Response) => {
   // Validation is handled by validateRequest middleware
   const { email, role } = req.body as ResendOTPBody;
@@ -225,7 +236,10 @@ export const resendOTP = wrapAsync(async (req: Request, res: Response) => {
 
   // Optional: Check if previous OTP is still valid
   if (user.otpExpiry && user.otpExpiry > new Date()) {
-    throw new ApiError(429, "Previous OTP is still valid. Please try again later.");
+    throw new ApiError(
+      429,
+      "Previous OTP is still valid. Please try again later."
+    );
   }
 
   try {
@@ -253,7 +267,7 @@ export const login = wrapAsync(async (req: Request, res: Response) => {
     return;
   }
 
-  let user: IMentor | IStudent | IOrganization | null;
+  let user: IMentor | IStudent | IOrganization | ISuperAdmin | null;
 
   switch (role) {
     case "mentor":
@@ -264,6 +278,9 @@ export const login = wrapAsync(async (req: Request, res: Response) => {
       break;
     case "organization":
       user = await Organization.findByEmailWithPassword(email);
+      break;
+    case "super_admin":
+      user = await SuperAdmin.findByEmailWithPassword(email);
       break;
     default:
       sendError(res, 400, "Invalid role");

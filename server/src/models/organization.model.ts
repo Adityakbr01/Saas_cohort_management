@@ -10,6 +10,7 @@ export interface IOrganization extends IBaseUser {
   Members?: Types.ObjectId[] &
     {
       suspended: { isSuspended: boolean; suspendedAt: Date; reason: string };
+      joinDate: Date;
     }[];
   plan?: Types.ObjectId;
   subscriptionMeta: {
@@ -53,6 +54,7 @@ const organizationSchema = new Schema<IOrganization>(
           suspendedAt: { type: Date, default: null },
           reason: { type: String, default: "" },
         },
+        joinDate: { type: Date, default: Date.now },
       },
     ],
     plan: { type: Schema.Types.ObjectId, ref: "SubscriptionPlan" },

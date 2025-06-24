@@ -16,12 +16,12 @@ import notFound from "@/middleware/notFound";
 import errorHandler from "@/middleware/errorHandler";
 import { swaggerSpec } from "./configs/swagger";
 
-import userRouter from "@/routes/userRoutes";
-// import orgRouter from "@/routes/orgRoutes";
-import subscriptionRouter from "@/routes/subscriptionRoute";
-import paymentRouter from "./routes/paymentRoutes";
-import studentRouter from "@/routes/studentRouter";
-import mentorRouter from "@/routes/mentorRoutes";
+// import userRouter from "@/routes/userRoutes";
+// // import orgRouter from "@/routes/orgRoutes";
+// import subscriptionRouter from "@/routes/subscriptionRoute";
+// import paymentRouter from "./routes/paymentRoutes";
+// import studentRouter from "@/routes/studentRouter";
+// import mentorRouter from "@/routes/mentorRoutes";
 import authRoutes from "@/routes/auth.routes";
 
 
@@ -65,7 +65,7 @@ app.use(
 
 app.use(cookieParser());
 
-app.use("/api/v1/payments",paymentRouter)
+// app.use("/api/v1/payments",paymentRouter)
 
 app.use(express.json({ limit: "24kb" }));
 app.use(express.urlencoded({ extended: true, limit: "24kb" }));
@@ -92,13 +92,13 @@ app.get("/", (_, res) => {
 
 // ✅ Routes
 
-app.use("/api/v1/users", userRouter);
-app.use("/api/v1/subscription", subscriptionRouter);
-app.use("/api/v1/payments",paymentRouter)
-// app.use("/api/v1/org", orgRouter);
+// app.use("/api/v1/users", userRouter);
+// app.use("/api/v1/subscription", subscriptionRouter);
+// app.use("/api/v1/payments",paymentRouter)
+// // app.use("/api/v1/org", orgRouter);
 
-app.use("/api/v1/students", studentRouter);
-app.use("/api/v1/mentors", mentorRouter);
+// app.use("/api/v1/students", studentRouter);
+// app.use("/api/v1/mentors", mentorRouter);
 
 app.use("/api/v1/auth", authRoutes);
 

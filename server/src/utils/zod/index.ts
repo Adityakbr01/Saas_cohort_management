@@ -13,7 +13,7 @@ const baseSchema = z.object({
     .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(/[!@#$%^&*]/, "Password must contain at least one special character"),
-  role: z.enum(["mentor", "student", "organization"], {
+ role: z.enum(["mentor", "student", "organization", "super_admin"], {
     errorMap: () => ({ message: "Invalid role" }),
   }),
   name: z
@@ -75,11 +75,21 @@ const organizationSchema = baseSchema.extend({
     .transform((val) => sanitizeHtml(val)),
 });
 
+// superAdmin-specific schema
+const superAdminSchema = baseSchema.extend({
+  role: z.literal("super_admin"),
+  adminPrivileges: z
+    .array(z.enum(["manage_users", "manage_cohorts", "view_analytics", "manage_billing"]))
+    .min(1, "At least one admin privilege is required")
+    .default(["manage_users", "manage_cohorts"]),
+});
+
 // Union schema for all roles
 export const registerSchema = z.discriminatedUnion("role", [
   mentorSchema,
   studentSchema,
   organizationSchema,
+  superAdminSchema,
 ]);
 
 
@@ -87,10 +97,23 @@ export const registerSchema = z.discriminatedUnion("role", [
 export const verifyEmailSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
   otp: z.string().min(4, { message: "Otp is required" }),
-  role: z.enum(["mentor", "student", "organization"], {
+  role: z.enum(["mentor", "student", "organization", "super_admin"], {
     errorMap: () => ({ message: "Invalid role" }),
   }),
 });
+
+// OTP resend schema (used separately)
+export const resendOTPSchema = z.object({
+  email: z
+    .string()
+    .email("Please provide a valid email")
+    .transform((val) => sanitizeHtml(val)),
+  role: z.enum(["mentor", "student", "organization", "super_admin"], {
+    errorMap: () => ({ message: "Invalid role" }),
+  }),
+});
+
+export type ResendOTPBody = z.infer<typeof resendOTPSchema>;
 
 
 // Inferred TypeScript type
