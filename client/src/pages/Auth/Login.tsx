@@ -11,21 +11,72 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ModeToggle } from "@/components/Theme/mode-toggle";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import { useLoginUserMutation } from "@/store/features/auth/authApi";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import AES from "crypto-js/aes";
+import encUtf8 from "crypto-js/enc-utf8";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z
     .string()
     .min(6, { message: "Password must be at least 6 characters long" }),
+  role: z.enum(["mentor", "student", "organization", "super_admin"], {
+    errorMap: () => ({ message: "Invalid role" }),
+  }),
+  rememberMe: z.boolean(),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
+
+// Storage key for encryption
+const STORAGE_KEY = "login_remember_key_v1";
+
+// Helper functions for remember me functionality
+const saveRememberedCredentials = (data: LoginFormValues) => {
+  if (data.rememberMe) {
+    const credentialsToSave = {
+      email: data.email,
+      password: data.password,
+      role: data.role,
+    };
+    const encrypted = AES.encrypt(JSON.stringify(credentialsToSave), STORAGE_KEY).toString();
+    localStorage.setItem("rememberedCredentials", encrypted);
+  } else {
+    localStorage.removeItem("rememberedCredentials");
+  }
+};
+
+const getRememberedCredentials = (): Partial<LoginFormValues> => {
+  try {
+    const saved = localStorage.getItem("rememberedCredentials");
+    if (saved) {
+      const decrypted = AES.decrypt(saved, STORAGE_KEY).toString(encUtf8);
+      const credentials = JSON.parse(decrypted);
+      return {
+        email: credentials.email || "",
+        password: credentials.password || "",
+        role: credentials.role || "student",
+        rememberMe: true,
+      };
+    }
+  } catch (error) {
+    console.warn("Failed to load remembered credentials:", error);
+    localStorage.removeItem("rememberedCredentials");
+  }
+  return {
+    email: "",
+    password: "",
+    role: "student",
+    rememberMe: false,
+  };
+};
 
 function Login() {
   const navigate = useNavigate();
@@ -34,26 +85,32 @@ function Login() {
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+    defaultValues: getRememberedCredentials(),
   });
+
+  // Load remembered credentials on component mount
+  useEffect(() => {
+    const remembered = getRememberedCredentials();
+    form.reset(remembered);
+  }, [form]);
 
   const onSubmit = async (data: LoginFormValues) => {
     try {
+      // Save or remove remembered credentials based on checkbox
+      saveRememberedCredentials(data);
+
       const response = await loginUser(data).unwrap();
 
-      if (!response?.data?.result) {
+      if (!response?.data) {
         throw new Error("Invalid response from server");
       }
 
-      const { name,role } = response.data.result;
+      const { name, role } = response.data.user;
 
       // Merge token into result object
       const fullResult = {
-        ...response.data.result,
-        token: response.data.token, // Inject token here
+        ...response.data,
+        token: response.data.accessToken, // Inject token here
       };
 
       // Show success toast
@@ -65,21 +122,34 @@ function Login() {
       localStorage.setItem("user", JSON.stringify(fullResult));
 
       // Role-based navigation
-      const redirectPath = role === "super_admin" ? "/dashboard/super_admin" : "/";
+      const redirectPath = role === "super_admin" ? "/super_admin" : "/";
       navigate(redirectPath, { replace: true });
 
       // Optional: Clear any registration-related localStorage (if applicable)
       localStorage.removeItem("registerStep");
       localStorage.removeItem("initiateData");
       localStorage.removeItem("forgotPasswordStep");
-    } catch (error: any) {
-      const errorMessage =
-        error?.data?.message ||
-        (error?.status === 429
-          ? "Too many login attempts. Please try again later."
-          : error?.status === 403
-            ? "Account locked. Please contact support."
-            : "Invalid credentials. Please try again.");
+    } catch (error: unknown) {
+      let errorMessage = "Invalid credentials. Please try again.";
+
+      if (error && typeof error === 'object') {
+        const err = error as {
+          data?: { message?: string };
+          message?: string;
+          status?: number;
+        };
+
+        if (err.status === 429) {
+          errorMessage = "Too many login attempts. Please try again later.";
+        } else if (err.status === 403) {
+          errorMessage = "Account locked. Please contact support.";
+        } else if (err.data?.message) {
+          errorMessage = err.data.message;
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+      }
+
       toast.error("Login Failed", { description: errorMessage });
     }
   };
@@ -162,6 +232,56 @@ function Login() {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field, fieldState }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger
+                          className="w-full"
+                          aria-invalid={fieldState.invalid}
+                          aria-describedby={fieldState.error ? `role-error` : undefined}
+                        >
+                          <SelectValue placeholder="Select your role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="student">Student</SelectItem>
+                        <SelectItem value="mentor">Mentor</SelectItem>
+                        <SelectItem value="organization">Organization</SelectItem>
+                        <SelectItem value="super_admin">Super Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage id="role-error" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="rememberMe"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        aria-describedby="remember-me-description"
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-normal cursor-pointer">
+                        Remember me
+                      </FormLabel>
+                      <p id="remember-me-description" className="text-xs text-muted-foreground">
+                        Save my login credentials for next time
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
               <div className="flex justify-end">
                 <a
                   href="/forgot-password"
@@ -173,7 +293,7 @@ function Login() {
               </div>
               <Button
                 type="submit"
-                className="w-full dark:bg-blue-50"
+                className="w-full cursor-pointer"
                 disabled={isLoading}
                 aria-live="polite"
               >

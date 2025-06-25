@@ -162,8 +162,12 @@ export default function Register() {
       setCanResend(false);
       completeForm.reset({ otp: "" });
       toast.success("OTP sent", { description: initialRes.message || "Check your email for the OTP." });
-    } catch (error: any) {
-      const errorMessage = error?.data?.message || error?.message || "Please try again later.";
+    } catch (error: unknown) {
+      let errorMessage = "Please try again later.";
+      if (error && typeof error === 'object') {
+        const err = error as { data?: { message?: string }; message?: string };
+        errorMessage = err.data?.message || err.message || errorMessage;
+      }
       toast.error("Registration failed", { description: errorMessage });
     }
   };
@@ -202,8 +206,12 @@ export default function Register() {
       setInitiateData(null);
       completeForm.reset({ otp: "" });
       navigate(response.data.role === "super_admin" ? "/super_admin" : "/");
-    } catch (error: any) {
-      const errorMessage = error?.data?.message || error?.message || "Please try again.";
+    } catch (error: unknown) {
+      let errorMessage = "Please try again.";
+      if (error && typeof error === 'object') {
+        const err = error as { data?: { message?: string }; message?: string };
+        errorMessage = err.data?.message || err.message || errorMessage;
+      }
       toast.error("OTP verification failed", { description: errorMessage });
     }
   };
@@ -227,9 +235,21 @@ export default function Register() {
       toast.success("OTP resent", {
         description: resendRes.data.message || "Check your email for the new OTP."
       });
-    } catch (error: any) {
-      const errorMessage = error?.data?.message || error?.message || "Please try again later.";
-      if (error?.status === 429) {
+    } catch (error: unknown) {
+      let errorMessage = "Please try again later.";
+      let status: number | undefined;
+
+      if (error && typeof error === 'object') {
+        const err = error as {
+          data?: { message?: string };
+          message?: string;
+          status?: number;
+        };
+        errorMessage = err.data?.message || err.message || errorMessage;
+        status = err.status;
+      }
+
+      if (status === 429) {
         toast.error("Too many requests", {
           description: "Please wait before requesting another OTP.",
         });

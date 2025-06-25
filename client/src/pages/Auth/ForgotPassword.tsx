@@ -172,12 +172,25 @@ export default function ForgotPassword() {
       setCanResend(false);
       completeForm.reset({ otp: "", password: "", confirmPassword: "" });
       toast.success("OTP sent", { description: "Check your email for the OTP." });
-    } catch (error: any) {
-      const errorMessage =
-        error?.data?.message ||
-        (error?.status === 429
-          ? "Too many requests. Please try again later."
-          : "Failed to initiate password reset. Please try again.");
+    } catch (error: unknown) {
+      let errorMessage = "Failed to initiate password reset. Please try again.";
+
+      if (error && typeof error === 'object') {
+        const err = error as {
+          data?: { message?: string };
+          message?: string;
+          status?: number;
+        };
+
+        if (err.status === 429) {
+          errorMessage = "Too many requests. Please try again later.";
+        } else if (err.data?.message) {
+          errorMessage = err.data.message;
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+      }
+
       toast.error("Initiation Failed", { description: errorMessage });
     }
   };
@@ -209,12 +222,25 @@ export default function ForgotPassword() {
       setInitiateData(null);
       completeForm.reset({ otp: "", password: "", confirmPassword: "" });
       navigate("/login", { replace: true });
-    } catch (error: any) {
-      const errorMessage =
-        error?.data?.message ||
-        (error?.status === 429
-          ? "Too many requests. Please try again later."
-          : "Invalid OTP or server error. Please try again.");
+    } catch (error: unknown) {
+      let errorMessage = "Invalid OTP or server error. Please try again.";
+
+      if (error && typeof error === 'object') {
+        const err = error as {
+          data?: { message?: string };
+          message?: string;
+          status?: number;
+        };
+
+        if (err.status === 429) {
+          errorMessage = "Too many requests. Please try again later.";
+        } else if (err.data?.message) {
+          errorMessage = err.data.message;
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+      }
+
       toast.error("Password Reset Failed", { description: errorMessage });
     }
   };
@@ -235,12 +261,25 @@ export default function ForgotPassword() {
       setCanResend(false);
       completeForm.reset({ otp: "", password: "", confirmPassword: "" });
       toast.success("OTP resent", { description: "Check your email for the new OTP." });
-    } catch (error: any) {
-      const errorMessage =
-        error?.data?.message ||
-        (error?.status === 429
-          ? "Too many requests. Please wait before requesting another OTP."
-          : "Failed to resend OTP. Please try again.");
+    } catch (error: unknown) {
+      let errorMessage = "Failed to resend OTP. Please try again.";
+
+      if (error && typeof error === 'object') {
+        const err = error as {
+          data?: { message?: string };
+          message?: string;
+          status?: number;
+        };
+
+        if (err.status === 429) {
+          errorMessage = "Too many requests. Please wait before requesting another OTP.";
+        } else if (err.data?.message) {
+          errorMessage = err.data.message;
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+      }
+
       toast.error("Failed to resend OTP", { description: errorMessage });
     }
   };

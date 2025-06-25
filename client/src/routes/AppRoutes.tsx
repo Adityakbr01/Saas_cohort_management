@@ -17,7 +17,7 @@ import { UserManagementPage } from "@/components/superAdmin/pages/user-managemen
 import { UserProfilePage } from "@/components/superAdmin/pages/user-profile-page";
 import ForgotPassword from "@/pages/Auth/ForgotPassword";
 import Login from "@/pages/Auth/Login";
-import Register from "@/pages/Auth/Register";
+import Register from "@/pages/Auth/Register2";
 import Home from "@/pages/Home";
 import NotFound from "@/pages/NotFound";
 import Unauthorized from "@/pages/Unauthorized";
@@ -26,6 +26,7 @@ import { Route, Routes } from "react-router-dom";
 import OrgAdminDashboard from "@/components/orgAdmin/DashboardLayout";
 import CreateOrg from "@/components/orgAdmin/pages/CreateOrg";
 import MentorPage from "@/components/mentorDashboard/MentorPage";
+import ProfilePage from "@/pages/Student/ProfilePage";
 
 const AppRoutes = () => {
   return (
@@ -75,7 +76,7 @@ const AppRoutes = () => {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/profile" element={<UserProfilePage />} />
+        <Route path="/dashboard/profile" element={<UserProfilePage />} />
       </Route>
 
       {/* Protected org admin Routes */}
@@ -105,6 +106,15 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={["mentor","org_admin"]}>
             <MentorPage />
+          </ProtectedRoute>
+        }
+      />
+      {/* Student Routes */}
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute allowedRoles={["student"]}>
+            <ProfilePage />
           </ProtectedRoute>
         }
       />

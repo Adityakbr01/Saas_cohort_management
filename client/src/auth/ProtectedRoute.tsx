@@ -13,6 +13,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
   useEffect(() => {
     const userRole = getCurrentUserRole();
+    console.log(userRole,allowedRoles)
     setRole(userRole);
     setIsLoading(false);
   }, []);

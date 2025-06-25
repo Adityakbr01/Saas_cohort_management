@@ -36,7 +36,7 @@ export default function Navigation() {
     }
 
       if (
-      userRole === Role.org_admin
+      userRole === Role.org_admin || userRole === Role.organization
 
     ) {
       items.push({ name: "Dashboard", href: "/dashboard/org_admin" })
@@ -45,7 +45,7 @@ export default function Navigation() {
 
 
     // Optional for all logged-in users
-    if (userRole) {
+    if ( userRole === Role.org_admin || userRole === Role.organization) {
       items.push({ name: "Subscription", href: "/subscription" })
     }
 

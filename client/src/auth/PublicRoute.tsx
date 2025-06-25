@@ -29,7 +29,7 @@ const PublicRoute = ({ children }: PublicRouteProps) => {
     return <Navigate to={redirectPath} replace />;
   }
 
-  return <>{children}</>;
+  return <div className="w-full">{children}</div>;
 };
 
 export default PublicRoute;

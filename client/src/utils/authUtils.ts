@@ -38,7 +38,13 @@ export const getCurrentUserRole = (): string | null => {
   }
 };
 
-export const logout = () => {
+export const logout = (clearRememberedCredentials: boolean = false) => {
   localStorage.removeItem("user");
+
+  // Optionally clear remembered credentials on explicit logout
+  if (clearRememberedCredentials) {
+    localStorage.removeItem("rememberedCredentials");
+  }
+
   window.location.href = "/login"; // or use navigate() in React
 };
