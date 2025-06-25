@@ -79,7 +79,8 @@ export const register = wrapAsync(async (req: Request, res: Response) => {
       return;
   }
 
-  if (existingUser) {
+  // Only prevent registration if user exists AND is verified
+  if (existingUser && existingUser.isVerified === true) {
     throw new ApiError(
       400,
       `Email ${email} is already registered as a ${role}`
@@ -87,47 +88,97 @@ export const register = wrapAsync(async (req: Request, res: Response) => {
   }
 
   let user: IMentor | IStudent | IOrganization | ISuperAdmin;
+  let isUpdatingExistingUser = false;
 
-  switch (role) {
-    case "mentor":
-      if (!phone) throw new ApiError(400, "Phone is required for mentors");
-      if (
-        !specialization ||
-        !experience ||
-        !yearsOfExperience ||
-        !skillsExpertise
-      ) {
-        throw new ApiError(
-          400,
-          "Specialization, experience, yearsOfExperience, and skillsExpertise are required for mentors"
-        );
-      }
-      user = new Mentor({
-        email,
-        password,
-        role,
-        name,
-        phone,
-        specialization,
-        experience,
-        yearsOfExperience,
-        skillsExpertise,
-      });
-      break;
-    case "student":
-      if (!phone) throw new ApiError(400, "Phone is required for students");
-      user = new Student({ email, password, role, name, phone });
-      break;
-    case "organization":
-      if (!slug) throw new ApiError(400, "Slug is required for organizations");
-      user = new Organization({ email, password, role, name, slug });
-      break;
-    case "super_admin":
-      user = new SuperAdmin({ email, password, role, name, adminPrivileges });
-      break;
-    default:
-      sendError(res, 400, "Invalid role");
-      return;
+  // If user exists but is not verified, update the existing user instead of creating new one
+  if (existingUser && existingUser.isVerified === false) {
+    isUpdatingExistingUser = true;
+    user = existingUser;
+
+    // Update user fields with new registration data
+    user.name = name;
+    user.password = password; // This will be hashed by the pre-save middleware
+
+    // Update role-specific fields
+    switch (role) {
+      case "mentor":
+        if (!phone) throw new ApiError(400, "Phone is required for mentors");
+        if (
+          !specialization ||
+          !experience ||
+          !yearsOfExperience ||
+          !skillsExpertise
+        ) {
+          throw new ApiError(
+            400,
+            "Specialization, experience, yearsOfExperience, and skillsExpertise are required for mentors"
+          );
+        }
+        (user as IMentor).phone = phone;
+        (user as IMentor).specialization = specialization;
+        (user as IMentor).experience = experience;
+        (user as IMentor).yearsOfExperience = yearsOfExperience;
+        (user as IMentor).skillsExpertise = skillsExpertise;
+        break;
+      case "student":
+        if (!phone) throw new ApiError(400, "Phone is required for students");
+        (user as IStudent).phone = phone;
+        break;
+      case "organization":
+        if (!slug)
+          throw new ApiError(400, "Slug is required for organizations");
+        (user as IOrganization).slug = slug;
+        break;
+      case "super_admin":
+        if (adminPrivileges) {
+          (user as ISuperAdmin).adminPrivileges = adminPrivileges;
+        }
+        break;
+    }
+  } else {
+    // Create new user if no existing user found
+    switch (role) {
+      case "mentor":
+        if (!phone) throw new ApiError(400, "Phone is required for mentors");
+        if (
+          !specialization ||
+          !experience ||
+          !yearsOfExperience ||
+          !skillsExpertise
+        ) {
+          throw new ApiError(
+            400,
+            "Specialization, experience, yearsOfExperience, and skillsExpertise are required for mentors"
+          );
+        }
+        user = new Mentor({
+          email,
+          password,
+          role,
+          name,
+          phone,
+          specialization,
+          experience,
+          yearsOfExperience,
+          skillsExpertise,
+        });
+        break;
+      case "student":
+        if (!phone) throw new ApiError(400, "Phone is required for students");
+        user = new Student({ email, password, role, name, phone });
+        break;
+      case "organization":
+        if (!slug)
+          throw new ApiError(400, "Slug is required for organizations");
+        user = new Organization({ email, password, role, name, slug });
+        break;
+      case "super_admin":
+        user = new SuperAdmin({ email, password, role, name, adminPrivileges });
+        break;
+      default:
+        sendError(res, 400, "Invalid role");
+        return;
+    }
   }
 
   try {
@@ -155,6 +206,9 @@ export const register = wrapAsync(async (req: Request, res: Response) => {
 
   res.status(201).json({
     status: "success",
+    message: isUpdatingExistingUser
+      ? "Registration updated successfully. Please verify your email with the new OTP."
+      : "Registration successful. Please verify your email with the OTP sent to your email address.",
     data: {
       user: {
         id: user._id,
@@ -267,6 +321,8 @@ export const login = wrapAsync(async (req: Request, res: Response) => {
     return;
   }
 
+  console.log(req.body);
+
   let user: IMentor | IStudent | IOrganization | ISuperAdmin | null;
 
   switch (role) {
@@ -313,10 +369,12 @@ export const login = wrapAsync(async (req: Request, res: Response) => {
     status: "success",
     data: {
       user: {
-        id: user._id,
+        id: user._id.toString(),
+        name: user.name,
         email: user.email,
         role: user.role,
-        name: user.name,
+        lastLogin: user.lastLogin,
+        isVerified: user.isVerified,
       },
       accessToken,
       refreshToken,
