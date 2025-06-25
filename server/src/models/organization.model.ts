@@ -19,11 +19,7 @@ export interface IOrganization extends IBaseUser {
     isActive: boolean;
     isExpired: boolean;
   };
-  suspended: {
-    isSuspended: boolean;
-    suspendedAt: Date | null;
-    reason: string;
-  };
+
 }
 
 interface IOrganizationModel extends Model<IOrganization> {
@@ -63,11 +59,6 @@ const organizationSchema = new Schema<IOrganization>(
       expiresDate: { type: Date },
       isExpired: Boolean,
       isActive: Boolean,
-    },
-    suspended: {
-      isSuspended: { type: Boolean, default: false },
-      suspendedAt: { type: Date, default: null },
-      reason: { type: String, default: "" },
     },
   },
   { timestamps: true }

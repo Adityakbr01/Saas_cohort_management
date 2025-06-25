@@ -29,11 +29,11 @@ export interface IStudent extends Document {
   isActive: boolean;
   lastLogin?: Date;
   tokenVersion: number;
-  refreshTokens: Array<{
+  refreshToken?: {
     token: string;
     expiresAt: Date;
     createdAt: Date;
-  }>;
+  };
   background: {
     education: string;
     previousCourses: string[];
@@ -159,13 +159,11 @@ const studentSchema = new Schema<IStudent>(
       type: Number,
       default: 0,
     },
-    refreshTokens: [
-      {
-        token: { type: String, required: true },
-        expiresAt: { type: Date, required: true },
-        createdAt: { type: Date, default: Date.now },
-      },
-    ],
+    refreshToken: {
+      token: { type: String },
+      expiresAt: { type: Date },
+      createdAt: { type: Date, default: Date.now },
+    },
     phone: { type: String, required: true },
     status: {
       type: String,
@@ -366,14 +364,14 @@ studentSchema.methods.generateRefreshToken = function (): string {
 
 studentSchema.methods.invalidateAllTokens = async function (): Promise<void> {
   this.tokenVersion += 1;
-  this.refreshTokens = [];
+  this.refreshToken = undefined; // Clear the single refresh token
   await this.save();
 };
 
 // Static method
 studentSchema.statics.findByEmailWithPassword = function (email: string) {
   return this.findOne({ email }).select(
-    "+password +otp +otpExpiry +refreshTokens"
+    "+password +otp +otpExpiry +refreshToken +tokenVersion"
   );
 };
 

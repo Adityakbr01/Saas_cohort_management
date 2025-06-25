@@ -16,13 +16,18 @@ export interface IBaseUser extends Document {
   otpExpiry?: Date;
   lastLogin?: Date;
   tokenVersion: number;
-  refreshTokens: Array<{
+  refreshToken?: {
     token: string;
     expiresAt: Date;
     createdAt: Date;
-  }>;
+  };
   createdAt: Date;
   updatedAt: Date;
+    suspended: {
+    isSuspended: boolean;
+    suspendedAt: Date | null;
+    reason: string;
+  };
 
   // Methods
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -53,13 +58,16 @@ const baseUserSchema = new Schema<IBaseUser>(
     otpExpiry: { type: Date, select: false },
     lastLogin: { type: Date },
     tokenVersion: { type: Number, default: 0 },
-    refreshTokens: [
-      {
-        token: { type: String, required: true },
-        expiresAt: { type: Date, required: true },
-        createdAt: { type: Date, default: Date.now },
-      },
-    ],
+    refreshToken: {
+      token: { type: String },
+      expiresAt: { type: Date },
+      createdAt: { type: Date, default: Date.now },
+    },
+        suspended: {
+      isSuspended: { type: Boolean, default: false },
+      suspendedAt: { type: Date, default: null },
+      reason: { type: String, default: "" },
+    },
   },
   { timestamps: true }
 );
@@ -96,6 +104,7 @@ baseUserSchema.methods.generateRefreshToken = function (): string {
     id: this._id,
     email: this.email,
     tokenVersion: this.tokenVersion,
+    role: this.role,
   };
   return jwt.sign(payload, process.env.JWT_REFRESH_SECRET as string, {
     expiresIn: "30d",
@@ -104,14 +113,14 @@ baseUserSchema.methods.generateRefreshToken = function (): string {
 
 baseUserSchema.methods.invalidateAllTokens = async function (): Promise<void> {
   this.tokenVersion += 1;
-  this.refreshTokens = [];
+  this.refreshToken = undefined; // Clear the single refresh token
   await this.save();
 };
 
 // Static method
 baseUserSchema.statics.findByEmailWithPassword = function (email: string) {
   return this.findOne({ email }).select(
-    "+password +otp +otpExpiry +refreshTokens"
+    "+password +otp +otpExpiry +refreshToken +tokenVersion"
   );
 };
 

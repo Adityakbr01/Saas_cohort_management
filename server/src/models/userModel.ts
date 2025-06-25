@@ -37,7 +37,7 @@ export interface IUser extends Document, IUserMethods {
   isActive: boolean;
   lastLogin: Date;
   tokenVersion: number;
-  refreshTokens: RefreshToken[];
+  refreshToken?: RefreshToken;
   otp?: string;
   otpExpiry?: Date;
   plan?: Types.ObjectId; // Reference to SubscriptionPlan
@@ -125,13 +125,11 @@ const userSchema = new Schema<IUser, UserModel>(
       type: Number,
       default: 0,
     },
-    refreshTokens: [
-      {
-        token: { type: String, required: true },
-        expiresAt: { type: Date, required: true },
-        createdAt: { type: Date, default: Date.now },
-      },
-    ],
+    refreshToken: {
+      token: { type: String },
+      expiresAt: { type: Date },
+      createdAt: { type: Date, default: Date.now },
+    },
   },
   { timestamps: true }
 );
@@ -180,14 +178,14 @@ userSchema.methods.generateRefreshToken = function (): string {
 
 userSchema.methods.invalidateAllTokens = async function (): Promise<void> {
   this.tokenVersion += 1;
-  this.refreshTokens = [];
+  this.refreshToken = undefined; // Clear the single refresh token
   await this.save();
 };
 
 // Static method
 userSchema.statics.findByEmailWithPassword = function (email: string) {
   return this.findOne({ email }).select(
-    "+password +otp +otpExpiry +refreshTokens"
+    "+password +otp +otpExpiry +refreshToken +tokenVersion"
   );
 };
 

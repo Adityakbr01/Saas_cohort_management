@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { sendError } from '@/utils//responseUtil';
+import { getUserByRole } from '@/utils/modelUtils';
 
 // Extend Express Request type to include user property
 declare global {
@@ -9,6 +10,8 @@ declare global {
       user: {
         id: string;
         role: string;
+        email?: string;
+        tokenVersion?: number;
       };
     }
   }
@@ -32,9 +35,24 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
       const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
         id: string;
         role: string;
+        email: string;
+        tokenVersion: number;
       };
 
-     
+      // Validate tokenVersion against database for single device login
+      const user = await getUserByRole(decoded.role, decoded.email, '+tokenVersion');
+
+      if (!user) {
+        sendError(res, 401, 'User not found');
+        return;
+      }
+
+      // Check if tokenVersion matches (single device login enforcement)
+      if (user.tokenVersion !== decoded.tokenVersion) {
+        sendError(res, 401, 'Token invalidated - user logged in from another device');
+        return;
+      }
+
       // Add user info to request
       req.user = {
         id: decoded.id,
@@ -71,5 +89,7 @@ export interface AuthRequest extends Request {
   user: {
     id: string;
     role: string;
+    email?: string;
+    tokenVersion?: number;
   };
 }

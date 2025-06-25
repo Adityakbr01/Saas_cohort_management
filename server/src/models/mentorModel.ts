@@ -47,11 +47,11 @@ export interface IMentor extends Document {
   cohortsCount: number;
 
   tokenVersion: number;
-  refreshTokens: Array<{
+  refreshToken?: {
     token: string;
     expiresAt: Date;
     createdAt: Date;
-  }>;
+  };
 
   performanceTrends: {
     month: string;
@@ -160,13 +160,11 @@ const mentorSchema = new Schema<IMentor>(
 
     // Tokens
     tokenVersion: { type: Number, default: 0 },
-    refreshTokens: [
-      {
-        token: String,
-        expiresAt: Date,
-        createdAt: { type: Date, default: Date.now },
-      },
-    ],
+    refreshToken: {
+      token: { type: String },
+      expiresAt: { type: Date },
+      createdAt: { type: Date, default: Date.now },
+    },
 
     // Performance Trends
     performanceTrends: [
@@ -269,14 +267,14 @@ mentorSchema.methods.generateRefreshToken = function (): string {
 
 mentorSchema.methods.invalidateAllTokens = async function (): Promise<void> {
   this.tokenVersion += 1;
-  this.refreshTokens = [];
+  this.refreshToken = undefined; // Clear the single refresh token
   await this.save();
 };
 
 // Static method
 mentorSchema.statics.findByEmailWithPassword = function (email: string) {
   return this.findOne({ email }).select(
-    "+password +otp +otpExpiry +refreshTokens"
+    "+password +otp +otpExpiry +refreshToken +tokenVersion"
   );
 };
 

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import Mentor, { IMentor } from "../models/mentor.model";
 import Student, { IStudent } from "../models/student.model";
 import Organization, { IOrganization } from "../models/organization.model";
@@ -12,6 +12,10 @@ import { sendOTPEmail } from "@/services/emailService";
 import { logger } from "@/utils/logger";
 import { ResendOTPBody } from "@/utils/zod";
 import SuperAdmin, { ISuperAdmin } from "@/models/superAdmin.model";
+import { getCookieConfig } from "@/configs/cookieConfig";
+
+import jwt from "jsonwebtoken";
+import safeCache from "@/utils/cache";
 
 interface RegisterBody {
   email: string;
@@ -196,11 +200,12 @@ export const register = wrapAsync(async (req: Request, res: Response) => {
   const accessToken = user.generateAuthToken();
   const refreshToken = user.generateRefreshToken();
 
-  user.refreshTokens.push({
+  // Store single refresh token (for single device login)
+  user.refreshToken = {
     token: refreshToken,
     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
     createdAt: new Date(),
-  });
+  };
 
   await user.save();
 
@@ -321,8 +326,6 @@ export const login = wrapAsync(async (req: Request, res: Response) => {
     return;
   }
 
-  console.log(req.body);
-
   let user: IMentor | IStudent | IOrganization | ISuperAdmin | null;
 
   switch (role) {
@@ -353,17 +356,45 @@ export const login = wrapAsync(async (req: Request, res: Response) => {
     return;
   }
 
+  if (user.suspended.isSuspended) {
+    sendError(res, 401, "Account is suspended Contact support");
+    return;
+  }
+
+  // Update last login time
   user.lastLogin = new Date();
+
+  // Log current tokenVersion before invalidation
+  console.log(`User ${email} - Current tokenVersion: ${user.tokenVersion}`);
+
+  // Invalidate all previous tokens for single device login (increments tokenVersion)
+  await user.invalidateAllTokens();
+
+  // Generate new tokens with updated tokenVersion
   const accessToken = user.generateAuthToken();
   const refreshToken = user.generateRefreshToken();
 
-  user.refreshTokens.push({
+  // Log new tokenVersion
+  console.log(`User ${email} - New tokenVersion: ${user.tokenVersion}`);
+
+  res.cookie("accessToken", accessToken, getCookieConfig());
+  res.cookie(
+    "refreshToken",
+    refreshToken,
+    getCookieConfig(30 * 24 * 60 * 60 * 1000)
+  );
+
+  // Store single refresh token in the database (replaces any existing one)
+  user.refreshToken = {
     token: refreshToken,
     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
     createdAt: new Date(),
-  });
+  };
 
   await user.save();
+
+  //remove cached user
+  safeCache.del(user._id.toString());
 
   res.status(200).json({
     status: "success",
@@ -381,74 +412,187 @@ export const login = wrapAsync(async (req: Request, res: Response) => {
     },
   });
 });
+export const getProfile = wrapAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  const role = req.user?.role;
 
-// export const refreshToken = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-//   const { refreshToken } = req.body;
+  if (!userId || !role) {
+    sendError(res, 400, "User ID and role are required");
+    return;
+  }
 
-//   if (!refreshToken) {
-//     return next(new AppError("Please provide a refresh token", 400));
-//   }
+  let user: IMentor | IStudent | IOrganization | ISuperAdmin | null;
 
-//   try {
-//     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET as string) as {
-//       id: string;
-//       email: string;
-//       tokenVersion: number;
-//     };
+  const cachedUser = await safeCache.get(userId);
+  if (cachedUser) {
+    res.status(200).json({
+      status: "success",
+      data: cachedUser,
+    });
+    return;
+  }
 
-//     let user: IMentor | IStudent | IOrganization | null;
+  switch (role) {
+    case "mentor":
+      user = await Mentor.findById(userId);
+      break;
+    case "student":
+      user = await Student.findById(userId);
+      break;
+    case "organization":
+      user = await Organization.findById(userId);
+      break;
+    case "super_admin":
+      user = await SuperAdmin.findById(userId);
+      break;
+    default:
+      sendError(res, 400, "Invalid role");
+      return;
+  }
+  if (!user) {
+    sendError(res, 404, "User not found");
+    return;
+  }
 
-//     const role = (await Mentor.findById(decoded.id))?.role
-//       || (await Student.findById(decoded.id))?.role
-//       || (await Organization.findById(decoded.id))?.role;
+  //cache for faster response for 10 minutes (600 seconds)
+  safeCache.set(userId, user, 600);
 
-//     switch (role) {
-//       case "mentor":
-//         user = await Mentor.findById(decoded.id);
-//         break;
-//       case "student":
-//         user = await Student.findById(decoded.id);
-//         break;
-//       case "organization":
-//         user = await Organization.findById(decoded.id);
-//         break;
-//       default:
-//         return next(new AppError("Invalid user role", 400));
-//     }
+  res.status(200).json({
+    status: "success",
+    data: user,
+  });
+});
+export const logout = wrapAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  const role = req.user?.role;
 
-//     if (!user) {
-//       return next(new AppError("User no longer exists", 401));
-//     }
+  if (!userId || !role) {
+    sendError(res, 400, "User ID and role are required");
+    return;
+  }
 
-//     if (user.tokenVersion !== decoded.tokenVersion) {
-//       return next(new AppError("Invalid refresh token", 401));
-//     }
+  let user: IMentor | IStudent | IOrganization | ISuperAdmin | null;
 
-//     const tokenExists = user.refreshTokens.find((t) => t.token === refreshToken && t.expiresAt > new Date());
-//     if (!tokenExists) {
-//       return next(new AppError("Refresh token is invalid or expired", 401));
-//     }
+  switch (role) {
+    case "mentor":
+      user = await Mentor.findById(userId);
+      break;
+    case "student":
+      user = await Student.findById(userId);
+      break;
+    case "organization":
+      user = await Organization.findById(userId);
+      break;
+    case "super_admin":
+      user = await SuperAdmin.findById(userId);
+      break;
+    default:
+      sendError(res, 400, "Invalid role");
+      return;
+  }
 
-//     const accessToken = user.generateAuthToken();
+  if (!user) {
+    sendError(res, 404, "User not found");
+    return;
+  }
 
-//     res.status(200).json({
-//       status: "success",
-//       data: { accessToken },
-//     });
-//   } catch (err) {
-//     return next(new AppError("Invalid refresh token", 401));
-//   }
-// });
+  await user.invalidateAllTokens();
 
-// export const logout = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-//   if (!req.user) {
-//     return next(new AppError("No user is logged in", 401));
-//   }
+  res.clearCookie("refreshToken");
+  res.clearCookie("accessToken");
 
-//   await req.user.invalidateAllTokens();
+  //remove cached user
+  safeCache.del(userId);
 
-//   res.status(200).json({
-//     status: "success",
-//     message: "Logged out successfully",
-//   });
-// });
+  res.status(200).json({
+    status: "success",
+    message: "Logged out successfully from all devices",
+  });
+});
+export const refreshToken = wrapAsync(async (req: Request, res: Response) => {
+  const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+
+  if (!refreshToken) {
+    sendError(res, 401, "Unauthorized");
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET as string
+    ) as {
+      id: string;
+      email: string;
+      tokenVersion: number;
+    };
+
+    let user: IMentor | IStudent | IOrganization | ISuperAdmin | null;
+
+    const role =
+      (await Mentor.findById(decoded.id))?.role ||
+      (await Student.findById(decoded.id))?.role ||
+      (await Organization.findById(decoded.id))?.role ||
+      (await SuperAdmin.findById(decoded.id))?.role;
+
+    switch (role) {
+      case "mentor":
+        user = await Mentor.findById(decoded.id).select(
+          "+refreshToken +tokenVersion"
+        );
+        break;
+      case "student":
+        user = await Student.findById(decoded.id).select(
+          "+refreshToken +tokenVersion"
+        );
+        break;
+      case "organization":
+        user = await Organization.findById(decoded.id).select(
+          "+refreshToken +tokenVersion"
+        );
+        break;
+      case "super_admin":
+        user = await SuperAdmin.findById(decoded.id).select(
+          "+refreshToken +tokenVersion"
+        );
+        break;
+      default:
+        sendError(res, 400, "Invalid user role");
+        return;
+    }
+
+    if (!user) {
+      sendError(res, 401, "User no longer exists");
+      return;
+    }
+
+    if (user.tokenVersion !== decoded.tokenVersion) {
+      sendError(res, 401, "Invalid refresh token");
+      return;
+    }
+
+    // Check single refresh token (not array)
+    if (
+      !user.refreshToken ||
+      user.refreshToken.token !== refreshToken ||
+      user.refreshToken.expiresAt < new Date()
+    ) {
+      sendError(res, 401, "Refresh token is invalid or expired");
+      return;
+    }
+
+    const accessToken = user.generateAuthToken();
+
+    //remove cached user
+    safeCache.del(user._id.toString());
+
+    res.cookie("accessToken", accessToken, getCookieConfig());
+    res.status(200).json({
+      status: "success",
+      data: { accessToken },
+    });
+  } catch (err) {
+    sendError(res, 401, "Invalid refresh token");
+    return;
+  }
+});

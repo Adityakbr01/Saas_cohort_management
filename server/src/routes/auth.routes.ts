@@ -1,8 +1,9 @@
 import express from "express";
-import { login, register, verifyEmail } from "@/controllers/auth.controller";
+import { getProfile, login, logout, refreshToken, register, verifyEmail } from "@/controllers/auth.controller";
 import { validateRequest } from "@/middleware/validateRequest";
 import { registerSchema, verifyEmailSchema } from "@/utils/zod";
 import { createDynamicRateLimiter } from "@/middleware/rateLimitMiddleware";
+import { protect } from "@/middleware/authMiddleware";
 
 const router = express.Router();
 
@@ -28,10 +29,22 @@ router.post("/verify-email",
     }),
     validateRequest(verifyEmailSchema), verifyEmail);
 
-// // Refresh token
-// router.post("/refresh-token", refreshToken);
 
-// // Protected routes
-// router.post("/logout", protect, logout);
+
+
+
+
+//router.post("/forgot-password", forgotPassword);
+//router.post("/forgot-password/verify", verifyForgotPassword);
+
+// Protected routes with refresh token
+router.post("/refresh-token",protect, refreshToken);
+router.post("/logout", protect, logout);
+//router.patch("/updateProfile", updateProfile);
+router.get("/getProfile",protect, getProfile);
+
+//router.post("/password/reset", resetPassword);
+//router.post("/password/reset/verify", verifyResetPassword);
+
 
 export default router;
