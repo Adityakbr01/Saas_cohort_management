@@ -27,6 +27,8 @@ import OrgAdminDashboard from "@/components/orgAdmin/DashboardLayout";
 import CreateOrg from "@/components/orgAdmin/pages/CreateOrg";
 import MentorPage from "@/components/mentorDashboard/MentorPage";
 import ProfilePage from "@/pages/Student/ProfilePage";
+import CoursesPage from "@/pages/Courses";
+import CourseDetailPage from "@/pages/CourseDetailPage";
 
 const AppRoutes = () => {
   return (
@@ -56,6 +58,10 @@ const AppRoutes = () => {
         path="/forgot-password"
         element={<ForgotPassword />}
       />
+
+      <Route path="/courses" element={<CoursesPage />} />
+      <Route path="/courses/:id" element={<CourseDetailPage params={Promise.resolve({ id: "1" })} />} />
+
 
       {/* Protected Super Admin Routes */}
       <Route
