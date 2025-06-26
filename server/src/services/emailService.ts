@@ -661,10 +661,8 @@ export const sendEmailToJoinOrganization = async (
   }
 };
 
-
 const frontend_URL = process.env.FRONTEND_URL;
 const backend_URL = process.env.backend_URL;
-
 
 /**
  * Interface for invite email parameters
@@ -687,21 +685,21 @@ interface InviteEmailParams {
  */
 const EMAIL_CONFIG = {
   BRAND_COLORS: {
-    PRIMARY: '#667eea',
-    SECONDARY: '#764ba2',
-    SUCCESS: '#10b981',
-    WARNING: '#f59e0b',
-    DANGER: '#ef4444',
-    TEXT_PRIMARY: '#333333',
-    TEXT_SECONDARY: '#666666',
-    TEXT_MUTED: '#6c757d',
-    BACKGROUND: '#f5f5f5',
-    WHITE: '#ffffff'
+    PRIMARY: "#667eea",
+    SECONDARY: "#764ba2",
+    SUCCESS: "#10b981",
+    WARNING: "#f59e0b",
+    DANGER: "#ef4444",
+    TEXT_PRIMARY: "#333333",
+    TEXT_SECONDARY: "#666666",
+    TEXT_MUTED: "#6c757d",
+    BACKGROUND: "#f5f5f5",
+    WHITE: "#ffffff",
   },
-  LOGO_URL: 'https://via.placeholder.com/120x40/ffffff/667eea?text=EduLaunch',
-  SUPPORT_EMAIL: 'support@edulaunch.com',
-  COMPANY_NAME: 'EduLaunch',
-  INVITATION_EXPIRY_DAYS: 7
+  LOGO_URL: "https://via.placeholder.com/120x40/ffffff/667eea?text=EduLaunch",
+  SUPPORT_EMAIL: "support@edulaunch.com",
+  COMPANY_NAME: "EduLaunch",
+  INVITATION_EXPIRY_DAYS: 7,
 } as const;
 
 /**
@@ -712,20 +710,20 @@ const EMAIL_CONFIG = {
 const validateInviteParams = (params: InviteEmailParams): void => {
   const { email, token, orgName, role } = params;
 
-  if (!email || !email.includes('@')) {
-    throw new Error('Valid email address is required');
+  if (!email || !email.includes("@")) {
+    throw new Error("Valid email address is required");
   }
 
   if (!token || token.length < 10) {
-    throw new Error('Valid invitation token is required');
+    throw new Error("Valid invitation token is required");
   }
 
   if (!orgName || orgName.trim().length === 0) {
-    throw new Error('Organization name is required');
+    throw new Error("Organization name is required");
   }
 
   if (!role || role.trim().length === 0) {
-    throw new Error('Role is required');
+    throw new Error("Role is required");
   }
 };
 
@@ -735,12 +733,12 @@ const validateInviteParams = (params: InviteEmailParams): void => {
  * @returns Sanitized content
  */
 const sanitizeContent = (content: string | undefined): string => {
-  if (!content) return '';
+  if (!content) return "";
   return content
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;")
     .trim();
 };
 
@@ -759,20 +757,23 @@ const generateUserInfoSection = (userInfo: {
   const { phone, specialization, experience, bio, certifications } = userInfo;
 
   // Check if we have any user info to display
-  const hasUserInfo = phone || specialization || experience || bio || certifications;
+  const hasUserInfo =
+    phone || specialization || experience || bio || certifications;
 
   if (!hasUserInfo) {
-    return '';
+    return "";
   }
 
-  let infoItems = '';
+  let infoItems = "";
 
   if (phone) {
     infoItems += `
       <tr>
         <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
           <strong style="color: #333333; font-size: 14px;">📞 Phone:</strong>
-          <span style="color: #666666; font-size: 14px; margin-left: 10px;">${sanitizeContent(phone)}</span>
+          <span style="color: #666666; font-size: 14px; margin-left: 10px;">${sanitizeContent(
+            phone
+          )}</span>
         </td>
       </tr>`;
   }
@@ -782,7 +783,9 @@ const generateUserInfoSection = (userInfo: {
       <tr>
         <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
           <strong style="color: #333333; font-size: 14px;">🎯 Specialization:</strong>
-          <span style="color: #666666; font-size: 14px; margin-left: 10px;">${sanitizeContent(specialization)}</span>
+          <span style="color: #666666; font-size: 14px; margin-left: 10px;">${sanitizeContent(
+            specialization
+          )}</span>
         </td>
       </tr>`;
   }
@@ -792,7 +795,9 @@ const generateUserInfoSection = (userInfo: {
       <tr>
         <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
           <strong style="color: #333333; font-size: 14px;">💼 Experience:</strong>
-          <span style="color: #666666; font-size: 14px; margin-left: 10px;">${sanitizeContent(experience)}</span>
+          <span style="color: #666666; font-size: 14px; margin-left: 10px;">${sanitizeContent(
+            experience
+          )}</span>
         </td>
       </tr>`;
   }
@@ -802,7 +807,9 @@ const generateUserInfoSection = (userInfo: {
       <tr>
         <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
           <strong style="color: #333333; font-size: 14px;">📝 Bio:</strong>
-          <div style="color: #666666; font-size: 14px; margin-top: 5px; line-height: 1.5;">${sanitizeContent(bio)}</div>
+          <div style="color: #666666; font-size: 14px; margin-top: 5px; line-height: 1.5;">${sanitizeContent(
+            bio
+          )}</div>
         </td>
       </tr>`;
   }
@@ -812,7 +819,9 @@ const generateUserInfoSection = (userInfo: {
       <tr>
         <td style="padding: 8px 0;">
           <strong style="color: #333333; font-size: 14px;">🏆 Certifications:</strong>
-          <span style="color: #666666; font-size: 14px; margin-left: 10px;">${sanitizeContent(certifications)}</span>
+          <span style="color: #666666; font-size: 14px; margin-left: 10px;">${sanitizeContent(
+            certifications
+          )}</span>
         </td>
       </tr>`;
   }
@@ -844,13 +853,13 @@ const generateInviteEmailHTML = (params: InviteEmailParams): string => {
     experience,
     bio,
     certifications,
-    token
+    token,
   } = params;
 
   const inviteLink = `${backend_URL}/org/accept-invite?token=${token}`;
   const safeOrgName = sanitizeContent(orgName);
   const safeRole = sanitizeContent(role);
-  const safeFirstName = sanitizeContent(firstName) || 'there';
+  const safeFirstName = sanitizeContent(firstName) || "there";
 
   return `
 <!DOCTYPE html>
@@ -900,7 +909,13 @@ const generateInviteEmailHTML = (params: InviteEmailParams): string => {
                                 We're excited to invite you to join <strong>${safeOrgName}</strong> as a <strong>${safeRole}</strong> on the EduLaunch platform. Your expertise and experience will be a valuable addition to our community.
                             </p>
 
-                            ${generateUserInfoSection({ phone, specialization, experience, bio, certifications })}
+                            ${generateUserInfoSection({
+                              phone,
+                              specialization,
+                              experience,
+                              bio,
+                              certifications,
+                            })}
 
                             <!-- Call to Action -->
                             <div style="text-align: center; margin: 35px 0;">
@@ -964,24 +979,27 @@ const generateInviteEmailText = (params: InviteEmailParams): string => {
     experience,
     bio,
     certifications,
-    token
+    token,
   } = params;
 
   const inviteLink = `${backend_URL}/org/accept-invite?token=${token}`;
   const safeOrgName = sanitizeContent(orgName);
   const safeRole = sanitizeContent(role);
-  const safeFirstName = sanitizeContent(firstName) || 'there';
+  const safeFirstName = sanitizeContent(firstName) || "there";
 
-  let userInfoText = '';
+  let userInfoText = "";
   if (phone || specialization || experience || bio || certifications) {
-    userInfoText = '\n\nYour Profile Information:\n';
-    userInfoText += '========================\n';
+    userInfoText = "\n\nYour Profile Information:\n";
+    userInfoText += "========================\n";
 
     if (phone) userInfoText += `Phone: ${sanitizeContent(phone)}\n`;
-    if (specialization) userInfoText += `Specialization: ${sanitizeContent(specialization)}\n`;
-    if (experience) userInfoText += `Experience: ${sanitizeContent(experience)}\n`;
+    if (specialization)
+      userInfoText += `Specialization: ${sanitizeContent(specialization)}\n`;
+    if (experience)
+      userInfoText += `Experience: ${sanitizeContent(experience)}\n`;
     if (bio) userInfoText += `Bio: ${sanitizeContent(bio)}\n`;
-    if (certifications) userInfoText += `Certifications: ${sanitizeContent(certifications)}\n`;
+    if (certifications)
+      userInfoText += `Certifications: ${sanitizeContent(certifications)}\n`;
   }
 
   return `
@@ -1038,7 +1056,9 @@ export const sendInviteEmail = async (params: InviteEmailParams) => {
     const { email, orgName } = params;
 
     // Generate email subject
-    const subject = `Invitation to join ${sanitizeContent(orgName)} on EduLaunch`;
+    const subject = `Invitation to join ${sanitizeContent(
+      orgName
+    )} on EduLaunch`;
 
     // Generate HTML and plain text versions
     const html = generateInviteEmailHTML(params);
@@ -1052,17 +1072,139 @@ export const sendInviteEmail = async (params: InviteEmailParams) => {
       text, // Plain text fallback for email clients that don't support HTML
     });
 
-    console.log(`Invitation email sent successfully to ${email} for ${orgName}`);
+    console.log(
+      `Invitation email sent successfully to ${email} for ${orgName}`
+    );
     return result;
-
   } catch (error) {
-    console.error('Failed to send invitation email:', error);
+    console.error("Failed to send invitation email:", error);
 
     // Re-throw with more context
     if (error instanceof Error) {
       throw new Error(`Failed to send invitation email: ${error.message}`);
     } else {
-      throw new Error('Failed to send invitation email: Unknown error occurred');
+      throw new Error(
+        "Failed to send invitation email: Unknown error occurred"
+      );
     }
+  }
+};
+
+//send forgotPassword email
+export const sendForgotPasswordEmail = async (
+  email: string,
+  otp: string,
+  firstName: string = "User"
+): Promise<EmailSendResult> => {
+  try {
+    const subject = "Password Reset Request - EduLaunch";
+
+    const text = `
+  Hello ${firstName},
+  
+  We received a request to reset your password. Use the following OTP to reset your password:
+  
+  Your OTP is: ${otp}
+  
+  This OTP is valid for ${process.env.OTP_EXPIRY || 2} minutes.
+  
+  If you did not request a password reset, please ignore this email.
+  
+  Best regards,
+  EduLaunch Team
+      `;
+
+    const html = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Password Reset</title>
+      <style>
+          body {
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+          }
+          .container {
+              background-color: #f9f9f9;
+              padding: 30px;
+              border-radius: 10px;
+              border: 1px solid #ddd;
+          }
+          .header {
+              text-align: center;
+              margin-bottom: 30px;
+          }
+          .otp-box {
+              background-color: #dc3545;
+              color: white;
+              padding: 20px;
+              text-align: center;
+              border-radius: 8px;
+              margin: 20px 0;
+          }
+          .otp-code {
+              font-size: 32px;
+              font-weight: bold;
+              letter-spacing: 5px;
+              margin: 10px 0;
+          }
+          .footer {
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 1px solid #ddd;
+              text-align: center;
+              color: #666;
+              font-size: 14px;
+          }
+      </style>
+  </head>
+  <body>
+      <div class="container">
+          <div class="header">
+              <h1>🛒 EduLaunch</h1>
+              <h2>Password Reset Request</h2>
+          </div>
+          
+          <p>Hello <strong>${firstName}</strong>,</p>
+          
+          <p>We received a request to reset your password. Use the following OTP to reset your password:</p>
+          
+          <div class="otp-box">
+              <div class="otp-code">${otp}</div>
+          </div>
+          
+          <p><strong>Important:</strong> This OTP is valid for <strong>${
+            process.env.OTP_EXPIRY || 2
+          } minutes</strong> only.</p>
+          
+          <p>If you did not request a password reset, please ignore this email.</p>
+          
+          <div class="footer">
+              <p>Best regards,<br>
+              <strong>EduLaunch Team</strong></p>
+              <p>This is an automated email. Please do not reply to this message.</p>
+          </div>
+      </div>
+  </body>
+  </html>
+      `;
+
+    const result = await sendEmail({
+      to: email,
+      subject,
+      html,
+      text,
+    });
+
+    return result;
+  } catch (error: any) {
+    logger.error(`Forgot password email sending failed: ${error.message}`);
+    throw error;
   }
 };

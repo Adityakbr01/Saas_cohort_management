@@ -30,16 +30,16 @@ export const loginInput = z.object({
 });
 
 export const updateProfileInput = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  phone: z.string().min(10, { message: "Phone number is required" }),
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }).optional(),
+  phone: z.string().min(10, { message: "Phone number is required" }).optional(), // Optional - only for students and mentors
   bio: z
     .string()
     .min(10, { message: "Bio must be at least 10 characters" })
-    .optional(),
+    .optional(), // Optional - only for students and mentors
   goals: z
     .string()
     .min(10, { message: "Goals must be at least 10 characters" })
-    .optional(),
+    .optional(), // Optional - only for students
   background: z
     .object({
       education: z.string().min(10).optional(),
@@ -54,7 +54,7 @@ export const updateProfileInput = z.object({
         )
         .optional(),
     })
-    .optional(),
+    .optional(), // Optional - only for students
   skills: z
     .array(
       z.object({
@@ -62,5 +62,5 @@ export const updateProfileInput = z.object({
         progress: z.number().min(0).max(100),
       })
     )
-    .optional(),
+    .optional(), // Optional - only for students (as part of background)
 });

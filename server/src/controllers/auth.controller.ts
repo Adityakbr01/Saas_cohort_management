@@ -5,10 +5,10 @@ import Organization, { IOrganization } from "../models/organization.model";
 // import { AppError, catchAsync } from "../utils/error";
 import { ApiError } from "@/utils/apiError";
 import { wrapAsync } from "@/utils/wrapAsync";
-import { sendError } from "@/utils/responseUtil";
+import { sendError, sendSuccess } from "@/utils/responseUtil";
 import { generateOTPForPurpose } from "@/utils/otpUtils";
 import { getUserByRole } from "@/utils/modelUtils";
-import { sendOTPEmail } from "@/services/emailService";
+import { sendForgotPasswordEmail, sendOTPEmail } from "@/services/emailService";
 import { logger } from "@/utils/logger";
 import { ResendOTPBody } from "@/utils/zod";
 import SuperAdmin, { ISuperAdmin } from "@/models/superAdmin.model";
@@ -595,4 +595,243 @@ export const refreshToken = wrapAsync(async (req: Request, res: Response) => {
     sendError(res, 401, "Invalid refresh token");
     return;
   }
+});
+export const forgotPassword = wrapAsync(async (req: Request, res: Response) => {
+  const { email, role }: { email: string; role: string } = req.body;
+
+  if (!email || !role) {
+    sendError(res, 400, "Email and role are required");
+    return;
+  }
+
+  let user: IMentor | IStudent | IOrganization | ISuperAdmin | null;
+
+  switch (role) {
+    case "mentor":
+      user = await Mentor.findOne({ email });
+      break;
+    case "student":
+      user = await Student.findOne({ email });
+      break;
+    case "organization":
+      user = await Organization.findOne({ email });
+      break;
+    case "super_admin":
+      user = await SuperAdmin.findOne({ email });
+      break;
+    default:
+      sendError(res, 400, "Invalid role");
+      return;
+  }
+
+  if (!user) {
+    sendError(res, 404, "User not found");
+    return;
+  }
+
+  try {
+    const otpData = generateOTPForPurpose("forgot_password");
+    user.otp = otpData.otp;
+    user.otpExpiry = otpData.expiry;
+    await user.save();
+
+    await sendForgotPasswordEmail(email, otpData.otp, user.name);
+  } catch (error: any) {
+    logger.error(
+      `Failed to send password reset email for ${email}: ${error.message}`
+    );
+    throw new ApiError(500, "Failed to send password reset email");
+  }
+
+  res.status(200).json({
+    status: "success",
+    message: "OTP sent to your email for password reset",
+  });
+});
+export const verifyForgotPassword = wrapAsync(
+  async (req: Request, res: Response) => {
+    const {
+      email,
+      otp,
+      role,
+      password,
+    }: { email: string; otp: string; role: string; password: string } =
+      req.body;
+
+    if (!email || !otp || !role || !password) {
+      sendError(res, 400, "Email, OTP, and role are required");
+      return;
+    }
+
+    let user: IMentor | IStudent | IOrganization | ISuperAdmin | null;
+
+    switch (role) {
+      case "mentor":
+        user = await Mentor.findOne({ email }).select("+otp +otpExpiry");
+        break;
+      case "student":
+        user = await Student.findOne({ email }).select("+otp +otpExpiry");
+        break;
+      case "organization":
+        user = await Organization.findOne({ email }).select("+otp +otpExpiry");
+        break;
+      case "super_admin":
+        user = await SuperAdmin.findOne({ email }).select("+otp +otpExpiry");
+        break;
+      default:
+        sendError(res, 400, "Invalid role");
+        return;
+    }
+
+    if (!user) {
+      sendError(res, 404, "User not found");
+      return;
+    }
+
+    if (user.otp !== otp) {
+      sendError(res, 400, "Invalid OTP");
+      return;
+    }
+
+    if (!user.otpExpiry || user.otpExpiry < new Date()) {
+      sendError(res, 400, "OTP expired");
+      return;
+    }
+
+    // Mark as verified and clear OTP fields
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    user.password = password;
+    await user.save();
+
+    sendSuccess(res, 200, "Password reset successfully", {
+      userName: user.name,
+    });
+  }
+);
+export const resetPassword = wrapAsync(async (req: Request, res: Response) => {
+  const { password }: { password: string } = req.body;
+
+  const userId = req.user?.id;
+  const userRole = req.user?.role;
+
+  if (!userId || !userRole) {
+    sendError(res, 400, "User ID and role are required");
+    return;
+  }
+
+  if (!password) {
+    sendError(res, 400, "Password is required");
+    return;
+  }
+
+  let user: IMentor | IStudent | IOrganization | ISuperAdmin | null;
+
+  switch (userRole) {
+    case "mentor":
+      user = await Mentor.findById(userId);
+      break;
+    case "student":
+      user = await Student.findById(userId);
+      break;
+    case "organization":
+      user = await Organization.findById(userId);
+      break;
+    case "super_admin":
+      user = await SuperAdmin.findById(userId);
+      break;
+    default:
+      sendError(res, 400, "Invalid role");
+      return;
+  }
+
+  if (!user) {
+    sendError(res, 404, "User not found");
+    return;
+  }
+
+  user.password = password;
+  await user.save();
+
+  sendSuccess(res, 200, "Password reset successfully", {
+    userName: user.name,
+  });
+});
+
+export const updateProfile = wrapAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  const userRole = req.user?.role;
+
+  if (!userId || !userRole) {
+    sendError(res, 400, "User ID and role are required");
+    return;
+  }
+
+  let user: IMentor | IStudent | IOrganization | ISuperAdmin | null;
+
+  switch (userRole) {
+    case "mentor":
+      user = await Mentor.findById(userId);
+      break;
+    case "student":
+      user = await Student.findById(userId);
+      break;
+    case "organization":
+      user = await Organization.findById(userId);
+      break;
+    case "super_admin":
+      user = await SuperAdmin.findById(userId);
+      break;
+    default:
+      sendError(res, 400, "Invalid role");
+      return;
+  }
+
+  if (!user) {
+    sendError(res, 404, "User not found");
+    return;
+  }
+
+  const { name, phone, bio, goals, background, skills } = req.body;
+
+  // Common properties for all user types
+  if (name) user.name = name;
+
+  // Properties specific to certain user types
+  switch (userRole) {
+    case "student":
+      const studentUser = user as IStudent;
+      if (phone) studentUser.phone = phone;
+      if (bio) studentUser.bio = bio;
+      if (goals) studentUser.goals = goals;
+      if (background) studentUser.background = background;
+      if (skills && background) {
+        // Skills are part of background.skills for students
+        if (!studentUser.background) studentUser.background = { education: "", previousCourses: [], experience: "", skills: [], learningGoals: "" };
+        studentUser.background.skills = skills;
+      }
+      break;
+
+    case "mentor":
+      const mentorUser = user as IMentor;
+      if (phone) mentorUser.phone = phone;
+      if (bio) mentorUser.bio = bio;
+      // Note: mentors don't have goals, background, or skills properties
+      break;
+
+    case "organization":
+      // Organizations only have name (already handled above)
+      // Note: organizations don't have phone, bio, goals, background, or skills
+      break;
+
+    case "super_admin":
+      // Super admins only have name (already handled above)
+      // Note: super admins don't have phone, bio, goals, background, or skills
+      break;
+  }
+
+  await user.save();
+
+  sendSuccess(res, 200, "Profile updated successfully", user);
 });

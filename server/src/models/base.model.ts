@@ -28,6 +28,8 @@ export interface IBaseUser extends Document {
     suspendedAt: Date | null;
     reason: string;
   };
+  phone?: string;
+  bio?: string;
 
   // Methods
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -68,6 +70,7 @@ const baseUserSchema = new Schema<IBaseUser>(
       suspendedAt: { type: Date, default: null },
       reason: { type: String, default: "" },
     },
+    phone: { type: String, required: false },
   },
   { timestamps: true }
 );
