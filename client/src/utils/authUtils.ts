@@ -6,42 +6,45 @@ interface DecodedToken {
 }
 
 export const getCurrentUserRole = (): string | null => {
+
   const userStr = localStorage.getItem("user");
-  if (!userStr) return null;
+  if (!userStr) {
+    
+    return null;
+  }
+
+  const token = localStorage.getItem("accessToken");
+  if (!token) {
+   
+    return null;
+  }
 
   try {
-    const user = JSON.parse(userStr);
-    const token = user?.token;
-
-    if (!token) {
-      console.warn("No token found in user object");
-      return null; // Don't logout, just return null
-    }
-
     const decoded: DecodedToken = jwtDecode(token);
     const isExpired = decoded.exp * 1000 < Date.now();
 
     if (isExpired) {
-      logout(); // Logout only on expiry
-      return null;
+      console.log("[DEBUG] getCurrentUserRole: Access token expired");
+      return null; // Rely on useSessionWatcher for logout
     }
 
     if (!decoded.role) {
-      console.warn("No role found in token");
-      return null; // Don't logout, just return null
+      console.warn("[DEBUG] getCurrentUserRole: No role found in token");
+      return null;
     }
 
     return decoded.role;
   } catch (err) {
-    console.error("Error decoding token:", err);
-    return null; // Don't logout on parsing errors
+    console.error("[DEBUG] getCurrentUserRole: Error decoding token:", err);
+    return null;
   }
 };
 
 export const logout = (clearRememberedCredentials: boolean = false) => {
   localStorage.removeItem("user");
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
 
-  // Optionally clear remembered credentials on explicit logout
   if (clearRememberedCredentials) {
     localStorage.removeItem("rememberedCredentials");
   }

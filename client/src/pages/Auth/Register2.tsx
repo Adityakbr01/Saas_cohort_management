@@ -301,16 +301,16 @@ export default function Register() {
                       <FormLabel>Role</FormLabel>
                       <FormControl>
                         <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="student">Student</SelectItem>
-                              <SelectItem value="mentor">Mentor</SelectItem>
-                              <SelectItem value="organization">Organization</SelectItem>
-                              <SelectItem value="super_admin">Super Admin</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="student">Student</SelectItem>
+                            <SelectItem value="mentor">Mentor</SelectItem>
+                            <SelectItem value="organization">Organization</SelectItem>
+                            <SelectItem value="super_admin">Super Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -350,8 +350,8 @@ export default function Register() {
                           aria-invalid={fieldState.invalid}
                           aria-describedby={fieldState.error ? `email-error` : ""}
                         />
-                        </FormControl>
-                        <FormMessage id="email-error" />
+                      </FormControl>
+                      <FormMessage id="email-error" />
                     </FormItem>
                   )}
                 />

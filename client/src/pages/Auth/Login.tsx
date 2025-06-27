@@ -106,20 +106,17 @@ function Login() {
       }
 
       const { name, role } = response.data.user;
-
-      // Merge token into result object
-      const fullResult = {
-        ...response.data,
-        token: response.data.accessToken, // Inject token here
-      };
+      const { accessToken, refreshToken } = response.data;
 
       // Show success toast
       toast.success("Login Successful", {
         description: `Welcome back, ${name || "User"}!`,
       });
 
-      // Save full result to localStorage
-      localStorage.setItem("user", JSON.stringify(fullResult));
+      // Store user data in localStorage
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+      localStorage.setItem("accessToken", JSON.stringify(accessToken));
+      localStorage.setItem("refreshToken", JSON.stringify(refreshToken));
 
       // Role-based navigation
       const redirectPath = role === "super_admin" ? "/super_admin" : "/";

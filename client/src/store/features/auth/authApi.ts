@@ -50,7 +50,6 @@ export interface RegisterResponse {
   status: number;
 }
 
-
 export interface RegisterBody {
   email: string;
   password: string;
@@ -64,7 +63,6 @@ export interface RegisterBody {
   skillsExpertise?: string[];
   adminPrivileges?: string[];
 }
-
 
 export const authApi = createApi({
   reducerPath: "authApi",
@@ -140,27 +138,77 @@ export const authApi = createApi({
       query: () => "/profile",
     }),
 
-  registerUser : builder.mutation<RegisterResponse, RegisterBody>({
-    query: (newUser) => ({
-      url: "/register",
-      method: "POST",
-      body: newUser,
+    //New Apis
+    registerUser: builder.mutation<RegisterResponse, RegisterBody>({
+      query: (newUser) => ({
+        url: "/register",
+        method: "POST",
+        body: newUser,
+      }),
     }),
-  }), 
-  verifyEmail: builder.mutation<AuthResponse, { email: string; otp: string; role: string }>({
-    query: (verifyData) => ({
-      url: "/verify-email",
-      method: "POST",
-      body: verifyData,
+    verifyEmail: builder.mutation<
+      AuthResponse,
+      { email: string; otp: string; role: string }
+    >({
+      query: (verifyData) => ({
+        url: "/verify-email",
+        method: "POST",
+        body: verifyData,
+      }),
     }),
-  }),
-  loginUser: builder.mutation<LoginResponse, { email: string; password: string; role: string }>({
-    query: (loginData) => ({
-      url: "/login",
-      method: "POST",
-      body: loginData,
+    loginUser: builder.mutation<
+      LoginResponse,
+      { email: string; password: string; role: string }
+    >({
+      query: (loginData) => ({
+        url: "/login",
+        method: "POST",
+        body: loginData,
+      }),
     }),
-  }),
+    forgotPassword: builder.mutation<
+      {
+        status: string;
+        message: string;
+      },
+      { email: string; role: string }
+    >({
+      query: (email) => ({
+        url: "/forgot-password",
+        method: "POST",
+        body: email,
+      }),
+    }),
+    forgotPasswordVerify: builder.mutation<
+      { status: string; message: string },
+      { email: string; role: string; password: string; otp: string }
+    >({
+      query: ({ email, role, password, otp }) => ({
+        url: "/forgot-password/verify",
+        method: "POST",
+        body: { email, role, password, otp },
+      }),
+    }),
+    resendForgotPasswordOTP: builder.mutation<
+      AuthResponse,
+      { email: string; role: string }
+    >({
+      query: (email) => ({
+        url: "/forgot-password/resend",
+        method: "POST",
+        body: email,
+      }),
+    }),
+    refreshToken: builder.mutation<
+      { data: { accessToken: string } },
+      { refreshToken: string }
+    >({
+      query: ({ refreshToken }) => ({
+        url: "/refresh-token",
+        method: "POST",
+        body: { refreshToken: refreshToken },
+      }),
+    }),
   }),
 });
 
@@ -174,5 +222,9 @@ export const {
   useResendForgotPasswordOtpMutation,
   useGetProfileQuery,
   useRegisterUserMutation,
-  useVerifyEmailMutation
+  useVerifyEmailMutation,
+  useForgotPasswordMutation,
+  useForgotPasswordVerifyMutation,
+  useResendForgotPasswordOTPMutation,
+  useRefreshTokenMutation,
 } = authApi;

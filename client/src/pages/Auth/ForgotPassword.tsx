@@ -1,6 +1,4 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { ModeToggle } from "@/components/Theme/mode-toggle";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -12,34 +10,55 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
-import {
-  useInitiateForgotPasswordMutation,
-  useComplateForgotPasswordMutation,
-  useResendForgotPasswordOtpMutation,
-} from "@/store/features/auth/authApi";
-import { ModeToggle } from "@/components/Theme/mode-toggle";
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useForgotPasswordMutation, useForgotPasswordVerifyMutation, useResendForgotPasswordOTPMutation } from "@/store/features/auth/authApi";
+import { zodResolver } from "@hookform/resolvers/zod";
 import AES from "crypto-js/aes";
 import encUtf8 from "crypto-js/enc-utf8";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import * as z from "zod";
 
+// Define schemas
 const initiateSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
+  role: z.enum(["mentor", "student", "organization", "super_admin"], {
+    errorMap: () => ({ message: "Please select a valid role" }),
+  }),
 });
 
 const completeSchema = z.object({
   otp: z.string().length(6, "Enter the 6-digit OTP"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
+  role: z.enum(["mentor", "student", "organization", "super_admin"], {
+    errorMap: () => ({ message: "Please select a valid role" }),
+  }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
 });
 
+// Define types
 type InitiateFormValues = z.infer<typeof initiateSchema>;
 type CompleteFormValues = z.infer<typeof completeSchema>;
+type InitiateData = { email: string; role: string } | null;
+
+// Define error type for API responses
+interface ApiError {
+  status?: number;
+  data?: { message?: string };
+  message?: string;
+}
+
+// Update mutation type to include role
+interface ForgotPasswordPayload {
+  email: string;
+  role: string;
+}
 
 const STORAGE_KEY = import.meta.env.VITE_STORAGE_KEY || "fallback_secret_key_123";
 
@@ -47,241 +66,268 @@ export default function ForgotPassword() {
   const [step, setStep] = useState<1 | 2>(() => {
     try {
       const savedStep = localStorage.getItem("forgotPasswordStep");
+      console.log("[DEBUG] Initial step from localStorage:", savedStep);
       return savedStep === "2" ? 2 : 1;
     } catch {
+      console.error("[DEBUG] Error reading step from localStorage");
       return 1;
     }
   });
-  const [initiateData, setInitiateData] = useState<{ email: string } | null>(() => {
+  const [initiateData, setInitiateData] = useState<InitiateData>(() => {
     try {
       const savedData = localStorage.getItem("forgotPasswordData");
       if (savedData) {
         const decrypted = AES.decrypt(savedData, STORAGE_KEY).toString(encUtf8);
-        return JSON.parse(decrypted);
+        const parsed = JSON.parse(decrypted) as InitiateData;
+        console.log("[DEBUG] Initial initiateData from localStorage:", parsed);
+        return parsed;
       }
       return null;
     } catch {
+      console.error("[DEBUG] Error reading initiateData from localStorage");
       return null;
     }
   });
   const [otpTimer, setOtpTimer] = useState(() => {
     const savedTimer = sessionStorage.getItem("forgotPasswordTimer");
-    return savedTimer ? parseInt(savedTimer, 10) : 120; // 2 minutes
+    console.log("[DEBUG] Initial OTP timer from sessionStorage:", savedTimer);
+    return savedTimer ? parseInt(savedTimer, 10) : 120;
   });
   const [canResend, setCanResend] = useState(otpTimer <= 0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const otpInputRef = useRef<HTMLInputElement>(null);
-  const storageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null); // Ref to track interval
+  const [formKey, setFormKey] = useState(0); // For forcing form re-render
+  const [timerRef, setTimerRef] = useState<NodeJS.Timeout | null>(null);
+  const [isResetComplete, setIsResetComplete] = useState(false); // Flag to prevent saveToStorage after reset
 
   const navigate = useNavigate();
-  const [initiateForgotPassword, { isLoading: isInitiating }] = useInitiateForgotPasswordMutation();
-  const [completeForgotPassword, { isLoading: isCompleting }] = useComplateForgotPasswordMutation();
-  const [resendForgotPasswordOtp, { isLoading: isResending }] = useResendForgotPasswordOtpMutation();
+  const [initiateForgotPassword, { isLoading: isInitiating }] = useForgotPasswordMutation();
+  const [completeForgotPassword, { isLoading: isCompleting }] = useForgotPasswordVerifyMutation();
+  const [resendForgotPasswordOtp, { isLoading: isResending }] = useResendForgotPasswordOTPMutation();
 
   const initiateForm = useForm<InitiateFormValues>({
     resolver: zodResolver(initiateSchema),
     defaultValues: {
       email: initiateData?.email || "",
+      role: initiateData?.role as InitiateFormValues["role"] || "student",
     },
   });
 
   const completeForm = useForm<CompleteFormValues>({
     resolver: zodResolver(completeSchema),
+    mode: "onChange",
     defaultValues: {
       otp: "",
       password: "",
       confirmPassword: "",
+      role: initiateData?.role as CompleteFormValues["role"] || "student",
     },
   });
+
+  // Initialize completeForm and ensure input accessibility
+  useEffect(() => {
+    if (step === 2 && initiateData) {
+      console.log("[DEBUG] Initializing completeForm with role:", initiateData.role);
+      completeForm.reset({
+        otp: "",
+        password: "",
+        confirmPassword: "",
+        role: initiateData.role as CompleteFormValues["role"],
+      });
+      // Explicitly set form values to ensure sync
+      completeForm.setValue("otp", "");
+      completeForm.setValue("password", "");
+      completeForm.setValue("confirmPassword", "");
+      completeForm.setValue("role", initiateData.role as CompleteFormValues["role"]);
+      console.log("[DEBUG] Complete form values after reset:", completeForm.getValues());
+      // Force form re-render
+      setFormKey((prev) => prev + 1);
+    }
+  }, [step, initiateData, completeForm]);
 
   // OTP timer logic
   useEffect(() => {
     if (step === 2 && otpTimer > 0) {
-      // Clear existing interval to prevent duplicates
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
+      if (timerRef) {
+        clearInterval(timerRef);
       }
 
-      timerRef.current = setInterval(() => {
+      const newTimer = setInterval(() => {
         setOtpTimer((prev) => {
           const newTime = prev - 1;
+          console.log("[DEBUG] OTP timer:", newTime);
           sessionStorage.setItem("forgotPasswordTimer", newTime.toString());
           if (newTime <= 0) {
             setCanResend(true);
-            if (timerRef.current) {
-              clearInterval(timerRef.current);
-              timerRef.current = null;
-            }
+            clearInterval(newTimer);
+            setTimerRef(null);
           }
           return newTime;
         });
       }, 1000);
+      setTimerRef(newTimer);
 
       return () => {
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
+        if (newTimer) {
+          clearInterval(newTimer);
+          setTimerRef(null);
         }
       };
     }
-  }, [step, otpTimer]); // Added otpTimer to dependencies
+  }, [step, otpTimer]);
 
   // Debounced localStorage write
   const saveToStorage = useCallback(() => {
-    if (storageTimeoutRef.current) {
-      clearTimeout(storageTimeoutRef.current);
+    if (isResetComplete) {
+      console.log("[DEBUG] Skipping saveToStorage: Password reset is complete");
+      return;
     }
-    storageTimeoutRef.current = setTimeout(() => {
-      try {
-        localStorage.setItem("forgotPasswordStep", step.toString());
-        if (initiateData) {
-          const encrypted = AES.encrypt(JSON.stringify({ email: initiateData.email }), STORAGE_KEY).toString();
-          localStorage.setItem("forgotPasswordData", encrypted);
-        } else {
-          localStorage.removeItem("forgotPasswordData");
-        }
-      } catch (error) {
-        console.error("Failed to save to localStorage:", error);
-        toast.error("Storage error", { description: "Failed to save reset state." });
-      }
-    }, 200);
-  }, [step, initiateData]);
 
+    console.log("[DEBUG] Saving to localStorage:", { step, initiateData });
+    try {
+      localStorage.setItem("forgotPasswordStep", step.toString());
+      if (initiateData) {
+        const encrypted = AES.encrypt(
+          JSON.stringify({ email: initiateData.email, role: initiateData.role }),
+          STORAGE_KEY
+        ).toString();
+        localStorage.setItem("forgotPasswordData", encrypted);
+      } else {
+        localStorage.removeItem("forgotPasswordData");
+      }
+    } catch (error) {
+      console.error("[DEBUG] Failed to save to localStorage:", error);
+      toast.error("Storage error", { description: "Failed to save reset state." });
+    }
+  }, [step, initiateData, isResetComplete]);
+
+  // Only save to storage when step or initiateData changes, and not after reset
   useEffect(() => {
     saveToStorage();
-    if (step === 2) {
-      completeForm.reset({ otp: "", password: "", confirmPassword: "" });
-      otpInputRef.current?.focus();
-    }
-    return () => {
-      if (storageTimeoutRef.current) {
-        clearTimeout(storageTimeoutRef.current);
-      }
-    };
-  }, [step, initiateData, completeForm, saveToStorage]);
+  }, [step, initiateData, saveToStorage]);
 
   const handleInitiate = async (data: InitiateFormValues) => {
     try {
-      await initiateForgotPassword({ email: data.email }).unwrap();
-      setInitiateData({ email: data.email });
+      console.log("[DEBUG] Initiating forgot password with:", data);
+      await initiateForgotPassword({ email: data.email, role: data.role } as ForgotPasswordPayload).unwrap();
+      setInitiateData({ email: data.email, role: data.role });
       setStep(2);
       setOtpTimer(120);
       sessionStorage.setItem("forgotPasswordTimer", "120");
       setCanResend(false);
-      completeForm.reset({ otp: "", password: "", confirmPassword: "" });
-      toast.success("OTP sent", { description: "Check your email for the OTP." });
+      setIsResetComplete(false); // Reset flag
+      completeForm.reset({ otp: "", password: "", confirmPassword: "", role: data.role });
+      setFormKey((prev) => prev + 1); // Force form re-render
+      toast.success("OTP sent", { description: "Check your email for the new OTP." });
     } catch (error: unknown) {
-      let errorMessage = "Failed to initiate password reset. Please try again.";
-
-      if (error && typeof error === 'object') {
-        const err = error as {
-          data?: { message?: string };
-          message?: string;
-          status?: number;
-        };
-
-        if (err.status === 429) {
-          errorMessage = "Too many requests. Please try again later.";
-        } else if (err.data?.message) {
-          errorMessage = err.data.message;
-        } else if (err.message) {
-          errorMessage = err.message;
-        }
-      }
-
+      const errorMessage = handleApiError(error);
+      console.error("[DEBUG] Initiate error:", errorMessage);
       toast.error("Initiation Failed", { description: errorMessage });
     }
   };
 
   const handleComplete = async (data: CompleteFormValues) => {
     if (!initiateData) {
+      console.error("[DEBUG] No initiateData found");
       toast.error("No reset data found", {
         description: "Please start the password reset process again.",
       });
       setStep(1);
-      completeForm.reset({ otp: "", password: "", confirmPassword: "" });
+      completeForm.reset({ otp: "", password: "", confirmPassword: "", role: "student" });
+      setFormKey((prev) => prev + 1); // Force form re-render
       return;
     }
     if (otpTimer <= 0) {
+      console.log("[DEBUG] OTP expired");
       toast.error("OTP expired", { description: "Please request a new OTP." });
       setCanResend(true);
       return;
     }
     try {
-      const { email } = initiateData;
+      const { email, role } = initiateData;
       const { otp, password } = data;
-      await completeForgotPassword({ email, otp, password }).unwrap();
+      console.log("[DEBUG] Completing password reset with:", { email, role, otp, password });
+      await completeForgotPassword({ email, otp, password, role }).unwrap();
       toast.success("Password Reset Successful", {
         description: "Your password has been updated. Please log in.",
       });
-      localStorage.removeItem("forgotPasswordStep");
-      localStorage.removeItem("forgotPasswordData");
-      sessionStorage.removeItem("forgotPasswordTimer");
-      setInitiateData(null);
-      completeForm.reset({ otp: "", password: "", confirmPassword: "" });
-      navigate("/login", { replace: true });
-    } catch (error: unknown) {
-      let errorMessage = "Invalid OTP or server error. Please try again.";
 
-      if (error && typeof error === 'object') {
-        const err = error as {
-          data?: { message?: string };
-          message?: string;
-          status?: number;
-        };
-
-        if (err.status === 429) {
-          errorMessage = "Too many requests. Please try again later.";
-        } else if (err.data?.message) {
-          errorMessage = err.data.message;
-        } else if (err.message) {
-          errorMessage = err.message;
-        }
+      // Clean up storage
+      try {
+        console.log("[DEBUG] Removing forgotPasswordStep from localStorage");
+        localStorage.removeItem("forgotPasswordStep");
+        console.log("[DEBUG] Removing forgotPasswordData from localStorage");
+        localStorage.removeItem("forgotPasswordData");
+        console.log("[DEBUG] Removing forgotPasswordTimer from sessionStorage");
+        sessionStorage.removeItem("forgotPasswordTimer");
+        console.log("[DEBUG] Storage after cleanup:", {
+          forgotPasswordStep: localStorage.getItem("forgotPasswordStep"),
+          forgotPasswordData: localStorage.getItem("forgotPasswordData"),
+          forgotPasswordTimer: sessionStorage.getItem("forgotPasswordTimer"),
+        });
+      } catch (storageError) {
+        console.error("[DEBUG] Storage cleanup error:", storageError);
+        toast.error("Storage cleanup failed", { description: "Some data may persist in browser storage." });
       }
 
+      // Set reset complete flag and update state
+      setIsResetComplete(true);
+      setInitiateData(null);
+      completeForm.reset({ otp: "", password: "", confirmPassword: "", role: "student" });
+      setFormKey((prev) => prev + 1); // Force form re-render
+
+      // Delay navigation to ensure cleanup completes
+      setTimeout(() => {
+        navigate("/login", { replace: true });
+      }, 200);
+    } catch (error: unknown) {
+      const errorMessage = handleApiError(error);
+      console.error("[DEBUG] Complete error:", errorMessage);
       toast.error("Password Reset Failed", { description: errorMessage });
     }
   };
 
   const handleResendOtp = async () => {
     if (!initiateData) {
+      console.error("[DEBUG] No initiateData for resend OTP");
       toast.error("No reset data found", {
         description: "Please start the password reset process again.",
       });
       setStep(1);
-      completeForm.reset({ otp: "", password: "", confirmPassword: "" });
+      completeForm.reset({ otp: "", password: "", confirmPassword: "", role: "student" });
+      setFormKey((prev) => prev + 1); // Force form re-render
       return;
     }
     try {
-      await resendForgotPasswordOtp({ email: initiateData.email }).unwrap();
+      console.log("[DEBUG] Resending OTP for email:", initiateData.email);
+      await resendForgotPasswordOtp({ email: initiateData.email, role: initiateData.role }).unwrap();
       setOtpTimer(120);
       sessionStorage.setItem("forgotPasswordTimer", "120");
       setCanResend(false);
-      completeForm.reset({ otp: "", password: "", confirmPassword: "" });
+      setIsResetComplete(false); // Reset flag
+      completeForm.reset({ otp: "", password: "", confirmPassword: "", role: initiateData.role as CompleteFormValues["role"] });
+      setFormKey((prev) => prev + 1); // Force form re-render
       toast.success("OTP resent", { description: "Check your email for the new OTP." });
     } catch (error: unknown) {
-      let errorMessage = "Failed to resend OTP. Please try again.";
-
-      if (error && typeof error === 'object') {
-        const err = error as {
-          data?: { message?: string };
-          message?: string;
-          status?: number;
-        };
-
-        if (err.status === 429) {
-          errorMessage = "Too many requests. Please wait before requesting another OTP.";
-        } else if (err.data?.message) {
-          errorMessage = err.data.message;
-        } else if (err.message) {
-          errorMessage = err.message;
-        }
-      }
-
+      const errorMessage = handleApiError(error);
+      console.error("[DEBUG] Resend OTP error:", errorMessage);
       toast.error("Failed to resend OTP", { description: errorMessage });
     }
+  };
+
+  const handleApiError = (error: unknown): string => {
+    let errorMessage = "An error occurred. Please try again.";
+    if (error && typeof error === 'object') {
+      const err = error as ApiError;
+      if (err.status === 429) {
+        errorMessage = "Too many requests. Please try again later.";
+      } else if (err.data?.message) {
+        errorMessage = err.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+    }
+    return errorMessage;
   };
 
   return (
@@ -318,6 +364,29 @@ export default function ForgotPassword() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={initiateForm.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Role</FormLabel>
+                      <FormControl>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="student">Student</SelectItem>
+                            <SelectItem value="mentor">Mentor</SelectItem>
+                            <SelectItem value="organization">Organization</SelectItem>
+                            <SelectItem value="super_admin">Super Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <Button type="submit" className="w-full" disabled={isInitiating} aria-live="polite">
                   {isInitiating ? (
                     <>
@@ -339,7 +408,7 @@ export default function ForgotPassword() {
               </form>
             </Form>
           ) : (
-            <Form {...completeForm}>
+            <Form key={formKey} {...completeForm}>
               <form onSubmit={completeForm.handleSubmit(handleComplete)} className="space-y-6 flex items-center flex-col">
                 <FormField
                   control={completeForm.control}
@@ -354,9 +423,9 @@ export default function ForgotPassword() {
                           onChange={(value) => {
                             field.onChange(value);
                             completeForm.setValue("otp", value, { shouldValidate: true });
+                            console.log("[DEBUG] OTP input value:", value);
                           }}
                           autoComplete="off"
-                          ref={otpInputRef}
                           aria-invalid={fieldState.invalid}
                           aria-describedby={fieldState.error ? `otp-error` : `otp-timer`}
                           aria-label="One-time password input"
@@ -380,8 +449,8 @@ export default function ForgotPassword() {
                       >
                         {otpTimer > 0
                           ? `OTP expires in ${Math.floor(otpTimer / 60)}:${(otpTimer % 60)
-                              .toString()
-                              .padStart(2, "0")} minutes`
+                            .toString()
+                            .padStart(2, "0")} minutes`
                           : "OTP has expired. Please request a new one."}
                       </div>
                     </FormItem>
@@ -400,9 +469,16 @@ export default function ForgotPassword() {
                             placeholder="Enter new password"
                             autoComplete="new-password"
                             {...field}
+                            value={field.value || ""} // Ensure value is controlled
+                            onChange={(e) => {
+                              field.onChange(e);
+                              console.log("[DEBUG] Password input value:", e.target.value);
+                            }}
                             className="w-full"
+                            disabled={isCompleting}
                             aria-invalid={fieldState.invalid}
                             aria-describedby={fieldState.error ? `password-error` : undefined}
+                            onFocus={() => console.log("[DEBUG] Password input focused")}
                           />
                           <Button
                             type="button"
@@ -433,9 +509,16 @@ export default function ForgotPassword() {
                             placeholder="Confirm new password"
                             autoComplete="new-password"
                             {...field}
+                            value={field.value || ""} // Ensure value is controlled
+                            onChange={(e) => {
+                              field.onChange(e);
+                              console.log("[DEBUG] Confirm password input value:", e.target.value);
+                            }}
                             className="w-full"
+                            disabled={isCompleting}
                             aria-invalid={fieldState.invalid}
                             aria-describedby={fieldState.error ? `confirmPassword-error` : undefined}
+                            onFocus={() => console.log("[DEBUG] Confirm password input focused")}
                           />
                           <Button
                             type="button"
@@ -484,13 +567,15 @@ export default function ForgotPassword() {
                   className="w-full cursor-pointer"
                   onClick={() => {
                     setStep(1);
-                    completeForm.reset({ otp: "", password: "", confirmPassword: "" });
+                    completeForm.reset({ otp: "", password: "", confirmPassword: "", role: "student" });
                     localStorage.removeItem("forgotPasswordStep");
                     localStorage.removeItem("forgotPasswordData");
                     sessionStorage.removeItem("forgotPasswordTimer");
                     setInitiateData(null);
                     setOtpTimer(120);
                     setCanResend(false);
+                    setIsResetComplete(false); // Reset flag
+                    setFormKey((prev) => prev + 1); // Force form re-render
                   }}
                   aria-label="Back to email input"
                 >
