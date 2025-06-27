@@ -6,6 +6,7 @@ import {
   logout,
   refreshToken,
   register,
+  resendForgotPasswordOTP,
   resetPassword,
   updateProfile,
   verifyEmail,
@@ -15,47 +16,229 @@ import { validateRequest } from "@/middleware/validateRequest";
 import { registerSchema, verifyEmailSchema } from "@/utils/zod";
 import { createDynamicRateLimiter } from "@/middleware/rateLimitMiddleware";
 import { protect } from "@/middleware/authMiddleware";
+import * as z from "zod";
+
+// Zod schemas for forgot password routes
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  role: z.enum(["mentor", "student", "organization", "super_admin"], {
+    errorMap: () => ({ message: "Please select a valid role" }),
+  }),
+});
+
+const forgotPasswordVerifySchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  otp: z.string().length(6, "Enter the 6-digit OTP"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  role: z.enum(["mentor", "student", "organization", "super_admin"], {
+    errorMap: () => ({ message: "Please select a valid role" }),
+  }),
+});
+
+const forgotPasswordResendSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
 
 const router = express.Router();
 
-// Public routes
+// Public routes with stricter rate limiting
 router.post(
   "/register",
   createDynamicRateLimiter({
-    timeWindow: 10,
-    maxRequests: 4,
+    timeWindow: 1, // 1 minute
+    maxRequests: 5,
+    keyGenerator: (req) => `${req.ip}:register`,
+    onLimitExceeded: (req, res) => {
+      console.log(`[DEBUG] Rate limit exceeded for register from IP: ${req.ip}`);
+      res.status(429).json({
+        status: "error",
+        message: "Too many registration attempts. Please try again later.",
+      });
+    },
   }),
   validateRequest(registerSchema),
   register
 );
+
 router.post(
   "/login",
   createDynamicRateLimiter({
-    timeWindow: 1,
-    maxRequests: 5,
+    timeWindow: 1, // 1 minute
+    maxRequests: 10,
+    keyGenerator: (req) => `${req.ip}:login`,
+    onLimitExceeded: (req, res) => {
+      console.log(`[DEBUG] Rate limit exceeded for login from IP: ${req.ip}`);
+      res.status(429).json({
+        status: "error",
+        message: "Too many login attempts. Please try again later.",
+      });
+    },
   }),
   login
 );
+
 router.post(
   "/verify-email",
   createDynamicRateLimiter({
-    timeWindow: 10,
+    timeWindow: 10, // 10 minutes
     maxRequests: 4,
+    keyGenerator: (req) => `${req.ip}:verify-email`,
+    onLimitExceeded: (req, res) => {
+      console.log(`[DEBUG] Rate limit exceeded for verify-email from IP: ${req.ip}`);
+      res.status(429).json({
+        status: "error",
+        message: "Too many email verification attempts. Please try again later.",
+      });
+    },
   }),
   validateRequest(verifyEmailSchema),
   verifyEmail
 );
 
-// Forgot password routes : todo add zod validation and fronted implementation
-router.post("/forgot-password", forgotPassword);
-router.post("/forgot-password/verify", verifyForgotPassword);
+// Forgot password routes with Zod validation and tailored rate limiting
+router.post(
+  "/forgot-password",
+  createDynamicRateLimiter({
+    timeWindow: 10, // 10 minutes
+    maxRequests: 5,
+    keyGenerator: (req) => `${req.ip}:forgot-password`,
+    onLimitExceeded: (req, res) => {
+      console.log(`[DEBUG] Rate limit exceeded for forgot-password from IP: ${req.ip}`);
+      res.status(429).json({
+        status: "error",
+        message: "Too many password reset requests. Please try again later.",
+      });
+    },
+  }),
+  validateRequest(forgotPasswordSchema),
+  forgotPassword
+);
 
-//todo add zod validation and fronted implementation
-// Protected routes with refresh token
-router.post("/refresh-token", protect, refreshToken);
-router.post("/logout", protect, logout);
-router.get("/getProfile", protect, getProfile);
-router.post("/password/reset", protect, resetPassword);
-router.patch("/updateProfile", protect, updateProfile);
+router.post(
+  "/forgot-password/verify",
+  createDynamicRateLimiter({
+    timeWindow: 10, // 10 minutes
+    maxRequests: 4,
+    keyGenerator: (req) => `${req.ip}:forgot-password-verify`,
+    onLimitExceeded: (req, res) => {
+      console.log(`[DEBUG] Rate limit exceeded for forgot-password/verify from IP: ${req.ip}`);
+      res.status(429).json({
+        status: "error",
+        message: "Too many OTP verification attempts. Please try again later.",
+      });
+    },
+  }),
+  validateRequest(forgotPasswordVerifySchema),
+  verifyForgotPassword
+);
+
+router.post(
+  "/forgot-password/resend",
+  createDynamicRateLimiter({
+    timeWindow: 10, // 10 minutes
+    maxRequests: 3,
+    keyGenerator: (req) => `${req.ip}:forgot-password-resend`,
+    onLimitExceeded: (req, res) => {
+      console.log(`[DEBUG] Rate limit exceeded for forgot-password/resend from IP: ${req.ip}`);
+      res.status(429).json({
+        status: "error",
+        message: "Too many OTP resend requests. Please try again later.",
+      });
+    },
+  }),
+  validateRequest(forgotPasswordResendSchema),
+  resendForgotPasswordOTP
+);
+
+// Protected routes with more lenient rate limiting
+router.post(
+  "/refresh-token",
+  protect,
+  createDynamicRateLimiter({
+    timeWindow: 10, // 10 minutes
+    maxRequests: 20,
+    keyGenerator: (req) => `${req.user?.id || "unknown_user"}:refresh-token`, // Fallback to avoid undefined
+    onLimitExceeded: (req, res) => {
+      console.log(`[DEBUG] Rate limit exceeded for refresh-token for user: ${req.user?.id || "unknown_user"}`);
+      res.status(429).json({
+        status: "error",
+        message: "Too many token refresh attempts. Please try again later.",
+      });
+    },
+  }),
+  refreshToken
+);
+
+router.post(
+  "/logout",
+  protect,
+  createDynamicRateLimiter({
+    timeWindow: 10, // 10 minutes
+    maxRequests: 10,
+    keyGenerator: (req) => `${req.user?.id || "unknown_user"}:logout`,
+    onLimitExceeded: (req, res) => {
+      console.log(`[DEBUG] Rate limit exceeded for logout for user: ${req.user?.id || "unknown_user"}`);
+      res.status(429).json({
+        status: "error",
+        message: "Too many logout attempts. Please try again later.",
+      });
+    },
+  }),
+  logout
+);
+
+router.get(
+  "/getProfile",
+  protect,
+  createDynamicRateLimiter({
+    timeWindow: 5, // 5 minutes
+    maxRequests: 30,
+    keyGenerator: (req) => `${req.user?.id || "unknown_user"}:getProfile`,
+    onLimitExceeded: (req, res) => {
+      console.log(`[DEBUG] Rate limit exceeded for getProfile for user: ${req.user?.id || "unknown_user"}`);
+      res.status(429).json({
+        status: "error",
+        message: "Too many profile requests. Please try again later.",
+      });
+    },
+  }),
+  getProfile
+);
+
+router.post(
+  "/password/reset",
+  protect,
+  createDynamicRateLimiter({
+    timeWindow: 10, // 10 minutes
+    maxRequests: 5,
+    keyGenerator: (req) => `${req.user?.id || "unknown_user"}:password-reset`,
+    onLimitExceeded: (req, res) => {
+      console.log(`[DEBUG] Rate limit exceeded for password/reset for user: ${req.user?.id || "unknown_user"}`);
+      res.status(429).json({
+        status: "error",
+        message: "Too many password reset attempts. Please try again later.",
+      });
+    },
+  }),
+  resetPassword
+);
+
+router.patch(
+  "/updateProfile",
+  protect,
+  createDynamicRateLimiter({
+    timeWindow: 10, // 10 minutes
+    maxRequests: 10,
+    keyGenerator: (req) => `${req.user?.id || "unknown_user"}:updateProfile`,
+    onLimitExceeded: (req, res) => {
+      console.log(`[DEBUG] Rate limit exceeded for updateProfile for user: ${req.user?.id || "unknown_user"}`);
+      res.status(429).json({
+        status: "error",
+        message: "Too many profile update attempts. Please try again later.",
+      });
+    },
+  }),
+  updateProfile
+);
 
 export default router;

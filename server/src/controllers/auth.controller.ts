@@ -377,11 +377,11 @@ export const login = wrapAsync(async (req: Request, res: Response) => {
   // Log new tokenVersion
   console.log(`User ${email} - New tokenVersion: ${user.tokenVersion}`);
 
-  res.cookie("accessToken", accessToken, getCookieConfig());
+  res.cookie("accessToken", accessToken, getCookieConfig()); // 12 hours
   res.cookie(
     "refreshToken",
     refreshToken,
-    getCookieConfig(30 * 24 * 60 * 60 * 1000)
+    getCookieConfig(30 * 24 * 60 * 60 * 1000) // 30 days
   );
 
   // Store single refresh token in the database (replaces any existing one)
@@ -599,6 +599,8 @@ export const refreshToken = wrapAsync(async (req: Request, res: Response) => {
 export const forgotPassword = wrapAsync(async (req: Request, res: Response) => {
   const { email, role }: { email: string; role: string } = req.body;
 
+  console.log(req.body)
+
   if (!email || !role) {
     sendError(res, 400, "Email and role are required");
     return;
@@ -710,6 +712,72 @@ export const verifyForgotPassword = wrapAsync(
     });
   }
 );
+export const resendForgotPasswordOTP = wrapAsync(
+  async (req: Request, res: Response) => {
+    const { email, role }: { email: string; role: string } = req.body;
+
+    console.log("[DEBUG] Request body:", req.body);
+
+    if (!email || !role) {
+      sendError(res, 400, "Email and role are required");
+      return;
+    }
+
+    let user: IMentor | IStudent | IOrganization | ISuperAdmin | null;
+
+    switch (role) {
+      case "mentor":
+        user = await Mentor.findOne({ email });
+        break;
+      case "student":
+        user = await Student.findOne({ email });
+        break;
+      case "organization":
+        user = await Organization.findOne({ email });
+        break;
+      case "super_admin":
+        user = await SuperAdmin.findOne({ email });
+        break;
+      default:
+        sendError(res, 400, "Invalid role");
+        return;
+    }
+
+    if (!user) {
+      console.log("[DEBUG] User not found for email:", email);
+      sendError(res, 404, "User not found");
+      return;
+    }
+
+    if (user.otpExpiry && user.otpExpiry > new Date()) {
+      console.log("[DEBUG] OTP still valid. Expiry:", user.otpExpiry, "Current time:", new Date());
+      sendError(res, 400, "Previous OTP is still valid. Please try again later.");
+      return;
+    }
+
+    try {
+      const otpData = generateOTPForPurpose("forgot_password");
+      console.log("[DEBUG] Generated OTP for email:", email, "OTP:", otpData.otp);
+
+      user.otp = otpData.otp;
+      user.otpExpiry = otpData.expiry;
+      await user.save();
+      console.log("[DEBUG] User updated with new OTP for email:", email);
+
+      await sendForgotPasswordEmail(email, otpData.otp, user.name);
+      console.log("[DEBUG] OTP email sent to:", email);
+
+      res.status(200).json({
+        status: "success",
+        message: "OTP sent to your email for password reset",
+      });
+    } catch (error: any) {
+      console.error("[DEBUG] Failed to resend OTP for email:", email, "Error:", error.message);
+      logger.error(`Failed to resend OTP for ${email}: ${error.message}`);
+      throw new ApiError(500, "Failed to resend OTP");
+    }
+  }
+);
 export const resetPassword = wrapAsync(async (req: Request, res: Response) => {
   const { password }: { password: string } = req.body;
 
@@ -758,7 +826,6 @@ export const resetPassword = wrapAsync(async (req: Request, res: Response) => {
     userName: user.name,
   });
 });
-
 export const updateProfile = wrapAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
   const userRole = req.user?.role;
