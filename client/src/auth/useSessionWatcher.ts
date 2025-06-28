@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { jwtDecode } from "jwt-decode";
 import { logout } from "@/utils/authUtils";
-import { useRefreshTokenMutation } from "@/store/features/auth/authApi";
+import { useLogoutMutation, useRefreshTokenMutation } from "@/store/features/auth/authApi";
 
 interface DecodedToken {
   exp: number;
@@ -10,6 +10,7 @@ interface DecodedToken {
 const useSessionWatcher = () => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [refreshToken] = useRefreshTokenMutation();
+  const [logoutApi] = useLogoutMutation()
 
   useEffect(() => {
     const checkSession = async () => {
@@ -35,12 +36,14 @@ const useSessionWatcher = () => {
               refreshError
             );
             logout();
+            await logoutApi(undefined).unwrap();
           }
         } else {
           console.log(
             "[DEBUG] useSessionWatcher: No refresh token found, logging out"
           );
           logout();
+          await logoutApi(undefined).unwrap();
         }
         return;
       }
@@ -55,6 +58,7 @@ const useSessionWatcher = () => {
             "[DEBUG] useSessionWatcher: Access token expired, logging out"
           );
           logout();
+          await logoutApi(undefined).unwrap();
           return;
         }
 
@@ -88,7 +92,6 @@ const useSessionWatcher = () => {
 
     return () => {
       if (intervalRef.current) {
-        console.log("[DEBUG] useSessionWatcher: Clearing interval");
         clearInterval(intervalRef.current);
       }
     };

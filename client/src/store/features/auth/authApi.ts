@@ -1,5 +1,6 @@
 import { Backend_URL } from "@/config/constant";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { setUser } from "../slice/UserAuthSlice";
 
 export interface AuthResponse {
   token: string;
@@ -134,7 +135,7 @@ export const authApi = createApi({
       }),
     }),
 
-    getProfile: builder.query({
+    getProfile2: builder.query({
       query: () => "/profile",
     }),
 
@@ -209,6 +210,44 @@ export const authApi = createApi({
         body: { refreshToken: refreshToken },
       }),
     }),
+    logout: builder.mutation({
+      query: () => ({
+        url: "/logout",
+        method: "POST",
+      }),
+    }),
+    getProfile: builder.query({
+      query: () => ({
+        url: "/getProfile",
+        method: "GET",
+      }),
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(setUser(data.data)); // 👈 Set user in Redux store
+        } catch (error) {
+          console.error("Failed to get profile:", error);
+        }
+      },
+    }),
+
+    updateProfile: builder.mutation<void, FormData>({
+      query: (updateData) => ({
+        url: "/updateProfile",
+        method: "PATCH",
+        body: updateData,
+      }),
+      invalidatesTags: ["Profile"],
+    }),
+    resetPassword: builder.mutation<{ password: string }, { password: string }>(
+      {
+        query: (password) => ({
+          url: "/password/reset",
+          method: "POST",
+          body: password,
+        }),
+      }
+    ),
   }),
 });
 
@@ -220,11 +259,14 @@ export const {
   useInitiateForgotPasswordMutation,
   useComplateForgotPasswordMutation,
   useResendForgotPasswordOtpMutation,
-  useGetProfileQuery,
   useRegisterUserMutation,
   useVerifyEmailMutation,
   useForgotPasswordMutation,
   useForgotPasswordVerifyMutation,
   useResendForgotPasswordOTPMutation,
   useRefreshTokenMutation,
+  useLogoutMutation,
+  useGetProfileQuery,
+  useUpdateProfileMutation,
+  useResetPasswordMutation,
 } = authApi;

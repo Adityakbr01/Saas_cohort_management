@@ -33,6 +33,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "crypto-js": "^4.2.0",
+    "date-fn": "^0.0.2",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.17.0",
     "input-otp": "^1.4.2",
     "jwt-decode": "^4.0.0",
