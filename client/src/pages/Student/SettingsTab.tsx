@@ -6,13 +6,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
-import { User, Settings, Eye, EyeOff, Trash2, Plus } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { User, Settings, Eye, EyeOff, Trash2, Plus, Loader2 } from "lucide-react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { useUpdateProfileMutation, useGetProfileQuery, useResetPasswordMutation } from "@/store/features/auth/authApi";
+import { useUpdateProfileMutation, useGetProfileQuery, useResetPasswordMutation, useLogoutMutation } from "@/store/features/auth/authApi";
 import { TabsContent } from "@/components/ui/tabs";
+import { logout as logoutUtil } from "@/utils/authUtils";
+import { useDispatch } from "react-redux";
+import { logout as logoutAction } from "@/store/features/slice/UserAuthSlice";
 
 // Zod schema for student profile form
 const studentSchema = z.object({
@@ -91,12 +105,14 @@ interface SettingsTabProps {
 }
 
 export function SettingsTab({ userData }: SettingsTabProps) {
+  const dispatch = useDispatch();
   const [isEditing, setIsEditing] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [updatePassword, { isLoading: isUpdatingPassword }] = useResetPasswordMutation();
   const [updateProfile, { isLoading: isUpdatingProfile, error: updateError }] = useUpdateProfileMutation();
+  const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
   const { data: profileData, refetch, isLoading: isProfileLoading } = useGetProfileQuery(undefined);
 
   const currentData = profileData?.data || userData;
@@ -184,6 +200,66 @@ export function SettingsTab({ userData }: SettingsTabProps) {
     }
   }, [updateError]);
 
+  // Show loading toast when updating profile
+  useEffect(() => {
+    let loadingToastId: string | number | undefined;
+
+    if (isUpdatingProfile) {
+      loadingToastId = toast.loading("Updating profile...", {
+        duration: Infinity, // Keep it until manually dismissed
+      });
+    } else if (loadingToastId) {
+      toast.dismiss(loadingToastId);
+    }
+
+    // Cleanup function to dismiss toast if component unmounts during loading
+    return () => {
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+      }
+    };
+  }, [isUpdatingProfile]);
+
+  // Show loading toast when updating password
+  useEffect(() => {
+    let loadingToastId: string | number | undefined;
+
+    if (isUpdatingPassword) {
+      loadingToastId = toast.loading("Updating password...", {
+        duration: Infinity, // Keep it until manually dismissed
+      });
+    } else if (loadingToastId) {
+      toast.dismiss(loadingToastId);
+    }
+
+    // Cleanup function to dismiss toast if component unmounts during loading
+    return () => {
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+      }
+    };
+  }, [isUpdatingPassword]);
+
+  // Show loading toast when logging out
+  useEffect(() => {
+    let loadingToastId: string | number | undefined;
+
+    if (isLoggingOut) {
+      loadingToastId = toast.loading("Logging out...", {
+        duration: Infinity, // Keep it until manually dismissed
+      });
+    } else if (loadingToastId) {
+      toast.dismiss(loadingToastId);
+    }
+
+    // Cleanup function to dismiss toast if component unmounts during loading
+    return () => {
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+      }
+    };
+  }, [isLoggingOut]);
+
   // Cleanup preview URL on unmount
   useEffect(() => {
     return () => {
@@ -235,6 +311,7 @@ export function SettingsTab({ userData }: SettingsTabProps) {
         console.log(`[DEBUG] FormData: ${key} = ${value}`);
       }
 
+
       await updateProfile(formData).unwrap();
       toast.success("Profile updated successfully");
       setIsEditing(false);
@@ -279,6 +356,8 @@ export function SettingsTab({ userData }: SettingsTabProps) {
       toast.error(getErrorMessage(error));
     }
   };
+
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
@@ -326,6 +405,32 @@ export function SettingsTab({ userData }: SettingsTabProps) {
     toast.success("Skill removed");
   };
 
+  // Logout function
+  const handleLogout = async () => {
+    try {
+      console.log("[DEBUG] SettingsTab: Initiating logout");
+
+      // Call the logout API to invalidate tokens on the server
+      await logout().unwrap();
+
+      // Update Redux state
+      dispatch(logoutAction());
+
+      
+      logoutUtil(); 
+
+      toast.success("Logged out successfully");
+      console.log("[DEBUG] SettingsTab: Logout completed");
+    } catch (error: unknown) {
+      console.error("[DEBUG] SettingsTab: Logout failed:", error);
+
+      // Even if API call fails, still logout locally for security
+      dispatch(logoutAction());
+      logoutUtil();
+      toast.error(`Logout failed: ${getErrorMessage(error)}`);
+    }
+  };
+
   if (isProfileLoading) {
     return (
       <TabsContent value="settings" className="mt-6">
@@ -361,7 +466,7 @@ export function SettingsTab({ userData }: SettingsTabProps) {
                 }}
                 disabled={isUpdatingProfile}
               >
-                {isEditing ? (isUpdatingProfile ? "Saving..." : "Save Changes") : "Edit Profile"}
+                {isEditing ? (isUpdatingProfile ? <><Loader2 className="h-4 w-4 animate-spin" /></> : "Save Changes") : "Edit Profile"}
               </Button>
             </div>
           </CardHeader>
@@ -582,6 +687,51 @@ export function SettingsTab({ userData }: SettingsTabProps) {
                 {isUpdatingPassword ? "Updating..." : "Update Password"}
               </Button>
             </form>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  disabled={isLoggingOut}
+                  className="mt-6"
+                >
+                  {isLoggingOut ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Logging out...
+                    </>
+                  ) : (
+                    "Logout"
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to logout? You will need to sign in again to access your account.
+                    This will log you out from all devices.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {isLoggingOut ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Logging out...
+                      </>
+                    ) : (
+                      "Logout"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
       </div>

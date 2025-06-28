@@ -210,7 +210,7 @@ export const authApi = createApi({
         body: { refreshToken: refreshToken },
       }),
     }),
-    logout: builder.mutation({
+    logout: builder.mutation<void, void>({
       query: () => ({
         url: "/logout",
         method: "POST",
@@ -230,7 +230,6 @@ export const authApi = createApi({
         }
       },
     }),
-
     updateProfile: builder.mutation<void, FormData>({
       query: (updateData) => ({
         url: "/updateProfile",

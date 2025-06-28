@@ -155,7 +155,7 @@ function Login() {
   const footer = useMemo(
     () => (
       <footer className="p-4 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Your App Name
+        © {new Date().getFullYear()} EduLaunch. All rights reserved.
       </footer>
     ),
     [],
