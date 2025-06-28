@@ -16,6 +16,9 @@ import { getCookieConfig } from "@/configs/cookieConfig";
 
 import jwt from "jsonwebtoken";
 import safeCache from "@/utils/cache";
+import { deleteFile, uploadImage } from "@/services/cloudinaryService";
+
+import FileModel from "@/models/file.model";
 
 interface RegisterBody {
   email: string;
@@ -835,6 +838,9 @@ export const updateProfile = wrapAsync(async (req: Request, res: Response) => {
     return;
   }
 
+  // Delete user cache data
+  safeCache.del(userId.toString());
+
   let user: IMentor | IStudent | IOrganization | ISuperAdmin | null;
 
   switch (userRole) {
@@ -860,7 +866,122 @@ export const updateProfile = wrapAsync(async (req: Request, res: Response) => {
     return;
   }
 
-  const { name, phone, bio, goals, background, skills } = req.body;
+  const { name, phone, bio, goals, background } = req.body;
+
+  console.log("[DEBUG] Received body:", req.body);
+  console.log("[DEBUG] Received file:", req.file);
+
+  // Parse background if it’s a JSON string
+  let parsedBackground;
+  if (background) {
+    try {
+      parsedBackground = typeof background === 'string' ? JSON.parse(background) : background;
+      console.log("[DEBUG] Parsed background:", parsedBackground);
+    } catch (error) {
+      console.error("[DEBUG] Failed to parse background:", error);
+      sendError(res, 400, "Invalid background data");
+      return;
+    }
+  }
+
+  // Handle profile image upload for student and mentor
+  let profileImage: { publicUrl: string; fileId: string } | undefined;
+  if (req.file && ["student", "mentor"].includes(userRole)) {
+    try {
+
+      // Delete previous image from Cloudinary and database (only for students and mentors)
+      if (["student", "mentor"].includes(userRole)) {
+        const userWithImage = user as IStudent | IMentor;
+        if (userWithImage.profileImageUrl) {
+          try {
+            // Find the existing file record to get the correct fileId
+            const existingFile = await FileModel.findOne({
+              userId,
+              publicUrl: userWithImage.profileImageUrl,
+              fileType: "image"
+            });
+
+            if (existingFile && existingFile.fileId) {
+              console.log("[DEBUG] Deleting previous image with fileId:", existingFile.fileId);
+
+              // Delete from Cloudinary
+              await deleteFile(existingFile.fileId, "image");
+
+              // Delete from database
+              await FileModel.deleteOne({ _id: existingFile._id });
+
+              console.log("[DEBUG] Previous image deleted successfully");
+            } else {
+              console.warn("[DEBUG] No existing file record found for URL:", userWithImage.profileImageUrl);
+            }
+          } catch (deleteError: any) {
+            console.error("[DEBUG] Error deleting previous image:", deleteError);
+            // Don't throw error here - continue with upload even if deletion fails
+          }
+        }
+      }
+
+      // Validate file before upload
+      const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+      const maxFileSize = 5 * 1024 * 1024; // 5MB
+
+      if (!allowedMimeTypes.includes(req.file.mimetype)) {
+        sendError(res, 400, "Invalid file type. Only JPEG, PNG, and JPG files are allowed.");
+        return;
+      }
+
+      if (req.file.size > maxFileSize) {
+        sendError(res, 400, "File size too large. Maximum size is 5MB.");
+        return;
+      }
+
+      const result = await uploadImage(req.file);
+      console.log("[DEBUG] uploadImage result:", result);
+
+      if (!result || !result.secure_url || !result.public_id) {
+        throw new Error("Failed to upload image to cloud storage");
+      }
+
+      profileImage = { publicUrl: result.secure_url, fileId: result.public_id };
+
+      // Save to File collection with additional metadata
+      const file = new FileModel({
+        userId,
+        publicUrl: profileImage.publicUrl,
+        fileId: profileImage.fileId,
+        fileType: "image",
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        uploadedAt: new Date(),
+      });
+
+      await file.save();
+      console.log("[DEBUG] File saved to FileModel:", file);
+
+      // Update user with profile image URL
+      if (userRole === "student" || userRole === "mentor") {
+        (user as IStudent | IMentor).profileImageUrl = profileImage.publicUrl;
+        console.log("[DEBUG] Updated profileImageUrl:", profileImage.publicUrl);
+      }
+    } catch (error: any) {
+      console.error("[DEBUG] Profile image upload error:", error);
+
+      // If we have a partial upload (image uploaded but file record failed), try to clean up
+      if (profileImage?.fileId) {
+        try {
+          await deleteFile(profileImage.fileId, "image");
+          console.log("[DEBUG] Cleaned up partially uploaded image");
+        } catch (cleanupError) {
+          console.error("[DEBUG] Failed to cleanup partially uploaded image:", cleanupError);
+        }
+      }
+
+      const errorMessage = error.message || "Unknown error occurred during image upload";
+      sendError(res, 500, `Failed to upload profile image: ${errorMessage}`);
+      return;
+    }
+  }
 
   // Common properties for all user types
   if (name) user.name = name;
@@ -872,11 +993,8 @@ export const updateProfile = wrapAsync(async (req: Request, res: Response) => {
       if (phone) studentUser.phone = phone;
       if (bio) studentUser.bio = bio;
       if (goals) studentUser.goals = goals;
-      if (background) studentUser.background = background;
-      if (skills && background) {
-        // Skills are part of background.skills for students
-        if (!studentUser.background) studentUser.background = { education: "", previousCourses: [], experience: "", skills: [], learningGoals: "" };
-        studentUser.background.skills = skills;
+      if (parsedBackground) {
+        studentUser.background = parsedBackground;
       }
       break;
 
@@ -884,21 +1002,29 @@ export const updateProfile = wrapAsync(async (req: Request, res: Response) => {
       const mentorUser = user as IMentor;
       if (phone) mentorUser.phone = phone;
       if (bio) mentorUser.bio = bio;
-      // Note: mentors don't have goals, background, or skills properties
       break;
 
     case "organization":
       // Organizations only have name (already handled above)
-      // Note: organizations don't have phone, bio, goals, background, or skills
       break;
 
     case "super_admin":
       // Super admins only have name (already handled above)
-      // Note: super admins don't have phone, bio, goals, background, or skills
       break;
   }
 
-  await user.save();
+  try {
+    await user.save();
+    console.log("[DEBUG] User saved:", user);
+  } catch (error: any) {
+    console.error("[DEBUG] Mongoose save error:", error);
+    sendError(res, 500, `Failed to save profile: ${error.message}`);
+    return;
+  }
 
-  sendSuccess(res, 200, "Profile updated successfully", user);
+  console.log("[DEBUG] Profile updated for user:", userId);
+  sendSuccess(res, 200, "Profile updated successfully", {
+    ...user.toObject(),
+    profileImageUrl: (user as IStudent | IMentor).profileImageUrl,
+  });
 });
