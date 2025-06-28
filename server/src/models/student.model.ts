@@ -87,6 +87,13 @@ export interface IStudent extends IBaseUser {
       level: number;
     }>;
   };
+  enrolledCourses: Types.ObjectId[];
+  certificates: Array<{
+    title: string;
+    issueDate: Date;
+    instructor: Types.ObjectId;
+  }>;
+  profileImageUrl: string;
 }
 
 interface IStudentModel extends Model<IStudent> {
@@ -165,7 +172,7 @@ const studentSchema = new Schema<IStudent>(
         },
       ],
     },
-     notes: [noteSchema],
+    notes: [noteSchema],
     sessionAttendance: { type: Number, default: 0, min: 0 },
     attendanceHistory: [
       {
@@ -209,6 +216,15 @@ const studentSchema = new Schema<IStudent>(
         },
       ],
     },
+    enrolledCourses: [{ type: Schema.Types.ObjectId, ref: "Course" }],
+    certificates: [
+      {
+        title: { type: String, required: true },
+        issueDate: { type: Date, required: true },
+        instructor: { type: Schema.Types.ObjectId, required: true },
+      },
+    ],
+    profileImageUrl: { type: String, default: "" },
   },
   { timestamps: true }
 );
@@ -226,5 +242,8 @@ studentSchema.index({ mentorId: 1 });
 studentSchema.index({ status: 1 });
 studentSchema.index({ isActive: 1 });
 
-const Student = mongoose.model<IStudent, IStudentModel>("Student", studentSchema);
+const Student = mongoose.model<IStudent, IStudentModel>(
+  "Student",
+  studentSchema
+);
 export default Student;

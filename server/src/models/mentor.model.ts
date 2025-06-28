@@ -60,6 +60,7 @@ export interface IMentor extends IBaseUser {
     visibility: "private" | "mentor" | "all";
     priority: "low" | "medium" | "high";
   }[];
+  profileImageUrl: string;
 }
 
 interface IMentorModel extends Model<IMentor> {
@@ -120,6 +121,7 @@ const mentorSchema = new Schema<IMentor>(
       },
     ],
     notes: [noteSchema],
+    profileImageUrl: { type: String, default: "" },
   },
   { timestamps: true }
 );

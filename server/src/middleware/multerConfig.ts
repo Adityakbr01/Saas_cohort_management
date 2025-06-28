@@ -1,25 +1,28 @@
-// backend/middleware/multerConfig.ts
+// src/middleware/multerConfig.ts
 import { Request } from "express";
 import multer from "multer";
 
-// Configure multer to store files in memory
 const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
-  fileFilter: (
-    req: Request,
-    file: Express.Multer.File,
-    cb: multer.FileFilterCallback
-  ) => {
-    // Allow only image files
-    if (file.mimetype.startsWith("image/")) {
+  limits: { fileSize: 100 * 1024 * 1024 }, // Increased to 100MB for videos
+  fileFilter: (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "video/mp4",
+      "video/mpeg",
+      "audio/mpeg",
+      "audio/mp3",
+      "application/pdf",
+    ];
+    if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Only image files are allowed"), false);
+      cb(new Error("Only JPEG, PNG, MP4, MPEG, MP3, or PDF files are allowed"), false);
     }
   },
 });
 
-export const uploadLogo = upload.single("logo"); // Expect a single file with field name "logo"
+export const uploadMedia = upload.single("media");

@@ -17,6 +17,7 @@ import { registerSchema, verifyEmailSchema } from "@/utils/zod";
 import { createDynamicRateLimiter } from "@/middleware/rateLimitMiddleware";
 import { protect } from "@/middleware/authMiddleware";
 import * as z from "zod";
+import { uploadMedia } from "@/middleware/multerConfig";
 
 // Zod schemas for forgot password routes
 const forgotPasswordSchema = z.object({
@@ -49,7 +50,9 @@ router.post(
     maxRequests: 5,
     keyGenerator: (req) => `${req.ip}:register`,
     onLimitExceeded: (req, res) => {
-      console.log(`[DEBUG] Rate limit exceeded for register from IP: ${req.ip}`);
+      console.log(
+        `[DEBUG] Rate limit exceeded for register from IP: ${req.ip}`
+      );
       res.status(429).json({
         status: "error",
         message: "Too many registration attempts. Please try again later.",
@@ -84,10 +87,13 @@ router.post(
     maxRequests: 4,
     keyGenerator: (req) => `${req.ip}:verify-email`,
     onLimitExceeded: (req, res) => {
-      console.log(`[DEBUG] Rate limit exceeded for verify-email from IP: ${req.ip}`);
+      console.log(
+        `[DEBUG] Rate limit exceeded for verify-email from IP: ${req.ip}`
+      );
       res.status(429).json({
         status: "error",
-        message: "Too many email verification attempts. Please try again later.",
+        message:
+          "Too many email verification attempts. Please try again later.",
       });
     },
   }),
@@ -103,7 +109,9 @@ router.post(
     maxRequests: 5,
     keyGenerator: (req) => `${req.ip}:forgot-password`,
     onLimitExceeded: (req, res) => {
-      console.log(`[DEBUG] Rate limit exceeded for forgot-password from IP: ${req.ip}`);
+      console.log(
+        `[DEBUG] Rate limit exceeded for forgot-password from IP: ${req.ip}`
+      );
       res.status(429).json({
         status: "error",
         message: "Too many password reset requests. Please try again later.",
@@ -121,7 +129,9 @@ router.post(
     maxRequests: 4,
     keyGenerator: (req) => `${req.ip}:forgot-password-verify`,
     onLimitExceeded: (req, res) => {
-      console.log(`[DEBUG] Rate limit exceeded for forgot-password/verify from IP: ${req.ip}`);
+      console.log(
+        `[DEBUG] Rate limit exceeded for forgot-password/verify from IP: ${req.ip}`
+      );
       res.status(429).json({
         status: "error",
         message: "Too many OTP verification attempts. Please try again later.",
@@ -139,7 +149,9 @@ router.post(
     maxRequests: 3,
     keyGenerator: (req) => `${req.ip}:forgot-password-resend`,
     onLimitExceeded: (req, res) => {
-      console.log(`[DEBUG] Rate limit exceeded for forgot-password/resend from IP: ${req.ip}`);
+      console.log(
+        `[DEBUG] Rate limit exceeded for forgot-password/resend from IP: ${req.ip}`
+      );
       res.status(429).json({
         status: "error",
         message: "Too many OTP resend requests. Please try again later.",
@@ -159,7 +171,11 @@ router.post(
     maxRequests: 20,
     keyGenerator: (req) => `${req.user?.id || "unknown_user"}:refresh-token`, // Fallback to avoid undefined
     onLimitExceeded: (req, res) => {
-      console.log(`[DEBUG] Rate limit exceeded for refresh-token for user: ${req.user?.id || "unknown_user"}`);
+      console.log(
+        `[DEBUG] Rate limit exceeded for refresh-token for user: ${
+          req.user?.id || "unknown_user"
+        }`
+      );
       res.status(429).json({
         status: "error",
         message: "Too many token refresh attempts. Please try again later.",
@@ -169,6 +185,8 @@ router.post(
   refreshToken
 );
 
+
+// ho gya hai test baki hai
 router.post(
   "/logout",
   protect,
@@ -177,7 +195,11 @@ router.post(
     maxRequests: 10,
     keyGenerator: (req) => `${req.user?.id || "unknown_user"}:logout`,
     onLimitExceeded: (req, res) => {
-      console.log(`[DEBUG] Rate limit exceeded for logout for user: ${req.user?.id || "unknown_user"}`);
+      console.log(
+        `[DEBUG] Rate limit exceeded for logout for user: ${
+          req.user?.id || "unknown_user"
+        }`
+      );
       res.status(429).json({
         status: "error",
         message: "Too many logout attempts. Please try again later.",
@@ -186,7 +208,7 @@ router.post(
   }),
   logout
 );
-
+//Done 
 router.get(
   "/getProfile",
   protect,
@@ -195,7 +217,11 @@ router.get(
     maxRequests: 30,
     keyGenerator: (req) => `${req.user?.id || "unknown_user"}:getProfile`,
     onLimitExceeded: (req, res) => {
-      console.log(`[DEBUG] Rate limit exceeded for getProfile for user: ${req.user?.id || "unknown_user"}`);
+      console.log(
+        `[DEBUG] Rate limit exceeded for getProfile for user: ${
+          req.user?.id || "unknown_user"
+        }`
+      );
       res.status(429).json({
         status: "error",
         message: "Too many profile requests. Please try again later.",
@@ -204,7 +230,7 @@ router.get(
   }),
   getProfile
 );
-
+//Done 
 router.post(
   "/password/reset",
   protect,
@@ -213,7 +239,11 @@ router.post(
     maxRequests: 5,
     keyGenerator: (req) => `${req.user?.id || "unknown_user"}:password-reset`,
     onLimitExceeded: (req, res) => {
-      console.log(`[DEBUG] Rate limit exceeded for password/reset for user: ${req.user?.id || "unknown_user"}`);
+      console.log(
+        `[DEBUG] Rate limit exceeded for password/reset for user: ${
+          req.user?.id || "unknown_user"
+        }`
+      );
       res.status(429).json({
         status: "error",
         message: "Too many password reset attempts. Please try again later.",
@@ -222,16 +252,21 @@ router.post(
   }),
   resetPassword
 );
-
+//Done, Todo : after first image upload check if image update then delete previous image from cloudinary
 router.patch(
   "/updateProfile",
+  uploadMedia,
   protect,
   createDynamicRateLimiter({
     timeWindow: 10, // 10 minutes
     maxRequests: 10,
     keyGenerator: (req) => `${req.user?.id || "unknown_user"}:updateProfile`,
     onLimitExceeded: (req, res) => {
-      console.log(`[DEBUG] Rate limit exceeded for updateProfile for user: ${req.user?.id || "unknown_user"}`);
+      console.log(
+        `[DEBUG] Rate limit exceeded for updateProfile for user: ${
+          req.user?.id || "unknown_user"
+        }`
+      );
       res.status(429).json({
         status: "error",
         message: "Too many profile update attempts. Please try again later.",

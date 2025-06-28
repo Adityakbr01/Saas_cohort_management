@@ -30,6 +30,7 @@ export interface IBaseUser extends Document {
   };
   phone?: string;
   bio?: string;
+  location?: string;
 
   // Methods
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -71,6 +72,8 @@ const baseUserSchema = new Schema<IBaseUser>(
       reason: { type: String, default: "" },
     },
     phone: { type: String, required: false },
+    location: { type: String, required: false },
+    bio: { type: String, required: false },
   },
   { timestamps: true }
 );
