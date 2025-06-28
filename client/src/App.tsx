@@ -3,8 +3,12 @@ import useSessionWatcher from "./auth/useSessionWatcher";
 import AppInitializer from "./components/AppInitializer";
 
 function App() {
-   useSessionWatcher();
-   AppInitializer()
+  // Initialize authentication state from localStorage first
+  AppInitializer();
+
+  // Then start session watcher (it will check auth state before running)
+  useSessionWatcher();
+
   return <RoutingLayout />;
 }
 
