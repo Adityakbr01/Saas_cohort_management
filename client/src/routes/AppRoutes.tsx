@@ -29,6 +29,7 @@ import MentorPage from "@/components/mentorDashboard/MentorPage";
 import ProfilePage from "@/pages/Student/ProfilePage";
 import CoursesPage from "@/pages/Courses";
 import CourseDetailPage from "@/pages/CourseDetailPage";
+import { Role } from "@/config/constant";
 
 const AppRoutes = () => {
   return (
@@ -89,7 +90,7 @@ const AppRoutes = () => {
       <Route
         path="/dashboard/org_admin"
         element={
-          <ProtectedRoute allowedRoles={["super_admin", "org_admin"]}>
+          <ProtectedRoute allowedRoles={[Role.organization]}>
             <OrgAdminDashboard />
           </ProtectedRoute>
         }

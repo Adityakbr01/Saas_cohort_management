@@ -26,7 +26,8 @@ import {
     useInviteMentorsMutation,
     useMyOrgQuery,
     usePendingInvitesQuery,
-    useResendInviteMutation
+    useResendInviteMutation,
+    useGetMentorDetailsMutation
 } from '@/store/features/api/organization/orgApi'
 import {
     Clock,
@@ -116,7 +117,30 @@ const mentorInvitationSchema = z.object({
     phone: z.string()
         .min(1, "Phone number is required")
         .regex(/^[+]?[1-9][\d]{0,15}$/, "Please enter a valid phone number"),
-    specialization: z.enum(["Data Science", "Web Development", "Mobile Development", "UI/UX Design"], {
+    specialization: z.enum([
+        "Web Development",
+        "Mobile Development",
+        "Data Science",
+        "Machine Learning",
+        "UI/UX Design",
+        "Cybersecurity",
+        "Cloud Computing",
+        "DevOps",
+        "Blockchain",
+        "Mathematics",
+        "Physics",
+        "Chemistry",
+        "Biology",
+        "English",
+        "Commerce",
+        "Product Management",
+        "Startup Mentorship",
+        "Career Counseling",
+        "Soft Skills",
+        "Public Speaking",
+        "Mental Health",
+        "Other"
+    ], {
         errorMap: () => ({ message: "Please select a specialization" })
     }),
     experience: z.string()
@@ -124,11 +148,10 @@ const mentorInvitationSchema = z.object({
     bio: z.string()
         .min(10, "Bio must be at least 10 characters")
         .max(500, "Bio must not exceed 500 characters"),
-    certifications: z.string().min(3, "Certification name must be at least 2 characters")
-
+    certifications: z.string()
+        .optional()
         .refine((val) => {
             if (!val || val.trim() === '') return true;
-            // Check if it's a valid comma-separated format
             const certs = val.split(',').map(cert => cert.trim()).filter(cert => cert.length > 0);
             return certs.length > 0 && certs.every(cert => cert.length >= 2);
         }, "Certifications must be comma-separated and each certification must be at least 2 characters")
@@ -144,6 +167,32 @@ interface FormErrors {
     bio?: string;
     certifications?: string;
 }
+
+// List of valid specializations (must match the schema)
+const validSpecializations = [
+    "Web Development",
+    "Mobile Development",
+    "Data Science",
+    "Machine Learning",
+    "UI/UX Design",
+    "Cybersecurity",
+    "Cloud Computing",
+    "DevOps",
+    "Blockchain",
+    "Mathematics",
+    "Physics",
+    "Chemistry",
+    "Biology",
+    "English",
+    "Commerce",
+    "Product Management",
+    "Startup Mentorship",
+    "Career Counseling",
+    "Soft Skills",
+    "Public Speaking",
+    "Mental Health",
+    "Other"
+];
 
 function MentorsTab({ onViewMentor }: MentorsTabProps) {
     const [mentors, setMentors] = useState<Mentor[]>([])
@@ -176,28 +225,22 @@ function MentorsTab({ onViewMentor }: MentorsTabProps) {
     const [resendInvite] = useResendInviteMutation()
     const [cancelInvite] = useCancelInviteMutation()
     const [deleteMentor] = useDeleteMentorMutation()
-    const { data: getOrgMentors } = useGetOrgMentorsQuery(undefined)
+    const [getMentorDetails] = useGetMentorDetailsMutation()
+    const { data: getOrgMentors,refetch:refetchMentors } = useGetOrgMentorsQuery(undefined)
     const { data: pendingInvitesData, isLoading: pendingInvitesLoading, refetch: refetchPendingInvites } = usePendingInvitesQuery(
-        orgData?.data?.ownerId || '',
+        orgData?.data?._id || '',
         {
-            skip: !orgData?.data?.ownerId
+            skip: !orgData?.data?._id
         }
     )
-
-    console.log(pendingInvitesData)
     const [finalizeInvite] = useFinalizeInviteMutation()
 
     useEffect(() => {
         if (getOrgMentors?.data) {
-            setMentors(getOrgMentors?.data)
+            setMentors(getOrgMentors.data)
             setIsLoading(false)
         }
-        console.log(getOrgMentors)
-
     }, [getOrgMentors])
-
-
-
 
     // Validation functions
     const validateField = useCallback((fieldName: keyof FormErrors, value: string) => {
@@ -231,8 +274,6 @@ function MentorsTab({ onViewMentor }: MentorsTabProps) {
                     }
                 });
                 setFormErrors(errors);
-
-                // Show validation error toast
                 toast.error("Please fix the form errors before submitting");
                 return false;
             }
@@ -245,46 +286,87 @@ function MentorsTab({ onViewMentor }: MentorsTabProps) {
     // Handle form field changes with validation
     const handleFieldChange = useCallback((fieldName: keyof CreateMentorData, value: string) => {
         setCreateMentorData(prev => ({ ...prev, [fieldName]: value }));
-
-        // Clear error when user starts typing
         if (formErrors[fieldName as keyof FormErrors]) {
             setFormErrors(prev => ({ ...prev, [fieldName]: undefined }));
         }
-
-        // Immediate validation for better UX
         setTimeout(() => {
             validateField(fieldName as keyof FormErrors, value);
         }, 300);
     }, [formErrors, validateField]);
 
+    // Normalize specialization to match Select options
+    const normalizeSpecialization = (specialization: string): string => {
+        if (!specialization) return 'Other';
+
+        // Convert to title case for consistency
+        const titleCase = specialization
+            .toLowerCase()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+
+        // Check if the normalized specialization is in the valid list
+        return validSpecializations.includes(titleCase) ? titleCase : 'Other';
+    };
+
+    // Fetch and populate mentor details
+    const handleGetMentorDetails = async (email: string) => {
+        if (!email || !z.string().email().safeParse(email).success) {
+            toast.error("Please enter a valid email address to fetch details");
+            return;
+        }
+
+        try {
+            const response = await getMentorDetails(email).unwrap();
+            if (response.success && response.data) {
+                const mentorData = response.data;
+                const normalizedSpecialization = normalizeSpecialization(mentorData.specialization || '');
+                
+                setCreateMentorData({
+                    name: mentorData.name || '',
+                    email: mentorData.email || email,
+                    phone: mentorData.phone || '',
+                    specialization: normalizedSpecialization,
+                    experience: mentorData.experience || '',
+                    bio: mentorData.bio || '',
+                    certifications: Array.isArray(mentorData.certifications)
+                        ? mentorData.certifications.join(', ')
+                        : mentorData.certifications || ''
+                });
+
+                if (normalizedSpecialization === 'Other' && mentorData.specialization) {
+                    toast.warning(`Specialization "${mentorData.specialization}" is not in the list. Defaulted to 'Other'.`);
+                } else {
+                    toast.success("Mentor details fetched and populated successfully!");
+                }
+            } else {
+                toast.info("No mentor details found. Please fill in the remaining fields.");
+            }
+        } catch (error) {
+            console.error("Failed to fetch mentor details:", error);
+            toast.error("Failed to fetch mentor details. Please try again.");
+        }
+    };
+
     // Create a new mentor with validation
     const handleCreateMentor = async () => {
-        // Validate form before submission
         if (!validateForm()) {
             return;
         }
 
         setIsCreating(true);
-
-        // Show loading toast
         const loadingToastId = toast.loading("Sending invitation...");
 
         try {
-
-            // The API expects certifications as a string (backend will parse it)
             const inviteData = {
                 ...createMentorData,
-                // Keep certifications as a string - backend will parse it
                 certifications: createMentorData.certifications || ''
             };
 
             const response = await invitementor(inviteData).unwrap();
-
-            // Dismiss loading toast
             toast.dismiss(loadingToastId);
 
             if (response.success) {
-                console.log(response);
                 toast.success(response?.message || "Mentor invitation sent successfully!");
                 setIsCreateDialogOpen(false);
                 setCreateMentorData({
@@ -300,18 +382,12 @@ function MentorsTab({ onViewMentor }: MentorsTabProps) {
                 refetchPendingInvites();
             }
         } catch (error) {
-            // Dismiss loading toast
             toast.dismiss(loadingToastId);
-
-            console.error('Error creating mentor:', error);
-            // Handle RTK Query error format
             let errorMessage = "Failed to send mentor invitation. Please try again.";
-
             if (error && typeof error === 'object') {
                 const err = error as { data?: { message?: string }; message?: string };
                 errorMessage = err?.data?.message || err?.message || errorMessage;
             }
-
             toast.error(errorMessage);
         } finally {
             setIsCreating(false);
@@ -321,111 +397,98 @@ function MentorsTab({ onViewMentor }: MentorsTabProps) {
     // View mentor details
     const handleViewMentor = (mentorId: string) => {
         if (onViewMentor) {
-            onViewMentor(mentorId)
+            onViewMentor(mentorId);
         } else {
-            console.log('Viewing mentor:', mentorId)
-            toast.info("Mentor detail view not implemented yet.")
+            toast.info("Mentor detail view not implemented yet.");
         }
-    }
+    };
 
     // Delete mentor
     const handleDeleteMentor = async (mentorId: string) => {
         try {
-            console.log(mentorId)
-            const response = await deleteMentor(mentorId).unwrap()
+            const response = await deleteMentor(mentorId).unwrap();
             if (response.success) {
-                toast.success("Mentor deleted successfully!")
-                setMentors(mentors.filter(mentor => mentor.id !== mentorId))
+                toast.success("Mentor deleted successfully!");
+                setMentors(mentors.filter(mentor => mentor.id !== mentorId));
             }
         } catch (error) {
-            console.error('Error deleting mentor:', error)
-            toast.error("Failed to delete mentor. Please try again.")
+            console.error("Failed to delete mentor:", error);
+            toast.error("Failed to delete mentor. Please try again.");
         }
-    }
+    };
+
     // Handle pending invitation actions
     const handleResendInvitation = async (inviteId: string) => {
         try {
-            const response = await resendInvite(inviteId).unwrap()
+            const response = await resendInvite(inviteId).unwrap();
             if (response.success) {
-                toast.success("Invitation resent successfully!")
+                toast.success("Invitation resent successfully!");
+                refetchPendingInvites();
             }
-            refetchPendingInvites()
         } catch (error) {
-            console.error('Error resending invitation:', error)
-            toast.error("Failed to resend invitation. Please try again.")
+            console.error("Failed to resend invitation:", error);
+            toast.error("Failed to resend invitation. Please try again.");
         }
-    }
+    };
 
     const handleCancelInvitation = async (inviteId: string) => {
         try {
-            const response = await cancelInvite(inviteId).unwrap()
+            const response = await cancelInvite(inviteId).unwrap();
             if (response.success) {
-                toast.success("Invitation cancelled successfully!")
+                toast.success("Invitation cancelled successfully!");
+                refetchPendingInvites();
             }
-            refetchPendingInvites()
         } catch (error) {
-            console.error('Error cancelling invitation:', error)
-            toast.error("Failed to cancel invitation. Please try again.")
+            console.error("Failed to cancel invitation:", error);
+            toast.error("Failed to cancel invitation. Please try again.");
         }
-    }
+    };
 
     const handleFinalizeInvitation = async (inviteId: string) => {
         try {
-            const response = await finalizeInvite(inviteId).unwrap()
+            const response = await finalizeInvite(inviteId).unwrap();
             if (response.success) {
-                toast.success("Mentor invitation finalized successfully!")
-                refetchPendingInvites()
-                setMentors([...mentors, response.data])
+                toast.success("Mentor invitation finalized successfully!");
+                refetchPendingInvites();
+                refetchMentors()
+                setMentors([...mentors, response.data]);
             }
         } catch (error) {
-            console.error('Error finalizing invitation:', error)
-            toast.error("Failed to finalize invitation. Please try again.")
+            console.error("Failed to finalize invitation:", error);
+            toast.error("Failed to finalize invitation. Please try again.");
         }
-    }
-
+    };
 
     // Filter functions
     const filteredMentors = mentors.filter(mentor => {
-        // Add null/undefined checks for mentor object
         if (!mentor) return false;
-
         const matchesSearch = (mentor?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-            (mentor?.email?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
+            (mentor?.email?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
         const matchesSpecialization = specializationFilter === "all" ||
-            (mentor?.specialization?.toLowerCase().includes(specializationFilter.toLowerCase()) || false)
-        return matchesSearch && matchesSpecialization
-    })
+            (mentor?.specialization?.toLowerCase() === specializationFilter.toLowerCase());
+        return matchesSearch && matchesSpecialization;
+    });
 
-    // Handle the case where pendingInvitesData might not have the expected structure
     const pendingInvitesArray = Array.isArray(pendingInvitesData)
         ? pendingInvitesData
         : (pendingInvitesData?.data && Array.isArray(pendingInvitesData.data))
             ? pendingInvitesData.data
-            : []
+            : [];
 
     const filteredPendingInvites = pendingInvitesArray.filter((invite: PendingInvite) => {
-        // Add comprehensive null/undefined checks for invite object
-        if (!invite || typeof invite !== 'object') {
-            console.warn('⚠️ Invalid invite object found:', invite);
+        if (!invite || typeof invite !== 'object' || !invite.name || !invite.email) {
             return false;
         }
-
-        // Check if required properties exist before accessing them
-        if (!invite.name || !invite.email) {
-            console.warn('⚠️ Invite missing required properties:', invite);
-            return false;
-        }
-
         try {
             const matchesSearch = invite.name.toLowerCase().includes(pendingSearchTerm.toLowerCase()) ||
-                invite.email.toLowerCase().includes(pendingSearchTerm.toLowerCase())
-            const matchesStatus = pendingStatusFilter === "all" || invite.status === pendingStatusFilter
-            return matchesSearch && matchesStatus
+                invite.email.toLowerCase().includes(pendingSearchTerm.toLowerCase());
+            const matchesStatus = pendingStatusFilter === "all" || invite.status === pendingStatusFilter;
+            return matchesSearch && matchesStatus;
         } catch (error) {
-            console.error('❌ Error filtering pending invite:', error, invite);
+            console.error("Error filtering pending invites:", error);
             return false;
         }
-    })
+    });
 
     return (
         <div className='space-y-6'>
@@ -449,7 +512,7 @@ function MentorsTab({ onViewMentor }: MentorsTabProps) {
                                 Invite Mentor
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
+                        <DialogContent className="max-w-3xl">
                             <DialogHeader>
                                 <DialogTitle>Invite New Mentor</DialogTitle>
                                 <DialogDescription>Send an invitation to a mentor to join your organization.</DialogDescription>
@@ -473,14 +536,23 @@ function MentorsTab({ onViewMentor }: MentorsTabProps) {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="email">Email Address *</Label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        placeholder="Enter email address"
-                                        value={createMentorData.email}
-                                        onChange={(e) => handleFieldChange('email', e.target.value)}
-                                        className={formErrors.email ? "border-red-500 focus:border-red-500" : ""}
-                                    />
+                                    <div className="flex gap-2">
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            placeholder="Enter email address"
+                                            value={createMentorData.email}
+                                            onChange={(e) => handleFieldChange('email', e.target.value)}
+                                            className={formErrors.email ? "border-red-500 focus:border-red-500" : ""}
+                                        />
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => handleGetMentorDetails(createMentorData.email)}
+                                            disabled={isCreating || isValidating || !createMentorData.email}
+                                        >
+                                            Fetch Details
+                                        </Button>
+                                    </div>
                                     {formErrors.email && (
                                         <p className="text-sm text-red-500 flex items-center gap-1">
                                             <X className="h-3 w-3" />
@@ -514,10 +586,11 @@ function MentorsTab({ onViewMentor }: MentorsTabProps) {
                                             <SelectValue placeholder="Select specialization" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Data Science">Data Science</SelectItem>
-                                            <SelectItem value="Web Development">Web Development</SelectItem>
-                                            <SelectItem value="Mobile Development">Mobile Development</SelectItem>
-                                            <SelectItem value="UI/UX Design">UI/UX Design</SelectItem>
+                                            {validSpecializations.map((spec) => (
+                                                <SelectItem key={spec} value={spec}>
+                                                    {spec}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                     {formErrors.specialization && (
@@ -633,10 +706,11 @@ function MentorsTab({ onViewMentor }: MentorsTabProps) {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Specializations</SelectItem>
-                                <SelectItem value="data-science">Data Science</SelectItem>
-                                <SelectItem value="web-dev">Web Development</SelectItem>
-                                <SelectItem value="mobile-dev">Mobile Development</SelectItem>
-                                <SelectItem value="ui-ux">UI/UX Design</SelectItem>
+                                {validSpecializations.map((spec) => (
+                                    <SelectItem key={spec} value={spec.toLowerCase()}>
+                                        {spec}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                         <Button variant="outline">
@@ -681,7 +755,6 @@ function MentorsTab({ onViewMentor }: MentorsTabProps) {
                                             </TableRow>
                                         ) : (
                                             filteredMentors.map((mentor) => {
-
                                                 return (
                                                     <TableRow key={mentor.id} className="cursor-pointer hover:bg-muted/50">
                                                         <TableCell>
@@ -816,12 +889,9 @@ function MentorsTab({ onViewMentor }: MentorsTabProps) {
                                             </TableRow>
                                         ) : (
                                             filteredPendingInvites.map((invite: PendingInvite) => {
-                                                // Additional safety check for invite object
                                                 if (!invite || !invite._id) {
-                                                    console.warn('⚠️ Invalid invite object in render:', invite);
                                                     return null;
                                                 }
-
                                                 return (
                                                     <TableRow key={invite._id} className="hover:bg-muted/50">
                                                         <TableCell>

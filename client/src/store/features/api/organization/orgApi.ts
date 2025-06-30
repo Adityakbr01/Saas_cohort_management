@@ -65,6 +65,7 @@ export const orgApi = createApi({
         method: "POST",
         body: data,
       }),
+      invalidatesTags: ["myOrgMentors"],
     }),
     resendInvite: builder.mutation({
       query: (inviteId: string) => ({
@@ -116,8 +117,15 @@ export const orgApi = createApi({
       providesTags: ["myOrgMentors"],
     }),
 
+    getMentorDetails: builder.mutation({
+      query: (email: string) => ({
+        url: `/getMentorsDetails`,
+        method: "POST",
+        body: { email },
+      }),
+    }),
 
   }),
 });
 
-export const { useMyOrgQuery, useCreateOrgMutation,useInviteMentorsMutation,useResendInviteMutation,useCancelInviteMutation,useDeleteMentorMutation,usePendingInvitesQuery,useAcceptInviteMutation,useFinalizeInviteMutation,useGetOrgMentorsQuery } = orgApi;
+export const { useMyOrgQuery, useCreateOrgMutation,useInviteMentorsMutation,useResendInviteMutation,useCancelInviteMutation,useDeleteMentorMutation,usePendingInvitesQuery,useAcceptInviteMutation,useFinalizeInviteMutation,useGetOrgMentorsQuery,useGetMentorDetailsMutation } = orgApi;

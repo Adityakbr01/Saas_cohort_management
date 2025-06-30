@@ -119,7 +119,7 @@ function Login() {
       localStorage.setItem("refreshToken", JSON.stringify(refreshToken));
 
       // Role-based navigation
-      const redirectPath = role === "super_admin" ? "/super_admin" : "/";
+      const redirectPath = role === "super_admin" ? "/dashboard/super_admin" : "/";
       navigate(redirectPath, { replace: true });
 
       // Optional: Clear any registration-related localStorage (if applicable)
