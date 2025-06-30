@@ -115,8 +115,8 @@ const organizationSchema = new Schema<IOrganization>(
 );
 
 // 3. Create and export the model
-const Organization = mongoose.model<IOrganization>(
+const OrganizationOld = mongoose.model<IOrganization>(
   "Organizationa",
   organizationSchema
 );
-export default Organization;
+export default OrganizationOld;

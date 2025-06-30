@@ -3,15 +3,22 @@ import mongoose, { Schema, Model } from "mongoose";
 import baseUserSchema, { IBaseUser } from "./base.model";
 import { Types } from "mongoose";
 
+
+
+interface IMember {
+  user: Types.ObjectId;
+  suspended: {
+    isSuspended: boolean;
+    suspendedAt: Date | null;
+    reason: string;
+  };
+  joinDate: Date;
+}
 export interface IOrganization extends IBaseUser {
   name: string;
   slug: string;
   logo?: string;
-  Members?: Types.ObjectId[] &
-    {
-      suspended: { isSuspended: boolean; suspendedAt: Date; reason: string };
-      joinDate: Date;
-    }[];
+  Members?: IMember[];
   plan?: Types.ObjectId;
   subscriptionMeta: {
     startDate: Date;
@@ -41,10 +48,9 @@ const organizationSchema = new Schema<IOrganization>(
       trim: true,
     },
     logo: { type: String, default: "" },
-    Members: [
+   Members: [
       {
-        type: Schema.Types.ObjectId,
-        ref: "User",
+        user: { type: Schema.Types.ObjectId, ref: "Mentor", required: true },
         suspended: {
           isSuspended: { type: Boolean, default: false },
           suspendedAt: { type: Date, default: null },

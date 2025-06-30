@@ -19,6 +19,7 @@ import safeCache from "@/utils/cache";
 import { deleteFile, uploadImage } from "@/services/cloudinaryService";
 
 import FileModel from "@/models/file.model";
+import { SubscriptionModel } from "@/models/subscriptionModel";
 
 interface RegisterBody {
   email: string;
@@ -177,7 +178,11 @@ export const register = wrapAsync(async (req: Request, res: Response) => {
       case "organization":
         if (!slug)
           throw new ApiError(400, "Slug is required for organizations");
-        user = new Organization({ email, password, role, name, slug });
+        const basicPlan = await SubscriptionModel.findOne({ name: "basic" });
+        if (!basicPlan) {
+          throw new ApiError(400, "Basic plan not found");
+        }
+        user = new Organization({ email, password, role, name, slug,plan:basicPlan._id,subscriptionMeta:{startDate:new Date(),expiresDate:new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),isActive:true,isExpired:false} });
         break;
       case "super_admin":
         user = new SuperAdmin({ email, password, role, name, adminPrivileges });

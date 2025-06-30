@@ -252,7 +252,6 @@ router.post(
   }),
   resetPassword
 );
-//Done, Todo : after first image upload check if image update then delete previous image from cloudinary
 router.patch(
   "/updateProfile",
   uploadMedia,

@@ -1,6 +1,7 @@
 import nodemailer, { Transporter } from "nodemailer";
 
 import { logger } from "@/utils/logger";
+import jwt from "jsonwebtoken"
 
 // Interface for email options
 interface EmailOptions {
@@ -560,12 +561,43 @@ export const sendEmailToJoinOrganization = async (
   orgName: string,
   firstName: string = "User",
   role: string = "mentor",
-  orgId: string
+  orgId: string,
+  phone: string = '',
+  specialization: string = '',
+  experience: string = '',
+  bio: string = '',
+  certifications: string = ''
 ): Promise<EmailSendResult> => {
   const backend_URL = process.env.backend_URL!;
 
+  if (!backend_URL) {
+    throw new Error("backend_URL is not defined in environment variables");
+  }
+
+  const token = jwt.sign(
+    {
+      email,
+      role,
+      orgId,
+    },
+    process.env.JWT_SECRET!,
+    {
+      expiresIn: "24h",
+    }
+  );
+
+
+
+  if (!orgId || !email || !role || !token) {
+    throw new Error("Organization ID, email, role, and token are required");
+  }
+
   try {
-    const subject = "Invitation to join EduLaunch Organization";
+    const subject = `Invitation to Join ${orgName} as a ${role} at ${EMAIL_CONFIG.COMPANY_NAME}`;
+
+    const certificationsList = certifications
+      ? certifications.split(',').map(cert => cert.trim()).filter(cert => cert).map(cert => `<li>${cert}</li>`).join('')
+      : '<li>None provided</li>';
 
     const html = `
 <!DOCTYPE html>
@@ -573,18 +605,19 @@ export const sendEmailToJoinOrganization = async (
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invitation to join EduLaunch Organization</title>
+    <title>Invitation to Join ${orgName}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: ${EMAIL_CONFIG.BRAND_COLORS.TEXT_PRIMARY};
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
+            background-color: ${EMAIL_CONFIG.BRAND_COLORS.BACKGROUND};
         }
         .container {
-            background-color: #f9f9f9;
+            background-color: ${EMAIL_CONFIG.BRAND_COLORS.WHITE};
             padding: 30px;
             border-radius: 10px;
             border: 1px solid #ddd;
@@ -593,9 +626,12 @@ export const sendEmailToJoinOrganization = async (
             text-align: center;
             margin-bottom: 30px;
         }
+        .header img {
+            max-width: 120px;
+        }
         .invitation-box {
-            background-color: #007bff;
-            color: white;
+            background: linear-gradient(90deg, ${EMAIL_CONFIG.BRAND_COLORS.PRIMARY}, ${EMAIL_CONFIG.BRAND_COLORS.SECONDARY});
+            color: ${EMAIL_CONFIG.BRAND_COLORS.WHITE};
             padding: 20px;
             text-align: center;
             border-radius: 8px;
@@ -606,12 +642,40 @@ export const sendEmailToJoinOrganization = async (
             font-weight: bold;
             margin: 10px 0;
         }
+        .details-box {
+            background-color: ${EMAIL_CONFIG.BRAND_COLORS.BACKGROUND};
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .details-box h3 {
+            margin-top: 0;
+            color: ${EMAIL_CONFIG.BRAND_COLORS.PRIMARY};
+        }
+        .details-box ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .details-box li {
+            margin-bottom: 10px;
+        }
+        .button {
+            display: inline-block;
+            background: linear-gradient(90deg, ${EMAIL_CONFIG.BRAND_COLORS.PRIMARY}, ${EMAIL_CONFIG.BRAND_COLORS.SECONDARY});
+            color: ${EMAIL_CONFIG.BRAND_COLORS.WHITE};
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 10px 0;
+        }
         .footer {
             margin-top: 30px;
             padding-top: 20px;
             border-top: 1px solid #ddd;
             text-align: center;
-            color: #666;
+            color: ${EMAIL_CONFIG.BRAND_COLORS.TEXT_SECONDARY};
             font-size: 14px;
         }
     </style>
@@ -619,31 +683,48 @@ export const sendEmailToJoinOrganization = async (
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛒 EduLaunch</h1>
-            <h2>Invitation to join Organization</h2>
+            <img src="${EMAIL_CONFIG.LOGO_URL}" alt="${EMAIL_CONFIG.COMPANY_NAME} Logo" />
+            <h2>Invitation to Join ${orgName}</h2>
         </div>
         
         <div class="invitation-box">
-            <h2>Join Our Organization!</h2>
-            <p>You have been invited to join the ${orgName} organization on EduLaunch as a ${role}.</p>
+            <h2>Join Our Team!</h2>
+            <p>You have been invited to join <strong>${orgName}</strong> as a <strong>${role}</strong> at ${EMAIL_CONFIG.COMPANY_NAME}.</p>
         </div>
         
         <p>Hello <strong>${firstName}</strong>,</p>
         
-        <p>You have been invited to join the ${orgName} organization on EduLaunch. Please click the button below to accept the invitation.</p>
+        <p>We are excited to invite you to join <strong>${orgName}</strong> as a <strong>${role}</strong>. Your expertise and skills make you a perfect fit for our team. Below are the details of your invitation:</p>
 
-        <p>Thank you for considering our invitation. We look forward to having you on board!</p>
+        <div class="details-box">
+            <h3>Your Profile</h3>
+            <ul>
+                <li><strong>Name:</strong> ${firstName}</li>
+                <li><strong>Email:</strong> ${email}</li>
+                ${phone ? `<li><strong>Phone:</strong> ${phone}</li>` : ''}
+                ${specialization ? `<li><strong>Specialization:</strong> ${specialization}</li>` : ''}
+                ${experience ? `<li><strong>Experience:</strong> ${experience}</li>` : ''}
+                ${bio ? `<li><strong>Bio:</strong> ${bio}</li>` : ''}
+                <li><strong>Certifications:</strong>
+                    <ul>${certificationsList}</ul>
+                </li>
+            </ul>
+        </div>
 
-        <button style="background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
-            <a href="${backend_URL}/org/accept-mentor-request?email=${email}?orgId=${orgId}" style="color: white; text-decoration: none;">Accept Invitation</a>
-        </button>
+        <p>Please click the button below to accept the invitation and join our organization:</p>
+
+        <a href="${backend_URL}/mentors/accept-invite-mentor?token=${token}" class="button">
+            Accept Invitation
+        </a>
         
-        <p>If you have any questions or need assistance, please contact our support team.</p>
+        <p><strong>Important:</strong> This invitation is valid for <strong>${24} Hours</strong> from the date of this email.</p>
+
+        <p>If you have any questions or need assistance, please contact our support team at <a href="mailto:${EMAIL_CONFIG.SUPPORT_EMAIL}">${EMAIL_CONFIG.SUPPORT_EMAIL}</a>.</p>
         
         <div class="footer">
             <p>Best regards,<br>
-            <strong>EduLaunch Team</strong></p>
-            <p>This is an automated email. Please do not reply to this message.</p>
+            <strong>${EMAIL_CONFIG.COMPANY_NAME} Team</strong></p>
+            <p>This is an automated email. Please do not reply directly to this message.</p>
         </div>
     </div>
 </body>
