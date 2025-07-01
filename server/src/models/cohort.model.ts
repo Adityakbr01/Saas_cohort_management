@@ -23,6 +23,8 @@ export interface ICohort extends Document {
   prerequisites: string[];
   certificateAvailable: boolean;
   chapters: Types.ObjectId[];
+  isPrivate: boolean;
+  isDeleted: boolean;
 }
 
 const cohortSchema = new Schema<ICohort>(
@@ -57,6 +59,9 @@ const cohortSchema = new Schema<ICohort>(
     prerequisites: [{ type: String }],
     certificateAvailable: { type: Boolean, default: false },
     chapters: [{ type: Schema.Types.ObjectId, ref: "Chapter" }],
+    isPrivate: { type: Boolean, default: false },
+    isDeleted: { type: Boolean, default: false }
+
   },
   { timestamps: true }
 );

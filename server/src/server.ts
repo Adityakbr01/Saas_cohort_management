@@ -23,6 +23,7 @@ import subscriptionRouter from "@/routes/subscriptionRoute";
 // import studentRouter from "@/routes/studentRouter";
 import mentorRouter from "@/routes/mentorRoutes";
 import authRoutes from "@/routes/auth.routes";
+import cohortRoutes from "@/routes/cohort.routes";
 
 
 const app = express();
@@ -100,7 +101,9 @@ app.use("/api/v1/org", orgRouter);
 // app.use("/api/v1/students", studentRouter);
 app.use("/api/v1/mentors", mentorRouter);
 
+//New Routes
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/cohorts",cohortRoutes)
 
 
 // ✅ Error Handling
