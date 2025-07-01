@@ -9,6 +9,7 @@ import PendingInvite from "@/models/PendingInvite";
 import User from "@/models/userModel";
 import { Types } from "mongoose";
 import jwt from "jsonwebtoken";
+import { env_config } from "@/configs/env";
 
 // Define interface for the Mentor document
 interface IMentor {
@@ -57,7 +58,6 @@ export const orgController = {
     await organization.save();
     sendSuccess(res, 201, "Organization created successfully", organization);
   }),
-
   getmyOrg: wrapAsync(async (req: Request, res: Response) => {
     const userId = new Types.ObjectId(req.user?.id);
 
@@ -74,7 +74,6 @@ export const orgController = {
     console.log("Found organization:", org);
     sendSuccess(res, 200, "Org fetched successfully", org);
   }),
-
   getAllOrgs: wrapAsync(async (req: Request, res: Response) => {
     const userId = new Types.ObjectId(req.user?.id);
     if (!userId) {
@@ -99,7 +98,6 @@ export const orgController = {
       limit,
     });
   }),
-
   getOrgUsers: wrapAsync(async (req: Request, res: Response) => {
     const orgId = req.params.orgId;
     const page = parseInt(req.query.page as string) || 1;
@@ -125,101 +123,113 @@ export const orgController = {
       limit,
     });
   }),
-
   inviteUserToOrg: wrapAsync(async (req: Request, res: Response) => {
-    const {
-      name,
-      phone,
-      specialization,
-      experience,
-      bio,
-      certifications,
-      email,
-      role = "mentor",
-    } = req.body;
-    const invitedBy = new Types.ObjectId(req.user?.id);
+  const {
+    name,
+    phone,
+    specialization,
+    experience,
+    bio,
+    certifications,
+    email,
+    role = "mentor",
+  } = req.body;
 
-    if (!invitedBy) {
-      throw new ApiError(401, "Unauthorized");
-    }
+  const invitedBy = new Types.ObjectId(req.user?.id);
+  if (!invitedBy) throw new ApiError(401, "Unauthorized");
 
-    const org = await Organization.findById(req.user?.id); // Directly get organization
-    if (!org) throw new ApiError(404, "Organization not found");
+  // ✅ Get Organization
+  const org = await Organization.findById(req.user?.id);
+  if (!org) throw new ApiError(404, "Organization not found");
 
-    const orgId = org._id;
+  const orgId = org._id;
 
-    const mentor = await Mentor.findOne({ email });
-    if (!mentor) {
-      throw new ApiError(400, "User is not a mentor");
-    }
+  // ✅ Check mentor plan limit (including pending invites)
+  const totalCurrentMentors = org.Members?.length || 0;
+  const pendingMentorInvitesCount = await PendingInvite.countDocuments({
+    orgId,
+    role: "mentor",
+    status: { $in: ["PENDING_USER", "PENDING_ADMIN"] },
+  });
 
-    const isAlreadyMentor = await Organization.findOne({
-      Members: mentor._id,
-      _id: orgId,
-    });
-    if (isAlreadyMentor) {
-      throw new ApiError(400, "User is already a mentor in this organization");
-    }
+  const totalMentorsAfterThisInvite = totalCurrentMentors + pendingMentorInvitesCount + 1;
 
-    const isAlreadyInvited = await PendingInvite.findOne({ email, orgId });
-    if (isAlreadyInvited) {
-      throw new ApiError(400, "Invite already sent wait for user to accept");
-    }
-
-    const token = jwt.sign(
-      {
-        email,
-        role,
-        orgId: org._id.toString(),
-      },
-      process.env.JWT_SECRET!,
-      {
-        expiresIn: "24h",
-      }
+  if (totalMentorsAfterThisInvite > org.subscriptionMeta.maxMentors) {
+    const remaining = org.subscriptionMeta.maxMentors - totalCurrentMentors - pendingMentorInvitesCount;
+    throw new ApiError(
+      400,
+      `Mentor limit reached. Only ${remaining <= 0 ? 0 : remaining} invite slots remaining.`
     );
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  }
 
-    const pendingInvite = new PendingInvite({
+  // ✅ Validate mentor existence
+  const mentor = await Mentor.findOne({ email });
+  if (!mentor) throw new ApiError(400, "User is not a mentor");
+
+  // ✅ Check if already added
+  const isAlreadyMentor = await Organization.findOne({
+    _id: orgId,
+    "Members.user": mentor._id,
+  });
+  if (isAlreadyMentor) {
+    throw new ApiError(400, "User is already a mentor in this organization");
+  }
+
+  // ✅ Check if already invited
+  const isAlreadyInvited = await PendingInvite.findOne({ email, orgId });
+  if (isAlreadyInvited) {
+    throw new ApiError(400, "Invite already sent. Wait for user to accept.");
+  }
+
+  // ✅ Generate token
+  const token = jwt.sign(
+    { email, role, orgId: org._id.toString() },
+    process.env.JWT_SECRET!,
+    { expiresIn: "24h" }
+  );
+
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+  const pendingInvite = new PendingInvite({
+    email,
+    orgId,
+    role,
+    status: "PENDING_USER",
+    invitedBy,
+    name,
+    phone,
+    specialization,
+    experience,
+    bio,
+    certifications,
+    token,
+    expiresAt,
+  });
+
+  await pendingInvite.save();
+
+  try {
+    await sendEmailToJoinOrganization(
       email,
-      orgId,
-      role,
-      status: "PENDING_USER",
-      invitedBy,
+      org.name,
       name,
+      role,
+      orgId.toString(),
       phone,
       specialization,
       experience,
       bio,
-      certifications,
-      token,
-      expiresAt,
-    });
+      certifications
+    );
+  } catch (error) {
+    await PendingInvite.deleteOne({ _id: pendingInvite._id });
+    throw new ApiError(500, "Failed to send invite email");
+  }
 
-    await pendingInvite.save();
-
-    try {
-      await sendEmailToJoinOrganization(
-        email,
-        org.name,
-        name,
-        role,
-        orgId.toString(),
-        phone,
-        specialization,
-        experience,
-        bio,
-        certifications,
-      );
-    } catch (error) {
-      await PendingInvite.deleteOne({ _id: pendingInvite._id });
-      throw new ApiError(500, "Failed to send invite email");
-    }
-
-    sendSuccess(res, 200, "Invite sent successfully", {
-      inviteId: pendingInvite._id,
-    });
-  }),
-
+  sendSuccess(res, 200, "Invite sent successfully", {
+    inviteId: pendingInvite._id,
+  });
+}),
   resendInvite: wrapAsync(async (req: Request, res: Response) => {
     const { inviteId } = req.query;
     if (!inviteId || typeof inviteId !== "string") {
@@ -250,7 +260,6 @@ export const orgController = {
 
     sendSuccess(res, 200, "Invite resent successfully");
   }),
-
   cancelInvite: wrapAsync(async (req: Request, res: Response) => {
     const { inviteId } = req.body;
     if (!inviteId) {
@@ -265,7 +274,6 @@ export const orgController = {
     await PendingInvite.deleteOne({ _id: inviteId });
     sendSuccess(res, 200, "Invite cancelled successfully");
   }),
-
   deleteMentor: wrapAsync(async (req: Request, res: Response) => {
     const { mentorId } = req.body;
     const orgId = req.user?.id;
@@ -373,7 +381,6 @@ export const orgController = {
       });
       await mentor.save();
     }
-
     sendSuccess(
       res,
       200,
@@ -382,7 +389,6 @@ export const orgController = {
         : "Invite accepted successfully"
     );
   }),
-
   finalizeInvite: wrapAsync(async (req: Request, res: Response) => {
     const { inviteId } = req.body;
     if (!inviteId) {
@@ -428,7 +434,6 @@ export const orgController = {
 
     sendSuccess(res, 200, "Invite finalized successfully");
   }),
-
   getOrgMentors: wrapAsync(async (req: Request, res: Response) => {
     const userId = new Types.ObjectId(req.user?.id);
     if (!userId) throw new ApiError(401, "Unauthorized");
@@ -446,7 +451,6 @@ export const orgController = {
 
     sendSuccess(res, 200, "Mentors fetched successfully", mentors);
   }),
-
   getMentorDetails: wrapAsync(async (req: Request, res: Response) => {
     const { email } = req.body;
 
