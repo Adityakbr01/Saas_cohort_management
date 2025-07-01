@@ -19,21 +19,20 @@ export const CohortController = {
     const created = await CohortService.createCohort(cohortData);
     sendSuccess(res, 201, "Cohort created", created);
   }),
-
   getAllCohorts: wrapAsync(async (req, res) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
     const query = { isPrivate: false, isDeleted: false };
-    
+
     const [cohorts, total] = await Promise.all([
       Cohort.find(query)
         .populate("mentor organization")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
-      Cohort.countDocuments(query)
+      Cohort.countDocuments(query),
     ]);
 
     const totalPages = Math.ceil(total / limit);
@@ -48,7 +47,7 @@ export const CohortController = {
       hasNextPage,
       hasPrevPage,
       nextPage: hasNextPage ? page + 1 : null,
-      prevPage: hasPrevPage ? page - 1 : null
+      prevPage: hasPrevPage ? page - 1 : null,
     };
 
     sendSuccess(res, 200, "All cohorts", {
@@ -58,8 +57,8 @@ export const CohortController = {
         totalCohorts: total,
         shownCohorts: cohorts.length,
         currentPage: page,
-        itemsPerPage: limit
-      }
+        itemsPerPage: limit,
+      },
     });
   }),
 
@@ -78,37 +77,37 @@ export const CohortController = {
     sendSuccess(res, 200, "Cohort found", cohort);
   }),
 
-updateCohort: wrapAsync(async (req, res) => {
-  const cohort = await Cohort.findById(req.params.id);
-  if (!cohort) throw new ApiError(404, "Cohort not found");
-  // Authorization (optional)
-  if (
-    req.user.role === Role.mentor &&
-    cohort.mentor.toString() !== req.user.id
-  ) {
-    throw new ApiError(403, "You are not allowed to update this cohort");
-  }
-  const updated = await Cohort.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-    runValidators: true,
-  });
-  sendSuccess(res, 200, "Cohort updated", updated);
-}),
+  updateCohort: wrapAsync(async (req, res) => {
+    const cohort = await Cohort.findById(req.params.id);
+    if (!cohort) throw new ApiError(404, "Cohort not found");
+    // Authorization (optional)
+    if (
+      req.user.role === Role.mentor &&
+      cohort.mentor.toString() !== req.user.id
+    ) {
+      throw new ApiError(403, "You are not allowed to update this cohort");
+    }
+    const updated = await Cohort.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+    sendSuccess(res, 200, "Cohort updated", updated);
+  }),
 
   deleteCohort: wrapAsync(async (req, res) => {
-  const cohort = await Cohort.findById(req.params.id);
-  if (!cohort) throw new ApiError(404, "Cohort not found");
+    const cohort = await Cohort.findById(req.params.id);
+    if (!cohort) throw new ApiError(404, "Cohort not found");
 
-  // Soft delete cohort
-  cohort.isDeleted = true;
-  await cohort.save();
+    // Soft delete cohort
+    cohort.isDeleted = true;
+    await cohort.save();
 
-  // Soft delete chapters too
-  await Chapter.updateMany(
-    { _id: { $in: cohort.chapters } },
-    { $set: { isDeleted: true } }
-  );
+    // Soft delete chapters too
+    await Chapter.updateMany(
+      { _id: { $in: cohort.chapters } },
+      { $set: { isDeleted: true } }
+    );
 
-  sendSuccess(res, 200, "Cohort and its chapters soft-deleted", cohort);
-})
+    sendSuccess(res, 200, "Cohort and its chapters soft-deleted", cohort);
+  }),
 };

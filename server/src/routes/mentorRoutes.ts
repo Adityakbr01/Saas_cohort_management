@@ -110,6 +110,7 @@ import Mentor from "@/models/mentor.model";
 
 import { Request, Response, Router } from "express";
 import { Types } from "mongoose";
+import { env_config } from "@/configs/env";
 
 interface InviteTokenPayload extends JwtPayload {
   email: string;
@@ -181,19 +182,15 @@ router.get("/accept-invite-mentor", async (req: Request, res: Response) => {
     await invite.save();
     await org.save();
 
-    res.status(200).json({
-      success: true,
-      message: "Invite accepted successfully wait for admin approval",
-      inviteStatus: invite.status,
-      organization: org.name,
-    });
+    res.redirect(
+      `${env_config.Fronted_URL}?success=true&message=Invite accepted successfully, wait for admin approval`
+    );
     return;
   } catch (err: any) {
     if (err instanceof ApiError) {
       res.status(err.statusCode).json({ success: false, message: err.message });
       return;
     }
-
     console.error("Unexpected Error in /accept-invite-mentor:", err.message);
     res.status(500).json({ success: false, message: "Something went wrong" });
     return;

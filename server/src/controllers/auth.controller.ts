@@ -182,7 +182,23 @@ export const register = wrapAsync(async (req: Request, res: Response) => {
         if (!basicPlan) {
           throw new ApiError(400, "Basic plan not found");
         }
-        user = new Organization({ email, password, role, name, slug,plan:basicPlan._id,subscriptionMeta:{startDate:new Date(),expiresDate:new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),isActive:true,isExpired:false} });
+        user = new Organization({
+          email,
+          password,
+          role,
+          name,
+          slug,
+          plan: basicPlan._id,
+          subscriptionMeta: {
+            startDate: new Date(),
+            expiresDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // ✅ correctly closed
+            maxStudents: basicPlan.maxStudents,
+            maxMentors: basicPlan.maxMentors,
+            maxCourses: basicPlan.maxCourses,
+            isActive: true,
+            isExpired: false,
+          },
+        });
         break;
       case "super_admin":
         user = new SuperAdmin({ email, password, role, name, adminPrivileges });
@@ -607,7 +623,7 @@ export const refreshToken = wrapAsync(async (req: Request, res: Response) => {
 export const forgotPassword = wrapAsync(async (req: Request, res: Response) => {
   const { email, role }: { email: string; role: string } = req.body;
 
-  console.log(req.body)
+  console.log(req.body);
 
   if (!email || !role) {
     sendError(res, 400, "Email and role are required");
@@ -758,14 +774,28 @@ export const resendForgotPasswordOTP = wrapAsync(
     }
 
     if (user.otpExpiry && user.otpExpiry > new Date()) {
-      console.log("[DEBUG] OTP still valid. Expiry:", user.otpExpiry, "Current time:", new Date());
-      sendError(res, 400, "Previous OTP is still valid. Please try again later.");
+      console.log(
+        "[DEBUG] OTP still valid. Expiry:",
+        user.otpExpiry,
+        "Current time:",
+        new Date()
+      );
+      sendError(
+        res,
+        400,
+        "Previous OTP is still valid. Please try again later."
+      );
       return;
     }
 
     try {
       const otpData = generateOTPForPurpose("forgot_password");
-      console.log("[DEBUG] Generated OTP for email:", email, "OTP:", otpData.otp);
+      console.log(
+        "[DEBUG] Generated OTP for email:",
+        email,
+        "OTP:",
+        otpData.otp
+      );
 
       user.otp = otpData.otp;
       user.otpExpiry = otpData.expiry;
@@ -780,7 +810,12 @@ export const resendForgotPasswordOTP = wrapAsync(
         message: "OTP sent to your email for password reset",
       });
     } catch (error: any) {
-      console.error("[DEBUG] Failed to resend OTP for email:", email, "Error:", error.message);
+      console.error(
+        "[DEBUG] Failed to resend OTP for email:",
+        email,
+        "Error:",
+        error.message
+      );
       logger.error(`Failed to resend OTP for ${email}: ${error.message}`);
       throw new ApiError(500, "Failed to resend OTP");
     }
@@ -880,7 +915,8 @@ export const updateProfile = wrapAsync(async (req: Request, res: Response) => {
   let parsedBackground;
   if (background) {
     try {
-      parsedBackground = typeof background === 'string' ? JSON.parse(background) : background;
+      parsedBackground =
+        typeof background === "string" ? JSON.parse(background) : background;
       console.log("[DEBUG] Parsed background:", parsedBackground);
     } catch (error) {
       console.error("[DEBUG] Failed to parse background:", error);
@@ -893,7 +929,6 @@ export const updateProfile = wrapAsync(async (req: Request, res: Response) => {
   let profileImage: { publicUrl: string; fileId: string } | undefined;
   if (req.file && ["student", "mentor"].includes(userRole)) {
     try {
-
       // Delete previous image from Cloudinary and database (only for students and mentors)
       if (["student", "mentor"].includes(userRole)) {
         const userWithImage = user as IStudent | IMentor;
@@ -903,11 +938,14 @@ export const updateProfile = wrapAsync(async (req: Request, res: Response) => {
             const existingFile = await FileModel.findOne({
               userId,
               publicUrl: userWithImage.profileImageUrl,
-              fileType: "image"
+              fileType: "image",
             });
 
             if (existingFile && existingFile.fileId) {
-              console.log("[DEBUG] Deleting previous image with fileId:", existingFile.fileId);
+              console.log(
+                "[DEBUG] Deleting previous image with fileId:",
+                existingFile.fileId
+              );
 
               // Delete from Cloudinary
               await deleteFile(existingFile.fileId, "image");
@@ -917,21 +955,31 @@ export const updateProfile = wrapAsync(async (req: Request, res: Response) => {
 
               console.log("[DEBUG] Previous image deleted successfully");
             } else {
-              console.warn("[DEBUG] No existing file record found for URL:", userWithImage.profileImageUrl);
+              console.warn(
+                "[DEBUG] No existing file record found for URL:",
+                userWithImage.profileImageUrl
+              );
             }
           } catch (deleteError: any) {
-            console.error("[DEBUG] Error deleting previous image:", deleteError);
+            console.error(
+              "[DEBUG] Error deleting previous image:",
+              deleteError
+            );
             // Don't throw error here - continue with upload even if deletion fails
           }
         }
       }
 
       // Validate file before upload
-      const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+      const allowedMimeTypes = ["image/jpeg", "image/png", "image/jpg"];
       const maxFileSize = 5 * 1024 * 1024; // 5MB
 
       if (!allowedMimeTypes.includes(req.file.mimetype)) {
-        sendError(res, 400, "Invalid file type. Only JPEG, PNG, and JPG files are allowed.");
+        sendError(
+          res,
+          400,
+          "Invalid file type. Only JPEG, PNG, and JPG files are allowed."
+        );
         return;
       }
 
@@ -978,11 +1026,15 @@ export const updateProfile = wrapAsync(async (req: Request, res: Response) => {
           await deleteFile(profileImage.fileId, "image");
           console.log("[DEBUG] Cleaned up partially uploaded image");
         } catch (cleanupError) {
-          console.error("[DEBUG] Failed to cleanup partially uploaded image:", cleanupError);
+          console.error(
+            "[DEBUG] Failed to cleanup partially uploaded image:",
+            cleanupError
+          );
         }
       }
 
-      const errorMessage = error.message || "Unknown error occurred during image upload";
+      const errorMessage =
+        error.message || "Unknown error occurred during image upload";
       sendError(res, 500, `Failed to upload profile image: ${errorMessage}`);
       return;
     }

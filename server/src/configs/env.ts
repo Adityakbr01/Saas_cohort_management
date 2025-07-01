@@ -7,6 +7,8 @@ export const env_config = {
     SMTP_PASS: process.env.SMTP_PASS || "your-email-password",
     ERROR_EMAIL_RECEIVER: process.env.ERROR_EMAIL_RECEIVER || "your-email@gmail.com",
     CORS_ORIGIN: process.env.CORS_ORIGIN || "http://localhost:3000",
-    CACHE_TTL:process.env.CACHE_TTL || 300
+    CACHE_TTL:process.env.CACHE_TTL || 300,
+    Fronted_URL:process.env.frontend_URL || "http://localhost:5173",
+    Backend_URL:process.env.BACKEND_URL || "http://localhost:3000"
 }
 

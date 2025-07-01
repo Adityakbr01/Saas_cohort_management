@@ -4,7 +4,7 @@ import { wrapAsync } from '../utils/wrapAsync'; // adjust path as needed
 
 export const SubscriptionController = {
   createSubscriptionController: wrapAsync(async (req, res) => {
-    const { price,yearlyPrice, name,description,features,popular,tax,discount } = req.body;
+    const { price,yearlyPrice, name,description,features,popular,tax,discount,maxStudents,maxMentors,maxCourses } = req.body;
     const userId = req.user?.id; 
 
     console.log(req.user.id)
@@ -13,14 +13,15 @@ export const SubscriptionController = {
        sendError(res, 400, 'User ID is required');
        return
     }
-    const created = await SubscriptionService.createSubscription({ price,yearlyPrice, name,description,features,popular,tax,discount,userId });
+    const created = await SubscriptionService.createSubscription({ price,yearlyPrice, name,description,features,popular,tax,discount,userId,maxStudents,maxMentors,maxCourses });
     sendSuccess(res, 201, 'Subscription created', created);
   }),
 
-  getAllSubscriptions: wrapAsync(async (req, res) => {
-    const subs = await SubscriptionService.getAllSubscriptions();
-    sendSuccess(res, 200, 'Subscriptions fetched', subs);
-  }),
+getAllSubscriptions: wrapAsync(async (req, res) => {
+  const sortOrder = req.query.sort === "desc" ? -1 : 1; // default is ascending
+  const subs = await SubscriptionService.getAllSubscriptionsByPrice(sortOrder);
+  sendSuccess(res, 200, "Subscriptions fetched", subs);
+}),
 
   getSubscriptionById: wrapAsync(async (req, res) => {
     const sub = await SubscriptionService.getSubscriptionById(req.params.id);

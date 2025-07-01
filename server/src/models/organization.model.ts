@@ -3,8 +3,6 @@ import mongoose, { Schema, Model } from "mongoose";
 import baseUserSchema, { IBaseUser } from "./base.model";
 import { Types } from "mongoose";
 
-
-
 interface IMember {
   user: Types.ObjectId;
   suspended: {
@@ -25,8 +23,10 @@ export interface IOrganization extends IBaseUser {
     expiresDate: Date | null;
     isActive: boolean;
     isExpired: boolean;
+    maxStudents: number;
+    maxMentors: number;
+    maxCourses: number;
   };
-
 }
 
 interface IOrganizationModel extends Model<IOrganization> {
@@ -48,7 +48,7 @@ const organizationSchema = new Schema<IOrganization>(
       trim: true,
     },
     logo: { type: String, default: "" },
-   Members: [
+    Members: [
       {
         user: { type: Schema.Types.ObjectId, ref: "Mentor", required: true },
         suspended: {
@@ -65,6 +65,9 @@ const organizationSchema = new Schema<IOrganization>(
       expiresDate: { type: Date },
       isExpired: Boolean,
       isActive: Boolean,
+      maxStudents: Number,
+      maxMentors: Number,
+      maxCourses: Number,
     },
   },
   { timestamps: true }

@@ -15,6 +15,9 @@ export interface ISubscriptionPlan extends Document {
   Owner: mongoose.Types.ObjectId; // Reference to the User who owns this subscription plan
   tax: number;
   discount:number
+  maxStudents:number
+  maxMentors:number
+  maxCourses:number
 }
 
 const subscriptionPlanSchema = new mongoose.Schema<ISubscriptionPlan>(
@@ -70,7 +73,19 @@ const subscriptionPlanSchema = new mongoose.Schema<ISubscriptionPlan>(
       type: Number,
       default: 0,
     },
+    maxStudents: {
+      type: Number,
+      default: 0,
+    },
 
+    maxMentors: {
+      type: Number,
+      default: 0,
+    },
+    maxCourses: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );
