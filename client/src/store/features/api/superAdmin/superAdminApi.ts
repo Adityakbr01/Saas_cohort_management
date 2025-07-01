@@ -16,6 +16,9 @@ export type SubscriptionPlan = {
   tax:number
   yearlyPrice:number
   discount:number
+  maxStudents:number
+  maxMentors:number
+  maxCourses:number
 };
 
 export interface GetSubscriptionsResponse {

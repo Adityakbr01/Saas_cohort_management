@@ -52,6 +52,9 @@ const subscriptionSchema = z.object({
   tax: z.number().min(0, "Tax must be a positive number"),
   yearlyPrice: z.number().min(0, "Yearly Price must be a positive number"),
   discount: z.number().min(0, "Discount Price must be a positive number"),
+  maxStudents: z.number().min(0, "Max Students must be a positive number"),
+  maxMentors: z.number().min(0, "Max Mentors must be a positive number"),
+  maxCourses: z.number().min(0, "Max Courses must be a positive number"),
 });
 
 type SubscriptionFormData = z.infer<typeof subscriptionSchema>;
@@ -73,6 +76,9 @@ export function SubscriptionsPage() {
     tax: 0,
     yearlyPrice: 0,
     discount: 0,
+    maxStudents: 0,
+    maxMentors: 0,
+    maxCourses: 0,
   });
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof SubscriptionFormData, string>>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -97,6 +103,9 @@ export function SubscriptionsPage() {
         tax: subscription.tax,
         yearlyPrice: subscription.yearlyPrice,
         discount: subscription.discount,
+        maxStudents: subscription.maxStudents,
+        maxMentors: subscription.maxMentors,
+        maxCourses: subscription.maxCourses,
       });
       setIsCreating(false);
     } else {
@@ -110,6 +119,9 @@ export function SubscriptionsPage() {
         tax: 0,
         yearlyPrice: 0,
         discount: 0,
+        maxStudents: 0,
+        maxMentors: 0,
+        maxCourses: 0,
       });
       setIsCreating(true);
     }
@@ -510,16 +522,55 @@ export function SubscriptionsPage() {
                     </Button>
                   </div>
                 ))}
+                {formData.features.length >= 5 && (
+                  <p className="text-sm text-muted-foreground">Maximum 5 features allowed</p>
+                )}
+
+                
                 <Button
                   variant="outline"
                   onClick={addFeature}
-                  disabled={updateSubscriptionLoading || createSubscriptionLoading}
+                  disabled={updateSubscriptionLoading || createSubscriptionLoading || formData.features.length  >= 5}
                   className="w-full"
                 >
                   Add Feature
                 </Button>
               </div>
               {formErrors.features && <p className="text-sm text-red-500">{formErrors.features}</p>}
+
+              <Label htmlFor="discount">Max Student</Label>
+                <Input
+                  id="maxStudents"
+                  type="number"
+                  value={formData.maxStudents}
+                  onChange={(e) => setFormData({ ...formData, maxStudents: parseFloat(e.target.value) || 0 })}
+                  disabled={updateSubscriptionLoading || createSubscriptionLoading}
+                  placeholder="Enter discount"
+                />
+
+                <Label htmlFor="discount">Max Mentors</Label>
+                <Input
+                  id="maxMentors"
+                  type="number"
+                  value={formData.maxMentors}
+                  onChange={(e) => setFormData({ ...formData, maxMentors: parseFloat(e.target.value) || 0 })}
+                  disabled={updateSubscriptionLoading || createSubscriptionLoading}
+                  placeholder="Enter discount"
+                />
+
+                <Label htmlFor="discount">Max Courses</Label>
+                <Input
+                  id="maxCourses"
+                  type="number"
+                  value={formData.maxCourses}
+                  onChange={(e) => setFormData({ ...formData, maxCourses: parseFloat(e.target.value) || 0 })}
+                  disabled={updateSubscriptionLoading || createSubscriptionLoading}
+                  placeholder="Enter discount"
+                />
+                {formErrors.maxStudents && <p className="text-sm text-red-500">{formErrors.maxStudents}</p>}
+                {formErrors.maxMentors && <p className="text-sm text-red-500">{formErrors.maxMentors}</p>}
+                {formErrors.maxCourses && <p className="text-sm text-red-500">{formErrors.maxCourses}</p>}
+
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
