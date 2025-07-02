@@ -34,12 +34,13 @@ export default function Navigation() {
     ) {
       items.push({ name: "Dashboard", href: "/dashboard/super_admin" })
     }
-
       if (
       userRole === Role.org_admin || userRole === Role.organization
 
     ) {
       items.push({ name: "Dashboard", href: "/dashboard/org_admin" })
+    } if(userRole === Role.mentor){
+      items.push({ name: "Dashboard", href: "/dashboard/mentor" })
     }
 
 

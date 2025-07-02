@@ -49,7 +49,6 @@ const useSessionWatcher = () => {
     }
 
     if (!canWatchSession) {
-      console.log("[DEBUG] useSessionWatcher: Skipping watcher (not allowed)");
       return;
     }
 
@@ -120,7 +119,6 @@ const useSessionWatcher = () => {
     };
 
     intervalRef.current = setInterval(checkSession, 15000);
-    console.log("[DEBUG] Watcher interval set.");
 
     return () => {
       if (intervalRef.current) {

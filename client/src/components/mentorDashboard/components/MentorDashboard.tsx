@@ -1,41 +1,8 @@
-"use client"
-
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Users,
-  BookOpen,
-  TrendingUp,
-  MessageSquare,
-  Plus,
-  Search,
-  Calendar,
-  Clock,
-  Award,
-  AlertCircle,
-  Eye,
-  Edit,
-  GraduationCap,
-  BarChart3,
-  Settings,
-  Bell,
-  Download,
-} from "lucide-react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import {
   Dialog,
   DialogContent,
@@ -44,18 +11,52 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { Line, LineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Bar, BarChart } from "recharts"
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCreateCohortMutation } from "@/store/features/api/cohorts/cohorts.api";
+import { useGetmyorgQuery } from "@/store/features/api/mentor/mentorApi";
+import type { APIErrorResponse } from "@/types";
+import {
+  AlertCircle,
+  Award,
+  BarChart3,
+  Bell,
+  BookOpen,
+  Calendar,
+  Clock,
+  Download,
+  Edit,
+  Eye,
+  GraduationCap,
+  Loader2,
+  MessageSquare,
+  Plus,
+  Search,
+  Settings,
+  TrendingUp,
+  Users,
+} from "lucide-react";
+import { useState } from "react";
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { toast } from "sonner";
+import CohortManagement from "./cohort-management";
+import CommunicationCenter from "./communication-center";
+import CurriculumBuilder from "./curriculum-builder";
+import MentorStudentProfile from "./mentor-student-profile";
+import StudentManagement from "./student-management";
 
-// Import specialized components
-import CohortManagement from "./cohort-management"
-import StudentManagement from "./student-management"
-import CurriculumBuilder from "./curriculum-builder"
-import MentorStudentProfile from "./mentor-student-profile"
-import CommunicationCenter from "./communication-center"
-
-// Mock data for mentor dashboard
+// Mock data (unchanged)
 const mentorData = {
   id: "mentor_1",
   name: "Dr. Sarah Johnson",
@@ -67,7 +68,7 @@ const mentorData = {
   completedCohorts: 8,
   averageRating: 4.9,
   responseTime: "< 2 hours",
-}
+};
 
 const dashboardStats = {
   totalStudents: 45,
@@ -77,7 +78,7 @@ const dashboardStats = {
   averageProgress: 78,
   completionRate: 92,
   monthlyGrowth: 12.5,
-}
+};
 
 const recentActivity = [
   {
@@ -104,7 +105,7 @@ const recentActivity = [
     time: "1 day ago",
     description: "Completed Module 3: Statistics",
   },
-]
+];
 
 const upcomingEvents = [
   {
@@ -134,7 +135,7 @@ const upcomingEvents = [
     cohort: "All Cohorts",
     attendees: 0,
   },
-]
+];
 
 const performanceData = [
   { month: "Jan", engagement: 85, completion: 88, satisfaction: 4.7 },
@@ -143,30 +144,195 @@ const performanceData = [
   { month: "Apr", engagement: 89, completion: 89, satisfaction: 4.8 },
   { month: "May", engagement: 94, completion: 94, satisfaction: 4.9 },
   { month: "Jun", engagement: 91, completion: 92, satisfaction: 4.9 },
-]
+];
 
 export default function MentorDashboard() {
-  const [activeTab, setActiveTab] = useState("overview")
-  const [selectedCohort, setSelectedCohort] = useState<string | null>(null)
-  const [selectedStudent, setSelectedStudent] = useState<string | null>(null)
-  const [currentView, setCurrentView] = useState("dashboard") // dashboard, cohort, student, curriculum, communication
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [demoVideoFile, setDemoVideoFile] = useState<File | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [selectedCohort, setSelectedCohort] = useState<string | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+  const [currentView, setCurrentView] = useState("dashboard");
+  const [isDialogOpen, setIsDialogOpen] = useState(false); // New state for Dialog
+  const { data: orgData } = useGetmyorgQuery();
+  const [createCohort, { isLoading: isCreatingCohort }] = useCreateCohortMutation();
 
   const handleViewCohort = (cohortId: string) => {
-    setSelectedCohort(cohortId)
-    setCurrentView("cohort")
-  }
+    setSelectedCohort(cohortId);
+    setCurrentView("cohort");
+  };
 
   const handleViewStudent = (studentId: string) => {
-    setSelectedStudent(studentId)
-    setCurrentView("student")
-  }
+    setSelectedStudent(studentId);
+    setCurrentView("student");
+  };
 
   const handleBackToDashboard = () => {
-    setCurrentView("dashboard")
-    setSelectedCohort(null)
-    setSelectedStudent(null)
-  }
+    setCurrentView("dashboard");
+    setSelectedCohort(null);
+    setSelectedStudent(null);
+  };
 
+  // Reset form and state
+const resetForm = (form: EventTarget | null) => {
+  const htmlForm = form as HTMLFormElement | null;
+  if (!htmlForm) return;
+
+  htmlForm.reset(); // Reset HTML form inputs
+  setThumbnailFile(null);
+  setDemoVideoFile(null);
+
+  const selects = htmlForm.querySelectorAll("select");
+  selects.forEach(select => {
+    if (select.name === "organization") select.value = orgData?.[0]?._id || "";
+    else if (select.name === "status") select.value = "upcoming";
+    else if (select.name === "location") select.value = "Online";
+    else if (select.name === "language") select.value = "English";
+    else if (select.name === "certificateAvailable") select.value = "true";
+    else select.value = "";
+  });
+};
+
+
+  // Handle cohort creation
+  const handleCreateCohort = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
+    const cohortData = {
+      title: formData.get("title")?.toString() || "",
+      shortDescription: formData.get("shortDescription")?.toString() || "",
+      description: formData.get("description")?.toString() || "",
+      mentor: formData.get("mentor")?.toString() || "",
+      organization: formData.get("organization")?.toString() || "",
+      startDate: formData.get("startDate")
+        ? new Date(formData.get("startDate") as string).toISOString()
+        : "",
+      endDate: formData.get("endDate")
+        ? new Date(formData.get("endDate") as string).toISOString()
+        : "",
+      maxCapacity: formData.get("maxCapacity")
+        ? Number(formData.get("maxCapacity"))
+        : 0,
+      status: formData.get("status")?.toString() || "",
+      category: formData.get("category")?.toString() || "",
+      difficulty: formData.get("difficulty")?.toString() || "",
+      schedule: formData.get("schedule")?.toString() || "",
+      location: formData.get("location")?.toString() || "",
+      language: formData.get("language")?.toString() || "",
+      tags: formData.get("tags")
+        ? formData.get("tags")!.toString().split(",").map((tag) => tag.trim())
+        : [],
+      prerequisites: formData.get("prerequisites")
+        ? formData.get("prerequisites")!.toString().split(",").map((p) => p.trim())
+        : [],
+      certificateAvailable: formData.get("certificateAvailable") === "true",
+      chapters: [],
+    };
+
+    const requiredFields: (keyof typeof cohortData)[] = [
+      "title",
+      "shortDescription",
+      "description",
+      "mentor",
+      "organization",
+      "startDate",
+      "endDate",
+      "maxCapacity",
+      "status",
+      "category",
+      "difficulty",
+      "language",
+      "schedule",
+    ];
+
+    const missingFields = requiredFields.filter(
+      (field) => cohortData[field] === undefined || cohortData[field] === ""
+    );
+
+    if (missingFields.length > 0) {
+      toast.error("Please fill in all required fields", {
+        description: missingFields.join(", "),
+      });
+      return;
+    }
+
+    if (
+      isNaN(Date.parse(cohortData.startDate)) ||
+      isNaN(Date.parse(cohortData.endDate))
+    ) {
+      toast.error("Invalid date format", {
+        description: "Please ensure start and end dates are valid.",
+      });
+      return;
+    }
+
+    if (new Date(cohortData.startDate) >= new Date(cohortData.endDate)) {
+      toast.error("Invalid date range", {
+        description: "End date must be after start date.",
+      });
+      return;
+    }
+
+    if (cohortData.maxCapacity <= 0) {
+      toast.error("Invalid capacity", {
+        description: "Maximum capacity must be a positive number.",
+      });
+      return;
+    }
+
+    const apiFormData = new FormData();
+    Object.entries(cohortData).forEach(([key, value]) => {
+      if (["tags", "prerequisites", "chapters"].includes(key)) {
+        apiFormData.append(key, JSON.stringify(value));
+      } else {
+        apiFormData.append(key, value.toString());
+      }
+    });
+
+    if (thumbnailFile) {
+      apiFormData.append("Thumbnail", thumbnailFile);
+    }
+    if (demoVideoFile) {
+      apiFormData.append("demoVideo", demoVideoFile);
+    }
+
+    for (const [key, value] of apiFormData.entries()) {
+      console.log(`[DEBUG] FormData: ${key} = ${value}`);
+    }
+
+    // 🟡 Show loader
+    const toastId = toast.loading("Creating cohort...");
+
+    try {
+        await createCohort(apiFormData).unwrap();
+      toast.success("Cohort created successfully!", {
+        id: toastId,
+      });
+
+     resetForm(event.currentTarget);
+      setIsDialogOpen(false);
+    } catch (err) {
+      const error = err as APIErrorResponse;
+      console.error("API Error:", error);
+
+      toast.error("Failed to create cohort", {
+        id: toastId,
+        description: error.data?.message || "Please try again.",
+      });
+    }
+  };
+
+
+  // Handle dialog close
+  const handleDialogClose = (form: HTMLFormElement | null) => {
+    setIsDialogOpen(false);
+    if (form) {
+      resetForm(form); // Reset form on cancel
+    }
+  };
+
+  // Rest of the component remains unchanged
   // Render different views based on current state
   if (currentView === "cohort" && selectedCohort) {
     return (
@@ -176,7 +342,7 @@ export default function MentorDashboard() {
         onViewStudent={handleViewStudent}
         onEditCurriculum={() => setCurrentView("curriculum")}
       />
-    )
+    );
   }
 
   if (currentView === "student" && selectedStudent) {
@@ -185,21 +351,21 @@ export default function MentorDashboard() {
         studentId={selectedStudent}
         onBack={() => {
           if (selectedCohort) {
-            setCurrentView("cohort")
+            setCurrentView("cohort");
           } else {
-            handleBackToDashboard()
+            handleBackToDashboard();
           }
         }}
       />
-    )
+    );
   }
 
   if (currentView === "curriculum") {
-    return <CurriculumBuilder cohortId={selectedCohort || ""} onBack={() => setCurrentView("cohort")} />
+    return <CurriculumBuilder cohortId={selectedCohort || ""} onBack={() => setCurrentView("cohort")} />;
   }
 
   if (currentView === "communication") {
-    return <CommunicationCenter onBack={handleBackToDashboard} />
+    return <CommunicationCenter onBack={handleBackToDashboard} />;
   }
 
   // Main dashboard view
@@ -214,7 +380,7 @@ export default function MentorDashboard() {
               <AvatarFallback className="text-lg">
                 {mentorData.name
                   .split(" ")
-                  .map((n) => n[0])
+                  .map(n => n[0])
                   .join("")}
               </AvatarFallback>
             </Avatar>
@@ -298,6 +464,230 @@ export default function MentorDashboard() {
             <TabsTrigger value="tools">Tools</TabsTrigger>
           </TabsList>
 
+          {/* Cohorts Tab */}
+          <TabsContent value="cohorts" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">My Cohorts</h3>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={() => setIsDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create New Cohort
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl">
+                  <DialogHeader>
+                    <DialogTitle>Create New Cohort</DialogTitle>
+                    <DialogDescription>
+                      Set up a new learning cohort for your students. Fill in all required fields.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="max-h-[70vh] overflow-y-auto scrollbar-none scrollbar-hide">
+                    <form onSubmit={handleCreateCohort}>
+                      <div className="grid grid-cols-2 gap-4 py-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Cohort Title</label>
+                          <Input name="title" placeholder="Enter cohort title" required />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Short Description</label>
+                          <Input name="shortDescription" placeholder="Enter short description" required />
+                        </div>
+                        <div className="space-y-2 col-span-2">
+                          <label className="text-sm font-medium">Description</label>
+                          <Input name="description" placeholder="Enter detailed description" required />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Mentor ID</label>
+                          <Input
+                            name="mentor"
+                            placeholder="Enter mentor ID"
+                            defaultValue="686225d0975afe617d28b617"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Organization</label>
+                          <Select name="organization" defaultValue={orgData?.[0]?._id || ""} required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select organization" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {orgData?.map(org => (
+                                <SelectItem key={org._id} value={org._id}>
+                                  {org.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Start Date</label>
+                          <Input name="startDate" type="date" required />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">End Date</label>
+                          <Input name="endDate" type="date" required />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Maximum Capacity</label>
+                          <Input name="maxCapacity" type="number" placeholder="10" required />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Status</label>
+                          <Select name="status" defaultValue="upcoming" required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="upcoming">Upcoming</SelectItem>
+                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="completed">Completed</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Category</label>
+                          <Select name="category" required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Web Development">Web Development</SelectItem>
+                              <SelectItem value="Mobile Development">Mobile Development</SelectItem>
+                              <SelectItem value="Data Science">Data Science</SelectItem>
+                              <SelectItem value="Machine Learning">Machine Learning</SelectItem>
+                              <SelectItem value="UI/UX Design">UI/UX Design</SelectItem>
+                              <SelectItem value="Cybersecurity">Cybersecurity</SelectItem>
+                              <SelectItem value="Cloud Computing">Cloud Computing</SelectItem>
+                              <SelectItem value="DevOps">DevOps</SelectItem>
+                              <SelectItem value="Blockchain">Blockchain</SelectItem>
+                              <SelectItem value="Mathematics">Mathematics</SelectItem>
+                              <SelectItem value="Physics">Physics</SelectItem>
+                              <SelectItem value="Chemistry">Chemistry</SelectItem>
+                              <SelectItem value="Biology">Biology</SelectItem>
+                              <SelectItem value="English">English</SelectItem>
+                              <SelectItem value="Commerce">Commerce</SelectItem>
+                              <SelectItem value="Product Management">Product Management</SelectItem>
+                              <SelectItem value="Startup Mentorship">Startup Mentorship</SelectItem>
+                              <SelectItem value="Career Counseling">Career Counseling</SelectItem>
+                              <SelectItem value="Soft Skills">Soft Skills</SelectItem>
+                              <SelectItem value="Public Speaking">Public Speaking</SelectItem>
+                              <SelectItem value="Mental Health">Mental Health</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Difficulty</label>
+                          <Select name="difficulty" required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select difficulty" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Beginner">Beginner</SelectItem>
+                              <SelectItem value="Intermediate">Intermediate</SelectItem>
+                              <SelectItem value="Advanced">Advanced</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Thumbnail Image</label>
+                          <Input
+                            type="file"
+                            name="Thumbnail"
+                            accept="image/*"
+                            onChange={e => setThumbnailFile(e.target.files?.[0] || null)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Demo Video</label>
+                          <Input
+                            type="file"
+                            name="demoVideo"
+                            accept="video/*"
+                            onChange={e => setDemoVideoFile(e.target.files?.[0] || null)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Schedule</label>
+                          <Input
+                            name="schedule"
+                            placeholder="e.g., Monday, Wednesday, Friday — 7:00 PM to 9:00 PM"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Location</label>
+                          <Select name="location" defaultValue="Online" required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select location" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Online">Online</SelectItem>
+                              <SelectItem value="In-Person">In-Person</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Language</label>
+                          <Select name="language" defaultValue="English" required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select language" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="English">English</SelectItem>
+                              <SelectItem value="Spanish">Spanish</SelectItem>
+                              <SelectItem value="French">French</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Tags (comma-separated)</label>
+                          <Input name="tags" placeholder="e.g., mern, javascript, nodejs" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Prerequisites (comma-separated)</label>
+                          <Input name="prerequisites" placeholder="e.g., Basic programming, HTML, CSS" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Certificate Available</label>
+                          <Select name="certificateAvailable" defaultValue="true" required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select option" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="true">Yes</SelectItem>
+                              <SelectItem value="false">No</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => handleDialogClose(document.querySelector("form") as HTMLFormElement)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button type="submit" disabled={isCreatingCohort}>
+                          {isCreatingCohort ? <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Creating...
+                          </> : "Create Cohort"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+            <StudentManagement onViewCohort={handleViewCohort} onViewStudent={handleViewStudent} />
+          </TabsContent>
+
+          {/* Rest of the TabsContent (overview, students, analytics, tools) remains unchanged */}
+          {/* Overview Tab */}
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -312,7 +702,7 @@ export default function MentorDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {recentActivity.map((activity) => (
+                    {recentActivity.map(activity => (
                       <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg border">
                         <div className="flex-shrink-0 mt-1">
                           {activity.type === "assignment_submitted" && (
@@ -350,7 +740,7 @@ export default function MentorDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {upcomingEvents.map((event) => (
+                    {upcomingEvents.map(event => (
                       <div key={event.id} className="flex items-center gap-3 p-3 rounded-lg border">
                         <div className="flex-shrink-0">
                           {event.type === "live_session" && <BookOpen className="h-5 w-5 text-blue-500" />}
@@ -385,7 +775,7 @@ export default function MentorDashboard() {
                 <CardTitle>Performance Overview</CardTitle>
                 <CardDescription>Your mentoring performance metrics over the last 6 months</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="w-full overflow-x-auto">
                 <ChartContainer
                   config={{
                     engagement: {
@@ -401,83 +791,26 @@ export default function MentorDashboard() {
                       color: "hsl(var(--chart-3))",
                     },
                   }}
-                  className="h-[300px]"
+                  className="w-[942px] h-[530px]"
                 >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={performanceData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Line type="monotone" dataKey="engagement" stroke="var(--color-engagement)" strokeWidth={2} />
-                      <Line type="monotone" dataKey="completion" stroke="var(--color-completion)" strokeWidth={2} />
-                      <Line type="monotone" dataKey="satisfaction" stroke="var(--color-satisfaction)" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <LineChart data={performanceData} width={942} height={530}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line type="monotone" dataKey="engagement" stroke="var(--color-engagement)" strokeWidth={2} />
+                    <Line type="monotone" dataKey="completion" stroke="var(--color-completion)" strokeWidth={2} />
+                    <Line type="monotone" dataKey="satisfaction" stroke="var(--color-satisfaction)" strokeWidth={2} />
+                  </LineChart>
                 </ChartContainer>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Cohorts Tab */}
-          <TabsContent value="cohorts" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">My Cohorts</h3>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create New Cohort
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Create New Cohort</DialogTitle>
-                    <DialogDescription>Set up a new learning cohort for your students.</DialogDescription>
-                  </DialogHeader>
-                  {/* Cohort creation form would go here */}
-                  <div className="grid grid-cols-2 gap-4 py-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Cohort Name</label>
-                      <Input placeholder="Enter cohort name" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Subject</label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select subject" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="data-science">Data Science</SelectItem>
-                          <SelectItem value="web-dev">Web Development</SelectItem>
-                          <SelectItem value="mobile-dev">Mobile Development</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Start Date</label>
-                      <Input type="date" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Duration (weeks)</label>
-                      <Input type="number" placeholder="12" />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline">Cancel</Button>
-                    <Button>Create Cohort</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            <StudentManagement onViewCohort={handleViewCohort} onViewStudent={handleViewStudent} />
-          </TabsContent>
-
           {/* Students Tab */}
           <TabsContent value="students" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">All Students</h3>
+              <h3 className="text-lg font-medium">All Students</h3>
               <div className="flex gap-2">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -506,7 +839,6 @@ export default function MentorDashboard() {
                       <DialogTitle>Add New Student</DialogTitle>
                       <DialogDescription>Create a new student profile and assign to a cohort.</DialogDescription>
                     </DialogHeader>
-                    {/* Student creation form would go here */}
                     <div className="grid grid-cols-2 gap-4 py-4">
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Full Name</label>
@@ -566,7 +898,6 @@ export default function MentorDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {/* Sample student data */}
                     <TableRow>
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -791,5 +1122,5 @@ export default function MentorDashboard() {
         </Tabs>
       </div>
     </div>
-  )
+  );
 }

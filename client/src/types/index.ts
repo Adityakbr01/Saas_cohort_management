@@ -30,3 +30,18 @@ export interface DashboardData {
   recentUsers: User[];
   // you can add more stats or lists as per your dashboard
 }
+
+
+
+export interface FieldError {
+  path: string[];
+  message: string;
+}
+
+export interface APIErrorResponse {
+  status: number;
+  data: {
+    message?: string;
+    error?: FieldError[];
+  };
+}
