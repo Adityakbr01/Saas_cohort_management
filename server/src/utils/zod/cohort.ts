@@ -1,33 +1,41 @@
 import { z } from "zod";
 
 export const createCohortSchema = z.object({
-  title: z.string().min(1),
-  shortDescription: z.string(),
-  description: z.string(),
-  mentor: z.string(),
-  organization: z.string(),
-  startDate: z.string().refine(val => !isNaN(Date.parse(val)), "Invalid date"),
-  endDate: z.string().refine(val => !isNaN(Date.parse(val)), "Invalid date"),
-  maxCapacity: z.number(),
-  status: z.enum(["active", "upcoming", "completed"]),
-  category: z.string(),
-  difficulty: z.enum(["Beginner", "Intermediate", "Advanced"]),
-  schedule: z.any(), // adjust as per your structure
+  title: z.string().min(1, "Title is required"),
+  shortDescription: z.string().min(1, "Short description is required"),
+  description: z.string().min(1, "Description is required"),
+  mentor: z.string().min(1, "Mentor ID is required"),
+  organization: z.string().min(1, "Organization ID is required"),
+  startDate: z.string().refine(val => !isNaN(Date.parse(val)), "Invalid start date"),
+  endDate: z.string().refine(val => !isNaN(Date.parse(val)), "Invalid end date"),
+  maxCapacity: z.number().min(1, "Maximum capacity must be a positive number") || z.string().min(1, "Maximum capacity must be a positive number"),
+  status: z.enum(["active", "upcoming", "completed"], {
+    message: "Status must be active, upcoming, or completed",
+  }),
+  category: z.string().min(1, "Category is required"),
+  difficulty: z.enum(["Beginner", "Intermediate", "Advanced"], {
+    message: "Difficulty must be Beginner, Intermediate, or Advanced",
+  }),
+  schedule: z.any(),
   location: z.string().optional(),
-  language: z.string(),
+  language: z.string().min(1, "Language is required"),
   tags: z.array(z.string()).optional(),
   prerequisites: z.array(z.string()).optional(),
   certificateAvailable: z.boolean().optional(),
-  chapters: z.array(
-  z.object({
-    title: z.string(),
-    totalLessons: z.number(),
-    totalDuration: z.number(),
-    lessons: z.array(z.string()).optional()
-  })
-).optional()
+  chapters: z
+    .array(
+      z.object({
+        title: z.string(),
+        totalLessons: z.number(),
+        totalDuration: z.number(),
+        lessons: z.array(z.string()).optional(),
+      })
+    )
+    .optional(),
+  thumbnail: z.string().optional(),
+  demoVideo: z.string().optional(),
+  createdBy: z.string().optional(), // Added to allow createdBy from controller
 });
-
 
 export const updateCohortSchema = z.object({
   title: z.string().optional(),

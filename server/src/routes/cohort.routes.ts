@@ -4,13 +4,14 @@ import { protect, restrictTo } from "@/middleware/authMiddleware";
 import { validateRequest } from "@/middleware/validateRequest";
 import { CohortController } from "@/controllers/cohort.controller";
 import { createCohortSchema, updateCohortSchema } from "@/utils/zod/cohort";
+import { uploadMedia } from "@/middleware/multerConfig";
 
 const router = express.Router();
 
 // Create a new cohort
 router.post(
   "/",
-  validateRequest(createCohortSchema),
+  uploadMedia(),
   protect,
   restrictTo(Role.organization, Role.mentor),
   CohortController.createCohort

@@ -5,20 +5,56 @@ import { sendSuccess } from "@/utils/responseUtil";
 import { ApiError } from "@/utils/apiError";
 import { CohortService } from "@/services/cohort.service";
 import { Role } from "@/configs/roleConfig";
+import { createCohortSchema } from "@/utils/zod/cohort";
+import { uploadImage, uploadVideo } from "@/services/cloudinaryService";
 
 export const CohortController = {
-  createCohort: wrapAsync(async (req, res) => {
-    const userId = req.user?.id;
-    if (!userId) throw new ApiError(401, "Unauthorized");
+ createCohort: wrapAsync(async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) throw new ApiError(401, "Unauthorized");
 
-    const cohortData = {
-      ...req.body,
-      createdBy: userId,
-    };
+  const raw = req.body;
 
-    const created = await CohortService.createCohort(cohortData);
-    sendSuccess(res, 201, "Cohort created", created);
-  }),
+  // ✅ Convert/parse values
+  const payload = {
+    ...raw,
+    maxCapacity: Number(raw.maxCapacity),
+    certificateAvailable: raw.certificateAvailable === "true",
+    tags: typeof raw.tags === "string" ? JSON.parse(raw.tags) : [],
+    prerequisites: typeof raw.prerequisites === "string" ? JSON.parse(raw.prerequisites) : [],
+    chapters: typeof raw.chapters === "string" ? JSON.parse(raw.chapters) : [],
+  };
+
+  // ✅ Validate data
+  const validated = createCohortSchema.parse(payload);
+
+  // ✅ Handle file uploads
+  const files = req.files as Express.Multer.File[];
+  const thumbnail = files.find(file => file.fieldname === "Thumbnail");
+  const demoVideo = files.find(file => file.fieldname === "demoVideo");
+
+ 
+
+  // // ✅ Create cohort
+  // const newCohort = await Cohort.create({
+  //   ...validated,
+  //   createdBy: userId,
+  //   Thumbnail: thumbnailUrl,
+  //   demoVideo: demoVideoUrl,
+  //   chapters: chapterIds,
+  // });
+
+
+  const newCohort = await CohortService.createCohort({
+    ...validated,
+    createdBy: userId,
+   thumbnail,
+    demoVideo,
+    chapters: validated.chapters,
+  });
+
+  sendSuccess(res, 201, "Cohort created successfully");
+}),
   getAllCohorts: wrapAsync(async (req, res) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;

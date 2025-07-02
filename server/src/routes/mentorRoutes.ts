@@ -197,4 +197,46 @@ router.get("/accept-invite-mentor", async (req: Request, res: Response) => {
   }
 });
 
+router.get("/getmyorg", protect, async (req: Request, res: Response) => {
+  try {
+    const userId = new Types.ObjectId(req.user?.id);
+    if (!userId) throw new ApiError(401, "Unauthorized");
+
+    const orgs = await Organization.find({
+      Members: { $elemMatch: { user: userId } },
+    })
+      .select(
+        "_id name slug logo email isVerified isActive plan createdAt updatedAt"
+      ) // ❌ "Members" hataya
+      .populate({
+        path: "Members",
+        select: "user", // ✅ Only select user inside Members
+      });
+
+    const filteredOrgs = orgs.map((org) => ({
+      _id: org._id,
+      name: org.name,
+      slug: org.slug,
+      logo: org.logo,
+      email: org.email,
+      isVerified: org.isVerified,
+      isActive: org.isActive,
+      plan: org.plan,
+      Members: org.Members,
+      createdAt: org.createdAt,
+      updatedAt: org.updatedAt,
+    }));
+
+    res.json(filteredOrgs);
+  } catch (err: any) {
+    console.error("Unexpected Error in /getmyorg:", err.message);
+    if (err instanceof ApiError) {
+      res.status(err.statusCode).json({ success: false, message: err.message });
+      return;
+    }
+    res.status(500).json({ success: false, message: "Something went wrong" });
+    return;
+  }
+});
+
 export default router;

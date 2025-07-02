@@ -69,42 +69,35 @@ const writeTempFile = (buffer: Buffer, filename: string): string => {
 export const uploadVideo = async (
   file: Express.Multer.File
 ): Promise<UploadApiResponse> => {
-  const tempPath = writeTempFile(file.buffer, file.originalname);
-  let attempt = 0;
-  const maxRetries = 3;
-  const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
-  while (attempt < maxRetries) {
-    try {
-      console.log(`[DEBUG] Chunk uploading video: Attempt ${attempt + 1}`);
-      const result = (await cloudinary.uploader.upload_large(tempPath, {
-        resource_type: "video",
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
         folder: "lms/videos",
+        resource_type: "video",
         chunk_size: 6 * 1024 * 1024, // 6MB
-      })) as UploadApiResponse;
-      console.log("[DEBUG] Video uploaded successfully:", result.secure_url);
+      },
+      (error, result) => {
+        if (error || !result) {
+          console.error("[ERROR] Cloudinary video upload error:", error);
+          return reject(
+            new Error(
+              `Video upload failed: ${error?.message || "Unknown error"}`
+            )
+          );
+        }
 
-      // Clean up
-      fs.unlinkSync(tempPath);
-      return result;
-    } catch (error: any) {
-      console.error(
-        `[ERROR] Upload attempt ${attempt + 1} failed:`,
-        error.message
-      );
-      attempt++;
-      if (attempt < maxRetries) {
-        console.log("[DEBUG] Retrying after delay...");
-        await delay(2000);
-      } else {
-        fs.unlinkSync(tempPath);
-        throw new Error("Video upload failed after multiple attempts.");
+        console.log("[DEBUG] ✅ Video uploaded successfully:", result.secure_url);
+        resolve(result);
       }
-    }
-  }
+    );
 
-  throw new Error("Unreachable code."); // Just in case
+    // Convert buffer to stream and pipe to Cloudinary
+    bufferToStream(file.buffer).pipe(stream);
+  });
 };
+
+
+
 // 3. Upload Audio
 export const uploadAudio = async (
   file: Express.Multer.File
