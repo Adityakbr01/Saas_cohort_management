@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { jwtDecode } from "jwt-decode";
 import { logout } from "@/utils/authUtils";
@@ -9,7 +9,6 @@ interface DecodedToken {
   exp: number;
 }
 
-// Routes where session watcher should not run
 const PUBLIC_ROUTES = [
   '/login',
   '/register',
@@ -18,7 +17,7 @@ const PUBLIC_ROUTES = [
   '/reset-password',
   '/about',
   '/subscription',
-  '/courses'
+  '/courses',
 ];
 
 const useSessionWatcher = () => {
@@ -27,165 +26,121 @@ const useSessionWatcher = () => {
   const [refreshToken] = useRefreshTokenMutation();
   const [logoutApi] = useLogoutMutation();
 
-  // Check if current route is public by examining window.location
-  const isPublicRoute = useCallback(() => {
-    if (typeof window === 'undefined') return false;
-    const currentPath = window.location.pathname;
-    return PUBLIC_ROUTES.some(route => currentPath.startsWith(route));
-  }, []);
-
-  // Check if user has valid tokens in localStorage
-  const hasValidTokens = useCallback(() => {
-    const accessToken = localStorage.getItem("accessToken");
-    const refreshTokenStr = localStorage.getItem("refreshToken");
-    const user = localStorage.getItem("user");
-
-    return !!(accessToken && refreshTokenStr && user);
-  }, []);
-
-  // Determine if session watcher should be active
-  const shouldWatchSession = isAuthenticated && !isPublicRoute() && hasValidTokens();
-
   useEffect(() => {
-    // Clear any existing interval first
+    const isPublicRoute = () => {
+      if (typeof window === 'undefined') return false;
+      const currentPath = window.location.pathname;
+      return PUBLIC_ROUTES.some(route => currentPath.startsWith(route));
+    };
+
+    const hasValidTokens = () => {
+      const accessToken = localStorage.getItem("accessToken");
+      const refreshTokenStr = localStorage.getItem("refreshToken");
+      const user = localStorage.getItem("user");
+      return !!(accessToken && refreshTokenStr && user);
+    };
+
+    const canWatchSession = isAuthenticated && !isPublicRoute() && hasValidTokens();
+
+    // Cleanup existing interval
     if (intervalRef.current) {
-      console.log("[DEBUG] useSessionWatcher: Clearing existing interval");
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
 
-    // Only start session watcher if user is authenticated and not on public routes
-    if (!shouldWatchSession) {
-      console.log("[DEBUG] useSessionWatcher: Not starting - shouldWatchSession:", shouldWatchSession, "isAuthenticated:", isAuthenticated, "isPublicRoute:", isPublicRoute(), "hasValidTokens:", hasValidTokens());
+    if (!canWatchSession) {
+      console.log("[DEBUG] useSessionWatcher: Skipping watcher (not allowed)");
       return;
     }
 
-    console.log("[DEBUG] useSessionWatcher: Starting session watcher");
-
     const checkSession = async () => {
-      // Double-check authentication state before proceeding
-      if (!hasValidTokens()) {
-        console.log("[DEBUG] useSessionWatcher: No valid tokens found, stopping watcher");
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-        return;
-      }
-
       const accessToken = localStorage.getItem("accessToken");
       const refreshTokenStr = localStorage.getItem("refreshToken");
 
       if (!accessToken) {
         if (refreshTokenStr) {
           try {
-            console.log("[DEBUG] useSessionWatcher: Attempting token refresh");
-            const result = await refreshToken({
-              refreshToken: refreshTokenStr,
-            }).unwrap();
-
+            const result = await refreshToken({ refreshToken: refreshTokenStr }).unwrap();
             if (result?.data?.accessToken) {
-              console.log("[DEBUG] useSessionWatcher: Token refresh successful");
+              console.log("[DEBUG] Token refreshed from absence");
               localStorage.setItem("accessToken", result?.data?.accessToken);
               return;
             }
           } catch (refreshError) {
-            console.error("[DEBUG] useSessionWatcher: Failed to refresh token:", refreshError);
-            // Clear interval before logout to prevent further execution
-            if (intervalRef.current) {
-              clearInterval(intervalRef.current);
-              intervalRef.current = null;
-            }
-            logout();
-            try {
-              await logoutApi(undefined).unwrap();
-            } catch (logoutError) {
-              console.error("[DEBUG] useSessionWatcher: Logout API failed:", logoutError);
-            }
+            console.error("[DEBUG] Refresh failed (no accessToken):", refreshError);
+            handleLogout();
           }
         } else {
-          console.log("[DEBUG] useSessionWatcher: No refresh token found, logging out");
-          // Clear interval before logout
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
-          logout();
-          try {
-            await logoutApi(undefined).unwrap();
-          } catch (logoutError) {
-            console.error("[DEBUG] useSessionWatcher: Logout API failed:", logoutError);
-          }
+          console.warn("[DEBUG] No tokens found, logging out");
+          handleLogout();
         }
         return;
       }
 
       try {
         const decoded: DecodedToken = jwtDecode(accessToken);
-        const isExpired = decoded.exp * 1000 < Date.now();
-        const isNearExpiry = decoded.exp * 1000 - Date.now() < 5 * 60 * 1000;
+        const currentTime = Date.now();
+        const expiryTime = decoded.exp * 1000;
+        const isExpired = expiryTime < currentTime;
+        const isNearExpiry = expiryTime - currentTime < 5 * 60 * 1000;
 
         if (isExpired) {
-          console.log("[DEBUG] useSessionWatcher: Access token expired, logging out");
-          // Clear interval before logout
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
-          logout();
-          try {
-            await logoutApi(undefined).unwrap();
-          } catch (logoutError) {
-            console.error("[DEBUG] useSessionWatcher: Logout API failed:", logoutError);
-          }
+          console.log("[DEBUG] Access token expired, logging out");
+          handleLogout();
           return;
         }
 
         if (isNearExpiry && refreshTokenStr) {
           try {
-            console.log("[DEBUG] useSessionWatcher: Token near expiry, refreshing");
-            const result = await refreshToken({
-              refreshToken: refreshTokenStr,
-            }).unwrap();
+            const result = await refreshToken({ refreshToken: refreshTokenStr }).unwrap();
             if (result?.data?.accessToken) {
-              console.log("[DEBUG] useSessionWatcher: Token refresh successful");
+              console.log("[DEBUG] Access token refreshed (near expiry)");
               localStorage.setItem("accessToken", result?.data?.accessToken);
             }
           } catch (refreshError) {
-            console.error("[DEBUG] useSessionWatcher: Failed to refresh near-expiry token:", refreshError);
-            // Don't logout immediately on refresh failure; let next interval handle it
+            console.error("[DEBUG] Refresh failed (near expiry):", refreshError);
+            // Don’t force logout immediately, next interval will handle
           }
         }
-      } catch (err) {
-        console.error("[DEBUG] useSessionWatcher: JWT Decode Error:", err);
-        // Don't logout on decode error; let next interval retry
+      } catch (decodeError) {
+        console.error("[DEBUG] Failed to decode token:", decodeError);
+        // Retry on next interval
       }
     };
 
-    // Start interval (every 15s) only if should watch session
-    intervalRef.current = setInterval(checkSession, 15000);
-    console.log("[DEBUG] useSessionWatcher: Interval started");
+    const handleLogout = async () => {
+      clearInterval(intervalRef.current!);
+      intervalRef.current = null;
+      logout(); // Local logout
+      try {
+        await logoutApi(undefined).unwrap(); // Server logout
+      } catch (logoutError) {
+        console.error("[DEBUG] Logout API failed:", logoutError);
+      }
+    };
 
-    // Cleanup function
+    intervalRef.current = setInterval(checkSession, 15000);
+    console.log("[DEBUG] Watcher interval set.");
+
     return () => {
       if (intervalRef.current) {
-        console.log("[DEBUG] useSessionWatcher: Cleaning up interval");
         clearInterval(intervalRef.current);
         intervalRef.current = null;
+        console.log("[DEBUG] Watcher cleanup complete.");
       }
     };
-  }, [shouldWatchSession, logoutApi, refreshToken, isAuthenticated, isPublicRoute, hasValidTokens]);
+  }, [isAuthenticated, refreshToken, logoutApi]);
 
-  // Additional cleanup effect for when authentication state changes
+  // Safety: stop watcher if user logs out
   useEffect(() => {
     if (!isAuthenticated && intervalRef.current) {
-      console.log("[DEBUG] useSessionWatcher: User logged out, clearing interval");
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+      console.log("[DEBUG] Cleared session watcher after logout");
     }
   }, [isAuthenticated]);
 
-  return null; // Hook doesn't need to return anything
+  return null;
 };
 
 export default useSessionWatcher;

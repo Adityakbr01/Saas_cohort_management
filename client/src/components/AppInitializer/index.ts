@@ -1,5 +1,3 @@
-// src/components/AppInitializer/index.tsx
-
 import { authApi } from "@/store/features/auth/authApi";
 import { setUser, logout } from "@/store/features/slice/UserAuthSlice";
 import { useAppDispatch } from "@/store/hook";
@@ -16,76 +14,96 @@ const AppInitializer = () => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // First, check localStorage for existing authentication data
         const storedUser = localStorage.getItem("user");
-        const accessToken = localStorage.getItem("accessToken");
-        const refreshToken = localStorage.getItem("refreshToken");
+        let accessToken = localStorage.getItem("accessToken");
+        const refreshTokenStr = localStorage.getItem("refreshToken");
 
-        console.log("[DEBUG] AppInitializer: Checking localStorage auth data");
-
-        if (!storedUser || !accessToken || !refreshToken) {
-          console.log("[DEBUG] AppInitializer: No complete auth data in localStorage");
-          // Clear any partial data
-          localStorage.removeItem("user");
-          localStorage.removeItem("accessToken");
-          localStorage.removeItem("refreshToken");
+        if (!storedUser || !refreshTokenStr) {
+          console.log("[DEBUG] AppInitializer: Missing user or refreshToken, logging out");
+          localStorage.clear();
           dispatch(logout());
           return;
         }
 
-        // Validate access token
-        try {
-          const decoded: DecodedToken = jwtDecode(accessToken);
-          const isExpired = decoded.exp * 1000 < Date.now();
+        // ✅ Try to decode or refresh access token
+        let decoded: DecodedToken | null = null;
 
-          if (isExpired) {
-            console.log("[DEBUG] AppInitializer: Access token expired, clearing auth data");
-            localStorage.removeItem("user");
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
+        try {
+          if (accessToken) {
+            decoded = jwtDecode(accessToken);
+            if(!decoded) throw new Error("Invalid token");
+            const isExpired = decoded.exp * 1000 < Date.now();
+
+            if (isExpired) {
+              console.log("[DEBUG] AppInitializer: Access token expired, trying refresh");
+              accessToken = await tryRefreshToken(refreshTokenStr);
+            }
+          } else {
+            console.log("[DEBUG] AppInitializer: No access token, trying refresh");
+            accessToken = await tryRefreshToken(refreshTokenStr);
+          }
+
+          if (!accessToken) {
+            console.log("[DEBUG] AppInitializer: Refresh failed, logging out");
+            localStorage.clear();
             dispatch(logout());
             return;
           }
-        } catch (tokenError) {
-          console.error("[DEBUG] AppInitializer: Invalid access token:", tokenError);
-          localStorage.removeItem("user");
-          localStorage.removeItem("accessToken");
-          localStorage.removeItem("refreshToken");
-          dispatch(logout());
-          return;
+        } catch (err) {
+          console.error("[DEBUG] AppInitializer: Access token invalid/decoding error", err);
+          accessToken = await tryRefreshToken(refreshTokenStr);
+          if (!accessToken) {
+            localStorage.clear();
+            dispatch(logout());
+            return;
+          }
         }
 
-        // Parse and set user data in Redux
+        // ✅ Set user in Redux
         try {
           const parsedUser = JSON.parse(storedUser);
-          console.log("[DEBUG] AppInitializer: Setting user from localStorage:", parsedUser);
           dispatch(setUser(parsedUser));
 
-          // Optionally, verify with server (but don't block on it)
           try {
             const serverUser = await dispatch(
               authApi.endpoints.getProfile.initiate(undefined)
             ).unwrap();
 
             if (serverUser?.data) {
-              console.log("[DEBUG] AppInitializer: Updated user from server:", serverUser.data);
               dispatch(setUser(serverUser.data));
             }
-          } catch (serverError) {
-            console.warn("[DEBUG] AppInitializer: Server verification failed, using localStorage data:", serverError);
-            // Continue with localStorage data if server fails
+          } catch (err) {
+            console.warn("[DEBUG] AppInitializer: Failed to verify user from server", err);
           }
-        } catch (parseError) {
-          console.error("[DEBUG] AppInitializer: Failed to parse user data:", parseError);
-          localStorage.removeItem("user");
-          localStorage.removeItem("accessToken");
-          localStorage.removeItem("refreshToken");
+        } catch (err) {
+          console.error("[DEBUG] AppInitializer: Invalid user data", err);
+          localStorage.clear();
           dispatch(logout());
         }
-      } catch (error) {
-        console.error("[DEBUG] AppInitializer: Initialization failed:", error);
+
+      } catch (err) {
+        console.error("[DEBUG] AppInitializer: Critical error", err);
+        localStorage.clear();
         dispatch(logout());
       }
+    };
+
+    // 🔁 Try Refresh Function
+    const tryRefreshToken = async (refreshTokenStr: string): Promise<string | null> => {
+      try {
+        const response = await dispatch(
+          authApi.endpoints.refreshToken.initiate({ refreshToken: refreshTokenStr })
+        ).unwrap();
+
+        if (response?.data?.accessToken) {
+          localStorage.setItem("accessToken", response.data.accessToken);
+          console.log("[DEBUG] AppInitializer: Token refreshed");
+          return response.data.accessToken;
+        }
+      } catch (err) {
+        console.error("[DEBUG] AppInitializer: Refresh token failed", err);
+      }
+      return null;
     };
 
     initializeAuth();
