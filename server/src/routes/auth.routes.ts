@@ -1,23 +1,11 @@
-import express from "express";
-import {
-  forgotPassword,
-  getProfile,
-  login,
-  logout,
-  refreshToken,
-  register,
-  resendForgotPasswordOTP,
-  resetPassword,
-  updateProfile,
-  verifyEmail,
-  verifyForgotPassword,
-} from "@/controllers/auth.controller";
+import { AuthController } from "@/controllers/auth.controller";
+import { protect } from "@/middleware/authMiddleware";
+import { uploadMedia } from "@/middleware/multerConfig";
+import { createDynamicRateLimiter } from "@/middleware/rateLimitMiddleware";
 import { validateRequest } from "@/middleware/validateRequest";
 import { registerSchema, verifyEmailSchema } from "@/utils/zod";
-import { createDynamicRateLimiter } from "@/middleware/rateLimitMiddleware";
-import { protect } from "@/middleware/authMiddleware";
+import express from "express";
 import * as z from "zod";
-import { uploadMedia } from "@/middleware/multerConfig";
 
 // Zod schemas for forgot password routes
 const forgotPasswordSchema = z.object({
@@ -60,7 +48,7 @@ router.post(
     },
   }),
   validateRequest(registerSchema),
-  register
+  AuthController.register
 );
 
 router.post(
@@ -77,7 +65,7 @@ router.post(
       });
     },
   }),
-  login
+  AuthController.login
 );
 
 router.post(
@@ -98,7 +86,7 @@ router.post(
     },
   }),
   validateRequest(verifyEmailSchema),
-  verifyEmail
+  AuthController.verifyEmail
 );
 
 // Forgot password routes with Zod validation and tailored rate limiting
@@ -119,7 +107,7 @@ router.post(
     },
   }),
   validateRequest(forgotPasswordSchema),
-  forgotPassword
+  AuthController.forgotPassword
 );
 
 router.post(
@@ -139,7 +127,7 @@ router.post(
     },
   }),
   validateRequest(forgotPasswordVerifySchema),
-  verifyForgotPassword
+  AuthController.verifyForgotPassword
 );
 
 router.post(
@@ -159,7 +147,7 @@ router.post(
     },
   }),
   validateRequest(forgotPasswordResendSchema),
-  resendForgotPasswordOTP
+  AuthController.resendForgotPasswordOTP
 );
 
 // Protected routes with more lenient rate limiting
@@ -182,9 +170,8 @@ router.post(
       });
     },
   }),
-  refreshToken
+  AuthController.refreshToken
 );
-
 
 // ho gya hai test baki hai
 router.post(
@@ -206,9 +193,8 @@ router.post(
       });
     },
   }),
-  logout
+  AuthController.logout
 );
-//Done 
 router.get(
   "/getProfile",
   protect,
@@ -228,9 +214,8 @@ router.get(
       });
     },
   }),
-  getProfile
+  AuthController.getProfile
 );
-//Done 
 router.post(
   "/password/reset",
   protect,
@@ -254,7 +239,7 @@ router.post(
 );
 router.patch(
   "/updateProfile",
-  uploadMedia,
+  uploadMedia("media"),
   protect,
   createDynamicRateLimiter({
     timeWindow: 10, // 10 minutes
@@ -272,7 +257,7 @@ router.patch(
       });
     },
   }),
-  updateProfile
+  AuthController.updateProfile
 );
 
 export default router;

@@ -20,6 +20,14 @@ router.post(
 // Get all cohorts
 router.get("/", CohortController.getAllCohorts);
 
+//get all my org cohorts
+router.get(
+  "/getmentorCohorts",
+  protect,
+  restrictTo(Role.mentor),
+  CohortController.getmentorCohorts
+);
+
 // Get single cohort with chapters
 router.get("/:id", CohortController.getCohortById);
 

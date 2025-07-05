@@ -101,6 +101,7 @@ app.use("/api/v1/org", orgRouter);
 // app.use("/api/v1/students", studentRouter);
 app.use("/api/v1/mentors", mentorRouter);
 
+//Todo --> Inka controller serive me splite karna hai
 //New Routes
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/cohorts",cohortRoutes)
