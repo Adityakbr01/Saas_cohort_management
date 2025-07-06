@@ -4,8 +4,10 @@ import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import { rateLimit } from "express-rate-limit";
+import compression from "compression";
 import swaggerUi from "swagger-ui-express";
 import swaggerDocument from "../docs/swagger.json";
+
 
 
 import { env_config } from "./configs/env";
@@ -34,9 +36,9 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.disable("x-powered-by");
 
+app.use(compression());
 
 app.use(helmet());
-
 app.use(morgan("combined"));
 
 const limiter = rateLimit({

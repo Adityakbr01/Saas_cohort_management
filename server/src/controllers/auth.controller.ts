@@ -184,6 +184,8 @@ export const AuthController = {
   refreshToken: wrapAsync(async (req: Request, res: Response) => {
     const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
+    console.log(refreshToken);
+
     if (!refreshToken) {
       throw new ApiError(401, "Unauthorized");
     }
