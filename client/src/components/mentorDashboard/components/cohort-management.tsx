@@ -44,6 +44,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useGetCohortByIdQuery } from "@/store/features/api/cohorts/cohorts.api"
 
 interface CohortManagementProps {
   cohortId: string
@@ -52,108 +53,28 @@ interface CohortManagementProps {
   onEditCurriculum: () => void
 }
 
-// Mock cohort data
-const cohortData = {
-  id: "cohort_1",
-  name: "Data Science Bootcamp - Fall 2024",
-  description:
-    "Comprehensive 12-week data science program covering Python, statistics, machine learning, and real-world projects.",
-  startDate: "2024-09-01",
-  endDate: "2024-12-15",
-  status: "active",
-  studentsCount: 25,
-  maxCapacity: 30,
-  progress: 65,
-  completionRate: 92,
-  schedule: "Monday, Wednesday, Friday - 6:00 PM to 9:00 PM EST",
-  location: "Virtual (Zoom)",
-  students: [
-    {
-      id: "s1",
-      name: "John Doe",
-      email: "john.doe@email.com",
-      avatar: "/placeholder.svg?height=40&width=40",
-      progress: 78,
-      grade: "A-",
-      status: "active",
-      lastActive: "2 hours ago",
-      attendanceRate: 95,
-      assignments: { completed: 9, total: 12 },
-    },
-    {
-      id: "s2",
-      name: "Jane Smith",
-      email: "jane.smith@email.com",
-      avatar: "/placeholder.svg?height=40&width=40",
-      progress: 85,
-      grade: "A",
-      status: "active",
-      lastActive: "1 day ago",
-      attendanceRate: 100,
-      assignments: { completed: 10, total: 12 },
-    },
-    {
-      id: "s3",
-      name: "Bob Wilson",
-      email: "bob.wilson@email.com",
-      avatar: "/placeholder.svg?height=40&width=40",
-      progress: 45,
-      grade: "C",
-      status: "at-risk",
-      lastActive: "3 days ago",
-      attendanceRate: 70,
-      assignments: { completed: 5, total: 12 },
-    },
-  ],
-  assignments: [
-    {
-      id: "a1",
-      title: "Python Fundamentals Quiz",
-      dueDate: "2024-09-15",
-      status: "completed",
-      submissions: 25,
-      averageScore: 87,
-    },
-    {
-      id: "a2",
-      title: "Data Cleaning Project",
-      dueDate: "2024-10-01",
-      status: "completed",
-      submissions: 24,
-      averageScore: 82,
-    },
-    {
-      id: "a3",
-      title: "Machine Learning Model",
-      dueDate: "2024-10-15",
-      status: "active",
-      submissions: 18,
-      averageScore: 85,
-    },
-  ],
-  communications: [
-    {
-      id: "c1",
-      type: "announcement",
-      author: "Dr. Sarah Johnson",
-      date: "2024-06-20",
-      subject: "Week 6 Materials Available",
-      content: "New materials for machine learning module have been uploaded.",
-      recipients: "All Students",
-    },
-    {
-      id: "c2",
-      type: "discussion",
-      author: "Jane Smith",
-      date: "2024-06-19",
-      subject: "Question about Neural Networks",
-      content: "Can someone explain backpropagation in simple terms?",
-      recipients: "Study Group",
-    },
-  ],
-}
-
 export default function CohortManagement({ cohortId, onBack, onViewStudent, onEditCurriculum }: CohortManagementProps) {
+  const { data, isLoading, error } = useGetCohortByIdQuery(cohortId, {
+    skip: !cohortId,
+  })
+
+  const cohortData = data?.data || {
+    _id: "",
+    title: "Loading...",
+    description: "",
+    startDate: "",
+    endDate: "",
+    status: "upcoming",
+    maxCapacity: 0,
+    students: [],
+    progress: 0,
+    completionRate: 0,
+    schedule: "",
+    location: "",
+    assignments: [],
+    communications: [],
+  }
+
   const [activeTab, setActiveTab] = useState("overview")
   const [searchTerm, setSearchTerm] = useState("")
   const [studentFilter, setStudentFilter] = useState("all")
@@ -161,11 +82,14 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
 
   const filteredStudents = cohortData.students.filter((student) => {
     const matchesSearch =
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchTerm.toLowerCase())
+      student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.email?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesFilter = studentFilter === "all" || student.status === studentFilter
     return matchesSearch && matchesFilter
   })
+
+  if (isLoading) return <div>Loading...</div>
+  if (error) return <div>Error loading cohort data</div>
 
   return (
     <div className="min-h-screen bg-background">
@@ -179,7 +103,7 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
             </Button>
             <div className="h-6 w-px bg-border" />
             <div>
-              <h1 className="text-3xl font-bold">{cohortData.name}</h1>
+              <h1 className="text-3xl font-bold">{cohortData.title}</h1>
               <p className="text-muted-foreground">{cohortData.description}</p>
             </div>
           </div>
@@ -226,9 +150,10 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {cohortData.studentsCount}/{cohortData.maxCapacity}
+                {cohortData.students.length}/{cohortData.maxCapacity}
               </div>
-              <Progress value={(cohortData.studentsCount / cohortData.maxCapacity) * 100} className="mt-2" />
+              marked out of necessity
+              <Progress value={(cohortData.students.length / cohortData.maxCapacity) * 100} className="mt-2" />
             </CardContent>
           </Card>
 
@@ -306,6 +231,26 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
                     <Badge variant={cohortData.status === "active" ? "default" : "secondary"} className="ml-2">
                       {cohortData.status}
                     </Badge>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Category</Label>
+                    <p className="text-sm text-muted-foreground">{cohortData.category}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Difficulty</Label>
+                    <p className="text-sm text-muted-foreground">{cohortData.difficulty}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Language</Label>
+                    <p className="text-sm text-muted-foreground">{cohortData.language}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Mentor</Label>
+                    <p className="text-sm text-muted-foreground">{cohortData.mentor?.name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Certificate Available</Label>
+                    <p className="text-sm text-muted-foreground">{cohortData.certificateAvailable ? "Yes" : "No"}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -396,7 +341,7 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
                         <Input placeholder="Full Name" />
                       </div>
                       <div className="space-y-2">
-                        <Label>&nbsp;</Label>
+                        <Label> </Label>
                         <Input placeholder="Email Address" type="email" />
                       </div>
                     </div>
@@ -411,100 +356,104 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
 
             <Card>
               <CardContent className="pt-6">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Student</TableHead>
-                      <TableHead>Progress</TableHead>
-                      <TableHead>Grade</TableHead>
-                      <TableHead>Attendance</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Last Active</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredStudents.map((student) => (
-                      <TableRow key={student.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarImage src={student.avatar || "/placeholder.svg"} alt={student.name} />
-                              <AvatarFallback>
-                                {student.name
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">{student.name}</p>
-                              <p className="text-sm text-muted-foreground">{student.email}</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-sm">
-                              <span>{student.progress}%</span>
-                              <span className="text-muted-foreground">
-                                {student.assignments.completed}/{student.assignments.total}
-                              </span>
-                            </div>
-                            <Progress value={student.progress} className="h-2" />
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{student.grade}</Badge>
-                        </TableCell>
-                        <TableCell>{student.attendanceRate}%</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              student.status === "active"
-                                ? "default"
-                                : student.status === "at-risk"
-                                  ? "destructive"
-                                  : "secondary"
-                            }
-                          >
-                            {student.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{student.lastActive}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => onViewStudent(student.id)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Profile
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <MessageSquare className="mr-2 h-4 w-4" />
-                                Send Message
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Details
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-600">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Remove from Cohort
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                {cohortData.students.length === 0 ? (
+                  <p className="text-center text-muted-foreground">No students enrolled in this cohort.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Progress</TableHead>
+                        <TableHead>Grade</TableHead>
+                        <TableHead>Attendance</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Last Active</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredStudents.map((student) => (
+                        <TableRow key={student.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarImage src={student.avatar || "/placeholder.svg"} alt={student.name} />
+                                <AvatarFallback>
+                                  {student.name
+                                    ?.split(" ")
+                                    .map((n) => n[0])
+                                    .join("")}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium">{student.name}</p>
+                                <p className="text-sm text-muted-foreground">{student.email}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-sm">
+                                <span>{student.progress}%</span>
+                                <span className="text-muted-foreground">
+                                  {student.assignments?.completed}/{student.assignments?.total}
+                                </span>
+                              </div>
+                              <Progress value={student.progress} className="h-2" />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{student.grade}</Badge>
+                          </TableCell>
+                          <TableCell>{student.attendanceRate}%</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                student.status === "active"
+                                  ? "default"
+                                  : student.status === "at-risk"
+                                    ? "destructive"
+                                    : "secondary"
+                              }
+                            >
+                              {student.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{student.lastActive}</TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => onViewStudent(student.id)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Profile
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <MessageSquare className="mr-2 h-4 w-4" />
+                                  Send Message
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Details
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-red-600">
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Remove from Cohort
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -561,54 +510,62 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
               </Dialog>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {cohortData.assignments.map((assignment) => (
-                <Card key={assignment.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg">{assignment.title}</CardTitle>
-                      <Badge
-                        variant={
-                          assignment.status === "completed"
-                            ? "default"
-                            : assignment.status === "active"
-                              ? "secondary"
-                              : "outline"
-                        }
-                      >
-                        {assignment.status}
-                      </Badge>
-                    </div>
-                    <CardDescription>Due: {new Date(assignment.dueDate).toLocaleDateString()}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Submissions</span>
-                        <span>
-                          {assignment.submissions}/{cohortData.studentsCount}
-                        </span>
-                      </div>
-                      <Progress value={(assignment.submissions / cohortData.studentsCount) * 100} className="h-2" />
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold">{assignment.averageScore}</div>
-                      <div className="text-sm text-muted-foreground">Average Score</div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1">
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex-1">
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <Card>
+              <CardContent className="pt-6">
+                {cohortData?.assignments?.length === 0 ? (
+                  <p className="text-center text-muted-foreground">No assignments available.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    { cohortData?.assignments && cohortData?.assignments.map((assignment) => (
+                      <Card key={assignment.id}>
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <CardTitle className="text-lg">{assignment.title}</CardTitle>
+                            <Badge
+                              variant={
+                                assignment.status === "completed"
+                                  ? "default"
+                                  : assignment.status === "active"
+                                    ? "secondary"
+                                    : "outline"
+                              }
+                            >
+                              {assignment.status}
+                            </Badge>
+                          </div>
+                          <CardDescription>Due: {new Date(assignment.dueDate).toLocaleDateString()}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span>Submissions</span>
+                              <span>
+                                {assignment.submissions}/{cohortData?.students?.length}
+                              </span>
+                            </div>
+                            <Progress value={(assignment.submissions / cohortData?.students?.length) * 100} className="h-2" />
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold">{assignment.averageScore}</div>
+                            <div className="text-sm text-muted-foreground">Average Score</div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" className="flex-1">
+                              <Eye className="h-4 w-4 mr-2" />
+                              View
+                            </Button>
+                            <Button variant="outline" size="sm" className="flex-1">
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Communication Tab */}
@@ -661,23 +618,27 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
 
             <Card>
               <CardContent className="pt-6">
-                <div className="space-y-4">
-                  {cohortData.communications.map((comm) => (
-                    <div key={comm.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline">{comm.type}</Badge>
-                          <h4 className="font-medium">{comm.subject}</h4>
+                {cohortData?.communications?.length === 0 ? (
+                  <p className="text-center text-muted-foreground">No communications available.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {cohortData?.communications?.map((comm) => (
+                      <div key={comm.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{comm.type}</Badge>
+                            <h4 className="font-medium">{comm.subject}</h4>
+                          </div>
+                          <span className="text-sm text-muted-foreground">{comm.date}</span>
                         </div>
-                        <span className="text-sm text-muted-foreground">{comm.date}</span>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          From: {comm.author} • To: {comm.recipients}
+                        </p>
+                        <p className="text-sm">{comm.content}</p>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        From: {comm.author} • To: {comm.recipients}
-                      </p>
-                      <p className="text-sm">{comm.content}</p>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -691,8 +652,8 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">89%</div>
-                  <p className="text-xs text-muted-foreground">+3% from last week</p>
+                  <div className="text-2xl font-bold">N/A</div>
+                  <p className="text-xs text-muted-foreground">Data not available</p>
                 </CardContent>
               </Card>
 
@@ -702,7 +663,7 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
                   <BookOpen className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">92%</div>
+                  <div className="text-2xl font-bold">{cohortData.completionRate}%</div>
                   <p className="text-xs text-muted-foreground">Above target</p>
                 </CardContent>
               </Card>
@@ -713,8 +674,8 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
                   <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">4.8/5</div>
-                  <p className="text-xs text-muted-foreground">Excellent rating</p>
+                  <div className="text-2xl font-bold">N/A</div>
+                  <p className="text-xs text-muted-foreground">Data not available</p>
                 </CardContent>
               </Card>
             </div>
@@ -745,7 +706,7 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
             <div className="grid grid-cols-2 gap-4 py-4">
               <div className="col-span-2 space-y-2">
                 <Label>Cohort Name</Label>
-                <Input defaultValue={cohortData.name} />
+                <Input defaultValue={cohortData.title} />
               </div>
               <div className="col-span-2 space-y-2">
                 <Label>Description</Label>
@@ -753,11 +714,11 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
               </div>
               <div className="space-y-2">
                 <Label>Start Date</Label>
-                <Input type="date" defaultValue={cohortData.startDate} />
+                <Input type="date" defaultValue={cohortData.startDate.split("T")[0]} />
               </div>
               <div className="space-y-2">
                 <Label>End Date</Label>
-                <Input type="date" defaultValue={cohortData.endDate} />
+                <Input type="date" defaultValue={cohortData.endDate.split("T")[0]} />
               </div>
               <div className="space-y-2">
                 <Label>Max Capacity</Label>
@@ -774,12 +735,38 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
                     <SelectItem value="completed">Completed</SelectItem>
                     <SelectItem value="paused">Paused</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="upcoming">Upcoming</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="col-span-2 space-y-2">
                 <Label>Schedule</Label>
                 <Input defaultValue={cohortData.schedule} />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label>Location</Label>
+                <Input defaultValue={cohortData.location} />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label>Category</Label>
+                <Input defaultValue={cohortData.category} />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label>Difficulty</Label>
+                <Select defaultValue={cohortData.difficulty}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Beginner">Beginner</SelectItem>
+                    <SelectItem value="Intermediate">Intermediate</SelectItem>
+                    <SelectItem value="Advanced">Advanced</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label>Language</Label>
+                <Input defaultValue={cohortData.language} />
               </div>
             </div>
             <DialogFooter>

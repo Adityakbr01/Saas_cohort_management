@@ -153,7 +153,6 @@ router.post(
 // Protected routes with more lenient rate limiting
 router.post(
   "/refresh-token",
-  protect,
   createDynamicRateLimiter({
     timeWindow: 10, // 10 minutes
     maxRequests: 20,
@@ -235,7 +234,7 @@ router.post(
       });
     },
   }),
-  resetPassword
+  AuthController.resetPassword
 );
 router.patch(
   "/updateProfile",

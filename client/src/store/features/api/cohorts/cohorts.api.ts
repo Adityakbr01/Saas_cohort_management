@@ -33,7 +33,27 @@ export const cohortsApi = createApi({
       },
       invalidatesTags: ["myOrgCohorts"],
     }),
+    getCohortById: builder.query({
+      query: (id: string) => ({
+        url: `/${id}`,
+        method: "GET",
+      }),
+    }),
+    getmentorCohort: builder.query({
+      query: () => ({
+        url: `/getmentorCohorts`,
+        method: "GET",
+      }),
+    }),
+    updateCohort: builder.mutation({
+      query: ({ id, data }) => ({
+        url: `/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["myOrgCohorts"],
+    }),
   }),
 });
 
-export const { useMyOrgCohortsQuery, useCreateCohortMutation } = cohortsApi;
+export const { useMyOrgCohortsQuery, useCreateCohortMutation,useGetCohortByIdQuery,useGetmentorCohortQuery,useUpdateCohortMutation } = cohortsApi;

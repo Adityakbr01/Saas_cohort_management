@@ -118,7 +118,7 @@ const useSessionWatcher = () => {
       }
     };
 
-    intervalRef.current = setInterval(checkSession, 15000);
+    intervalRef.current = setInterval(checkSession, 5000);
 
     return () => {
       if (intervalRef.current) {

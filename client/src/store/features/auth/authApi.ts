@@ -200,14 +200,10 @@ export const authApi = createApi({
         body: email,
       }),
     }),
-    refreshToken: builder.mutation<
-      { data: { accessToken: string } },
-      { refreshToken: string }
-    >({
-      query: ({ refreshToken }) => ({
+    refreshToken: builder.mutation({
+      query: () => ({
         url: "/refresh-token",
         method: "POST",
-        body: { refreshToken: refreshToken },
       }),
     }),
     logout: builder.mutation<void, void>({

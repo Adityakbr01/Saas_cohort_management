@@ -55,6 +55,12 @@ export const mentorApi = createApi({
         body: formData,
       }),
     }),
+    getmentorCohort: builder.query({
+      query: () => ({
+        url: `/getmentorCohorts`,
+        method: "GET",
+      }),
+    }),
   }),
 });
 
@@ -62,4 +68,5 @@ export const {
   useGetmyorgQuery,
   useMyOrgCohortsQuery,
   useCreateCohortMutation,
+  useGetmentorCohortQuery,
 } = mentorApi;

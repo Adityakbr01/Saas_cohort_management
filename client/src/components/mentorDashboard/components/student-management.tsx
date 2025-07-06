@@ -1,13 +1,13 @@
-"use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Users,
   BookOpen,
@@ -18,10 +18,11 @@ import {
   Edit,
   MessageSquare,
   Calendar,
-  Award,
   Clock,
-} from "lucide-react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+  BadgeCheck,
+  XCircle,
+} from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,59 +30,54 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-
-interface StudentManagementProps {
-  onViewCohort: (cohortId: string) => void
-  onViewStudent: (studentId: string) => void
+} from "@/components/ui/dropdown-menu";
+import { useUpdateCohortMutation } from "@/store/features/api/cohorts/cohorts.api";
+import { UpdateCohortDialog } from "./UpdateCohortDialog";
+// Cohort interface based on API response
+interface Cohort {
+  _id: string;
+  title: string;
+  shortDescription: string;
+  description: string;
+  mentor: {
+    _id: string;
+    name: string;
+    specialization: string;
+    overallRating: number;
+    responseTime: string;
+  };
+  organization: {
+    _id: string;
+    name: string;
+  };
+  startDate: string;
+  endDate: string;
+  maxCapacity: number;
+  status: string;
+  category: string;
+  difficulty: string;
+  students: string[];
+  schedule: string;
+  location: string;
+  progress: number;
+  completionRate: number;
+  language: string;
+  tags: string[];
+  prerequisites: string[];
+  certificateAvailable: boolean;
+  Thumbnail: string;
+  demoVideo: string;
+  createdAt: string;
 }
 
-// Mock data for cohorts and students
-const cohortsData = [
-  {
-    id: "cohort_1",
-    name: "Data Science Bootcamp - Fall 2024",
-    subject: "Data Science",
-    startDate: "2024-09-01",
-    endDate: "2024-12-15",
-    studentsCount: 25,
-    maxCapacity: 30,
-    status: "active",
-    progress: 65,
-    completionRate: 92,
-    averageGrade: "B+",
-    atRiskStudents: 3,
-  },
-  {
-    id: "cohort_2",
-    name: "Machine Learning Advanced - Q4 2024",
-    subject: "Machine Learning",
-    startDate: "2024-10-15",
-    endDate: "2024-12-30",
-    studentsCount: 15,
-    maxCapacity: 20,
-    status: "active",
-    progress: 40,
-    completionRate: 88,
-    averageGrade: "A-",
-    atRiskStudents: 1,
-  },
-  {
-    id: "cohort_3",
-    name: "Python Fundamentals - Summer 2024",
-    subject: "Programming",
-    startDate: "2024-06-01",
-    endDate: "2024-08-15",
-    studentsCount: 20,
-    maxCapacity: 25,
-    status: "completed",
-    progress: 100,
-    completionRate: 95,
-    averageGrade: "A",
-    atRiskStudents: 0,
-  },
-]
+interface StudentManagementProps {
+  cohorts: Cohort[];
+  onViewCohort: (cohortId: string) => void;
+  onViewStudent: (studentId: string) => void;
+}
 
+
+// Mock student data (since API response doesn't provide student data)
 const allStudentsData = [
   {
     id: "s1",
@@ -89,7 +85,7 @@ const allStudentsData = [
     email: "john.doe@email.com",
     avatar: "/placeholder.svg?height=40&width=40",
     cohort: "Data Science Bootcamp - Fall 2024",
-    cohortId: "cohort_1",
+    cohortId: "6865084562109e01ff761507", // Matches API cohort _id
     progress: 78,
     grade: "A-",
     status: "active",
@@ -104,7 +100,7 @@ const allStudentsData = [
     email: "jane.smith@email.com",
     avatar: "/placeholder.svg?height=40&width=40",
     cohort: "Data Science Bootcamp - Fall 2024",
-    cohortId: "cohort_1",
+    cohortId: "6865084562109e01ff761507",
     progress: 85,
     grade: "A",
     status: "active",
@@ -119,7 +115,7 @@ const allStudentsData = [
     email: "bob.wilson@email.com",
     avatar: "/placeholder.svg?height=40&width=40",
     cohort: "Data Science Bootcamp - Fall 2024",
-    cohortId: "cohort_1",
+    cohortId: "6865084562109e01ff761507",
     progress: 45,
     grade: "C",
     status: "at-risk",
@@ -128,43 +124,31 @@ const allStudentsData = [
     attendanceRate: 70,
     assignments: { completed: 5, total: 12 },
   },
-  {
-    id: "s4",
-    name: "Alice Johnson",
-    email: "alice.johnson@email.com",
-    avatar: "/placeholder.svg?height=40&width=40",
-    cohort: "Machine Learning Advanced - Q4 2024",
-    cohortId: "cohort_2",
-    progress: 92,
-    grade: "A+",
-    status: "active",
-    lastActive: "1 hour ago",
-    joinDate: "2024-10-15",
-    attendanceRate: 100,
-    assignments: { completed: 8, total: 8 },
-  },
-]
+];
 
-export default function StudentManagement({ onViewCohort, onViewStudent }: StudentManagementProps) {
-  const [activeView, setActiveView] = useState<"cohorts" | "students">("cohorts")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [cohortFilter, setCohortFilter] = useState("all")
+function StudentManagement({ cohorts, onViewCohort, onViewStudent }: StudentManagementProps) {
+  const [activeView, setActiveView] = useState<"cohorts" | "students">("cohorts");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [cohortFilter, setCohortFilter] = useState("all");
+
+  const [updateCohort] = useUpdateCohortMutation()
 
   const filteredStudents = allStudentsData.filter((student) => {
     const matchesSearch =
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || student.status === statusFilter
-    const matchesCohort = cohortFilter === "all" || student.cohortId === cohortFilter
-    return matchesSearch && matchesStatus && matchesCohort
-  })
+      student.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || student.status === statusFilter;
+    const matchesCohort = cohortFilter === "all" || student.cohortId === cohortFilter;
+    return matchesSearch && matchesStatus && matchesCohort;
+  });
 
-  const filteredCohorts = cohortsData.filter((cohort) => {
-    const matchesSearch = cohort.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || cohort.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  const filteredCohorts = cohorts.filter((cohort) => {
+    const matchesSearch = cohort.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || cohort.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
 
   return (
     <div className="space-y-6">
@@ -220,9 +204,9 @@ export default function StudentManagement({ onViewCohort, onViewStudent }: Stude
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Cohorts</SelectItem>
-                {cohortsData.map((cohort) => (
-                  <SelectItem key={cohort.id} value={cohort.id}>
-                    {cohort.name}
+                {cohorts.map((cohort) => (
+                  <SelectItem key={cohort._id} value={cohort._id}>
+                    {cohort.title}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -234,78 +218,102 @@ export default function StudentManagement({ onViewCohort, onViewStudent }: Stude
       {/* Cohorts View */}
       {activeView === "cohorts" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredCohorts.map((cohort) => (
-            <Card key={cohort.id} className="cursor-pointer hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{cohort.name}</CardTitle>
-                    <CardDescription>{cohort.subject}</CardDescription>
-                  </div>
-                  <Badge
-                    variant={
-                      cohort.status === "active" ? "default" : cohort.status === "completed" ? "secondary" : "outline"
-                    }
-                  >
-                    {cohort.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span>
-                      {cohort.studentsCount}/{cohort.maxCapacity}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    <span>{cohort.progress}%</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Award className="h-4 w-4 text-muted-foreground" />
-                    <span>{cohort.averageGrade}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                    <span>{cohort.atRiskStudents} at risk</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Progress</span>
-                    <span>{cohort.progress}%</span>
-                  </div>
-                  <Progress value={cohort.progress} className="h-2" />
-                </div>
-
-                <div className="text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span>
-                      {new Date(cohort.startDate).toLocaleDateString()} -{" "}
-                      {new Date(cohort.endDate).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => onViewCohort(cohort.id)}>
-                    <Eye className="h-4 w-4 mr-2" />
-                    View Details
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                </div>
+          {filteredCohorts.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6 text-center text-muted-foreground">
+                No cohorts found
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            filteredCohorts.map((cohort) => (
+              <Card key={cohort._id} className="cursor-pointer hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{cohort.title}</CardTitle>
+                      <CardDescription>{cohort.category}</CardDescription>
+                    </div>
+                    <Badge
+                      variant={
+                        cohort.status === "active"
+                          ? "default"
+                          : cohort.status === "completed"
+                            ? "secondary"
+                            : "outline"
+                      }
+                    >
+                      {cohort.status.charAt(0).toUpperCase() + cohort.status.slice(1)}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-slate-500" />
+                      <span>
+                        {cohort.students.length}/{cohort.maxCapacity}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-indigo-500" />
+                      <span>{cohort.progress}%</span>
+                    </div>                   <div className="flex items-center gap-2">
+                      {(cohort.certificateAvailable) ? (
+                        <BadgeCheck className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      )}
+                      <span>{cohort.certificateAvailable ? "YES" : "N/A"}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-orange-500" />
+                      <span>
+                        {
+                          allStudentsData.filter(
+                            (s) => s.cohortId === cohort._id && s.status === "at-risk"
+                          ).length
+                        } at risk
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Progress</span>
+                      <span>{cohort.progress}%</span>
+                    </div>
+                    <Progress value={cohort.progress} className="h-2" />
+                  </div>
+
+                  <div className="text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>
+                        {new Date(cohort.startDate).toLocaleDateString()} -{" "}
+                        {new Date(cohort.endDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => onViewCohort(cohort._id)}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Details
+                    </Button>
+
+                    <UpdateCohortDialog
+                      cohort={cohort}
+                      onUpdate={(updatedData) => updateCohort({ id: cohort._id, data: updatedData })}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
+
       )}
+
 
       {/* Students View */}
       {activeView === "students" && (
@@ -329,100 +337,108 @@ export default function StudentManagement({ onViewCohort, onViewStudent }: Stude
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredStudents.map((student) => (
-                  <TableRow key={student.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={student.avatar || "/placeholder.svg"} alt={student.name} />
-                          <AvatarFallback>
-                            {student.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{student.name}</p>
-                          <p className="text-sm text-muted-foreground">{student.email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="link"
-                        className="p-0 h-auto text-left"
-                        onClick={() => onViewCohort(student.cohortId)}
-                      >
-                        {student.cohort}
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span>{student.progress}%</span>
-                          <span className="text-muted-foreground">
-                            {student.assignments.completed}/{student.assignments.total}
-                          </span>
-                        </div>
-                        <Progress value={student.progress} className="h-2" />
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{student.grade}</Badge>
-                    </TableCell>
-                    <TableCell>{student.attendanceRate}%</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          student.status === "active"
-                            ? "default"
-                            : student.status === "at-risk"
-                              ? "destructive"
-                              : "secondary"
-                        }
-                      >
-                        {student.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {student.lastActive}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => onViewStudent(student.id)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Profile
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <MessageSquare className="mr-2 h-4 w-4" />
-                            Send Message
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onViewCohort(student.cohortId)}>
-                            <BookOpen className="mr-2 h-4 w-4" />
-                            View Cohort
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit Details
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">Remove Student</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                {filteredStudents.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center">
+                      No students found
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredStudents.map((student) => (
+                    <TableRow key={student.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={student.avatar || "/placeholder.svg"} alt={student.name} />
+                            <AvatarFallback>
+                              {student.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{student.name}</p>
+                            <p className="text-sm text-muted-foreground">{student.email}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="link"
+                          className="p-0 h-auto text-left"
+                          onClick={() => onViewCohort(student.cohortId)}
+                        >
+                          {student.cohort}
+                        </Button>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span>{student.progress}%</span>
+                            <span className="text-muted-foreground">
+                              {student.assignments.completed}/{student.assignments.total}
+                            </span>
+                          </div>
+                          <Progress value={student.progress} className="h-2" />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{student.grade}</Badge>
+                      </TableCell>
+                      <TableCell>{student.attendanceRate}%</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            student.status === "active"
+                              ? "default"
+                              : student.status === "at-risk"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                        >
+                          {student.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {student.lastActive}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => onViewStudent(student.id)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <MessageSquare className="mr-2 h-4 w-4" />
+                              Send Message
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onViewCohort(student.cohortId)}>
+                              <BookOpen className="mr-2 h-4 w-4" />
+                              View Cohort
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-red-600">Remove Student</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -450,9 +466,9 @@ export default function StudentManagement({ onViewCohort, onViewStudent }: Stude
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{cohortsData.filter((c) => c.status === "active").length}</div>
+            <div className="text-2xl font-bold">{cohorts.filter((c) => c.status === "active").length}</div>
             <p className="text-xs text-muted-foreground">
-              {cohortsData.filter((c) => c.status === "completed").length} completed
+              {cohorts.filter((c) => c.status === "completed").length} completed
             </p>
           </CardContent>
         </Card>
@@ -477,12 +493,17 @@ export default function StudentManagement({ onViewCohort, onViewStudent }: Stude
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {Math.round(cohortsData.reduce((acc, c) => acc + c.completionRate, 0) / cohortsData.length)}%
+              {cohorts.length
+                ? Math.round(cohorts.reduce((acc, c) => acc + c.completionRate, 0) / cohorts.length)
+                : 0}
+              %
             </div>
             <p className="text-xs text-muted-foreground">Across all cohorts</p>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }
+
+export default StudentManagement;

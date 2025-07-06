@@ -2,28 +2,9 @@
 
 import type React from "react"
 
-import { useState, useCallback } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import {
-    ArrowLeft,
-    GripVertical,
-    Plus,
-    Edit,
-    Trash2,
-    BookOpen,
-    Video,
-    FileText,
-    Link,
-    Save,
-    Eye,
-    Clock,
-    Users,
-} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
     Dialog,
     DialogContent,
@@ -33,8 +14,28 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useGetCohortByIdQuery } from "@/store/features/api/cohorts/cohorts.api"
+import {
+    ArrowLeft,
+    BookOpen,
+    Clock,
+    Edit,
+    Eye,
+    FileText,
+    GripVertical,
+    Link,
+    Plus,
+    Save,
+    Trash2,
+    Users,
+    Video,
+} from "lucide-react"
+import { useCallback, useState } from "react"
 
 interface CurriculumBuilderProps {
     cohortId: string
@@ -177,6 +178,24 @@ export default function CurriculumBuilder({ cohortId, onBack }: CurriculumBuilde
     const [isAddingLecture, setIsAddingLecture] = useState<string | null>(null)
     const [editingItem, setEditingItem] = useState<any>(null)
 
+
+    const { data, isLoading, error } = useGetCohortByIdQuery(cohortId, {
+        skip: !cohortId,
+    })
+    console.log(data?.data)
+
+
+    const start = new Date(data?.data?.startDate);
+    const end = new Date(data?.data?.endDate);
+
+    // Difference in milliseconds
+    const diffInMs = end.getTime() - start.getTime();
+
+    // Convert ms to weeks
+    const weeks = Math.ceil(diffInMs / (1000 * 60 * 60 * 24 * 7));
+
+    console.log(`${weeks} weeks`);
+
     // Drag and drop handlers
     const handleDragStart = useCallback((e: React.DragEvent, item: any, type: "module" | "lecture") => {
         setDraggedItem({ ...item, type })
@@ -275,7 +294,7 @@ export default function CurriculumBuilder({ cohortId, onBack }: CurriculumBuilde
                                 <BookOpen className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{curriculum.modules.length}</div>
+                                <div className="text-2xl font-bold">{data?.data?.chapters?.length}</div>
                             </CardContent>
                         </Card>
 
@@ -297,7 +316,7 @@ export default function CurriculumBuilder({ cohortId, onBack }: CurriculumBuilde
                                 <Clock className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">12 weeks</div>
+                                <div className="text-2xl font-bold">{weeks} weeks</div>
                             </CardContent>
                         </Card>
 
@@ -412,8 +431,8 @@ export default function CurriculumBuilder({ cohortId, onBack }: CurriculumBuilde
                                             <div
                                                 key={lecture.id}
                                                 className={`flex items-center gap-3 p-3 border rounded-lg transition-all duration-200 ${dragOverItem?.id === lecture.id && dragOverItem?.type === "lecture"
-                                                        ? "border-primary bg-primary/5"
-                                                        : "hover:bg-muted/50"
+                                                    ? "border-primary bg-primary/5"
+                                                    : "hover:bg-muted/50"
                                                     }`}
                                                 draggable
                                                 onDragStart={(e) => handleDragStart(e, lecture, "lecture")}
