@@ -1,10 +1,10 @@
-import express from "express";
 import { Role } from "@/configs/roleConfig";
-import { protect, restrictTo } from "@/middleware/authMiddleware";
-import { validateRequest } from "@/middleware/validateRequest";
 import { CohortController } from "@/controllers/cohort.controller";
-import { createCohortSchema, updateCohortSchema } from "@/utils/zod/cohort";
+import { protect, restrictTo } from "@/middleware/authMiddleware";
 import { uploadMedia } from "@/middleware/multerConfig";
+import { validateRequest } from "@/middleware/validateRequest";
+import { updateCohortSchema } from "@/utils/zod/cohort";
+import express from "express";
 
 const router = express.Router();
 
@@ -46,6 +46,14 @@ router.delete(
   protect,
   restrictTo(Role.organization, Role.mentor),
   CohortController.deleteCohort
+);
+
+
+
+router.post(
+  "/:id/enroll",
+  protect,
+  restrictTo(Role.student),
 );
 
 export default router;

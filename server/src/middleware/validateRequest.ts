@@ -9,7 +9,7 @@ export const validateRequest = (schema: ZodSchema<any>): RequestHandler => {
       // For multipart/form-data, req.body contains text fields, req.file contains the file
       const requestData = {
         ...req.body,
-        logo: req.file, // Add the file (if any) to the validation object
+        ...req.files,
       };
 
       if (!requestData || Object.keys(requestData).length === 0) {

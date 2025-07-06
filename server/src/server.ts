@@ -26,17 +26,16 @@ import subscriptionRouter from "@/routes/subscriptionRoute";
 import mentorRouter from "@/routes/mentorRoutes";
 import authRoutes from "@/routes/auth.routes";
 import cohortRoutes from "@/routes/cohort.routes";
+import chapterRoutes from "@/routes/chapter.routes";
 
 
 const app = express();
 
 
 // Middleware
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.disable("x-powered-by");
-
-app.use(compression());
 
 app.use(helmet());
 app.use(morgan("combined"));
@@ -67,6 +66,9 @@ app.use(
 
 
 app.use(cookieParser());
+
+//Todo --> add karna hai 
+// app.use(compression())
 
 // app.use("/api/v1/payments",paymentRouter)
 
@@ -103,10 +105,10 @@ app.use("/api/v1/org", orgRouter);
 // app.use("/api/v1/students", studentRouter);
 app.use("/api/v1/mentors", mentorRouter);
 
-//Todo --> Inka controller serive me splite karna hai
 //New Routes
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/cohorts",cohortRoutes)
+app.use("/api/v1/chapters", chapterRoutes);
 
 
 
