@@ -1,6 +1,7 @@
 import mongoose, { Document, Schema, Types, Model } from "mongoose";
 
 export interface ILesson extends Document {
+  _id: Types.ObjectId;
   title: string;
   duration: number;
   contentType: "video" | "text" | "interactive";

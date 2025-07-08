@@ -18,6 +18,7 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
+    console.log("Invalid file type:", file.mimetype);
     cb(new Error("Invalid file type"), false);
   }
 };

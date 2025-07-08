@@ -27,6 +27,7 @@ import mentorRouter from "@/routes/mentorRoutes";
 import authRoutes from "@/routes/auth.routes";
 import cohortRoutes from "@/routes/cohort.routes";
 import chapterRoutes from "@/routes/chapter.routes";
+import lessonRoutes from "@/routes/lessons.routes";
 
 
 const app = express();
@@ -109,6 +110,7 @@ app.use("/api/v1/mentors", mentorRouter);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/cohorts",cohortRoutes)
 app.use("/api/v1/chapters", chapterRoutes);
+app.use("/api/v1/lessons", lessonRoutes);
 
 
 

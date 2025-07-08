@@ -10,7 +10,9 @@
     "start-cron": "ts-node src/utils/Cron/subscriptionCron.ts",
     "clean": "rm -rf dist",
     "generate:swagger": "ts-node src/scripts/generateSwagger.ts",
-    "swagger": "tsx scripts/generateSwagger.ts"
+    "swagger": "tsx scripts/generateSwagger.ts",
+   "start:worker": "tsx src/jobs/workers/video.worker.ts"
+
   },
   "keywords": [],
   "author": "",
@@ -22,6 +24,7 @@
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.18",
     "@types/express": "^5.0.2",
+    "@types/fs-extra": "^11.0.4",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/morgan": "^1.9.9",
     "@types/multer": "^1.4.13",
@@ -40,6 +43,7 @@
     "@stripe/react-stripe-js": "^3.7.0",
     "@stripe/stripe-js": "^7.3.1",
     "bcrypt": "^6.0.0",
+    "bullmq": "^5.56.1",
     "chalk": "^5.4.1",
     "cloudinary": "^2.7.0",
     "compression": "^1.8.0",
@@ -48,6 +52,7 @@
     "dotenv": "^16.5.0",
     "express-async-handler": "^1.2.0",
     "express-rate-limit": "^7.5.0",
+    "fs-extra": "^11.3.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.0",

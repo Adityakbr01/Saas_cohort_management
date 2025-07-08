@@ -250,13 +250,12 @@ export const CohortService = {
     };
   },
   async getCohortById(id: string) {
-    const cohort = await Cohort.findById(id)
-      .populate("mentor organization")
+    const cohort = await Cohort.findOne({ _id: id, isDeleted: false }) // ❌ filter out deleted cohort
+      .populate("mentor")
+      .populate("organization")
       .populate({
         path: "chapters",
-        populate: {
-          path: "lessons", // optional, if lessons are populated inside chapters
-        },
+        match: { isDeleted: false }, // ❌ filter out deleted chapters
       });
 
     if (!cohort) throw new ApiError(404, "Cohort not found");
