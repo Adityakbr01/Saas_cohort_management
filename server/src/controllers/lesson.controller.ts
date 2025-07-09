@@ -1,103 +1,161 @@
 // import { addVideoToQueue } from "@/jobs/queues/video.queue";
+import { addVideoToQueue } from "@/jobs/queues/queueJobs";
+import { Chapter } from "@/models/chapter.model";
+import { Cohort } from "@/models/cohort.model";
+import { Lesson } from "@/models/lesson.model";
+import { ApiError } from "@/utils/apiError";
+import { sendSuccess } from "@/utils/responseUtil";
+import { wrapAsync } from "@/utils/wrapAsync";
 import { Request, Response } from "express";
-import expressAsyncHandler from "express-async-handler";
-import { videoQueue } from "../configs/bullmq";
+import mongoose from "mongoose";
 
 
 
-// queueJobs.ts
-export const addVideoToQueue = async (buffer: Buffer, lessonData: any): Promise<string> => {
-  if (!Buffer.isBuffer(buffer)) {
-    throw new Error("Invalid buffer: Input must be a Buffer");
-  }
-  if (!lessonData || typeof lessonData !== "object") {
-    throw new Error("Invalid lessonData: Must be a non-empty object");
-  }
 
-  const job = await videoQueue.add(
-    "processVideo",
-    { buffer, lessonData },
-    {
-      priority: lessonData.isPremium ? 1 : 2, // Prioritize premium content
-      jobId: `video_${lessonData.id}_${Date.now()}`, // Unique job ID
-    }
-  );
-  console.log("Job added to queue:", job.id);
-
-  if(!job.id){
-    throw new Error("Failed to add job to queue");
-  }
-
-  return job.id;
-};
-
-import { z } from "zod"; // Assuming createLessonSchema uses Zod
-
-// Validation schema for lesson data
-const createLessonSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
-  // Add other fields as needed
-});
 
 export const LessonController = {
-  createLessonUnderChapter: expressAsyncHandler(async (req: Request, res: Response) => {
-    // Validate request body
-    // const validatedData = createLessonSchema.parse(req.body);
-
-    const lessonData = {
-  chapterId: req.params.chapterId,
-  title: "Intro to Node.js",
-  description: "This is a fake lesson used for testing the video processing pipeline.",
-  duration: "00:15:00", // optional
-  createdBy: "64c1ef9b1234567890abcd12", // fake user ID
-  tags: ["backend", "node", "api"],
-  contentType: "video", // or "text" or "interactive"
-  isPremium: false, // optional
-  position: 1, // optional
-  id: "64c1ef9b1234567890abcd12", // fake lesson ID
-};
+ createLessonUnderChapter: wrapAsync(async (req: Request, res: Response) => {
+  const lessonData = req.body;
+  const userId = req.user?.id;
+  if (!userId) throw new ApiError(401, "Unauthorized");
 
 
-//     // // Prepare lesson data
-//     // const lessonData = {
-//     //   chapterId: req.params.chapterId,
-//     //   ...validatedData,
-//     // };
 
-//     // Validate chapterId format (MongoDB ObjectId)
-//     if (!req.params.chapterId.match(/^[0-9a-fA-F]{24}$/)) {
-//       res.status(400).json({ error: "Invalid chapterId" });
-//       return;
-    // }
+  try {
+    const chapterId = req.params.chapterId;
+    if (!chapterId) {
+      throw new ApiError(400, "Chapter ID is required");
+    }
 
-    // Check for video file
+    const chapter = await Chapter.findById(chapterId).populate("cohort");
+    if (!chapter) {
+      throw new ApiError(404, "Chapter not found");
+    }
+
+    if (!chapter?.cohort) {
+      throw new ApiError(400, "Chapter is not linked with any cohort");
+    }
+
+    if (chapter.cohort.mentor.toString() !== userId) {
+      throw new ApiError(403, "You are not authorized to add a lesson to this chapter");
+    }
+
+    if (lessonData.contentType === "video" && !req.file) {
+      throw new ApiError(400, "Video file is required");
+    }
+
+    const existingLesson = await Lesson.findOne({ chapter: chapterId, title: lessonData.title });
+    if (existingLesson) {
+      throw new ApiError(409, "A lesson with this title already exists in this chapter");
+    }
+
+    const position = await Lesson.getNextPosition(new mongoose.Types.ObjectId(chapterId));
+
+    const newLesson = await Lesson.create({
+      title: lessonData.title,
+      shortDescription: lessonData.shortDescription,
+      duration: lessonData.duration,
+      chapter: chapterId,
+      isPrivate: lessonData.isPrivate ?? false,
+      status: lessonData.status ?? "upcoming",
+      contentType: lessonData.contentType,
+      position,
+    });
+
+    if (!newLesson) {
+      throw new ApiError(500, "Failed to create lesson");
+    }
+
+    console.log("New lesson created:", newLesson);
+    chapter.lessons.push(newLesson._id);
+    await chapter.save();
+
+    if (lessonData.contentType !== "video") {
+      sendSuccess(res, 201, "Lesson created successfully", newLesson);
+      return;
+    }
+
+    
+
     if (!req.file || !req.file.buffer) {
-      res.status(400).json({ error: "Video file required" });
-      return;
+      throw new ApiError(400, "Video file required");
     }
 
-    // Validate file size (max 1GB for 15-30 min 720p video)
-    const maxFileSize = 1 * 1024 * 1024 * 1024; // 1GB
-    if (req.file.size > maxFileSize) {
-      res.status(400).json({ error: "Video file too large. Max size: 1GB" });
-      return;
+      if (lessonData.contentType === "video" && !req.file || !req.file.buffer) {
+    throw new ApiError(400, "Video file required");
+  }
+
+  if (lessonData.contentType === "video" && !req.file.mimetype.startsWith("video/")) {
+    throw new ApiError(400, "Invalid file type. Only video files are allowed");
+  }
+
+  const maxFileSize = 1 * 1024 * 1024 * 1024; // 1GB
+  if (lessonData.contentType === "video" && req.file.size > maxFileSize) {
+    throw new ApiError(400, "Video file too large. Max size: 1GB");
+  }
+
+    const jobId = await addVideoToQueue(req.file.buffer, {
+      lessonId: newLesson._id.toString(),
+      originalName: req.file.originalname,
+    });
+
+    if (!jobId) {
+      throw new ApiError(500, "Failed to queue video processing");
     }
 
-    try {
-      // Add video to queue
-      const jobId = await addVideoToQueue(req.file.buffer, lessonData);
+    sendSuccess(res, 202, "Video is being processed. It will be available soon.", {
+      jobId,
+      lessonId: newLesson._id,
+    });
 
-      res.status(202).json({
-        msg: "Video is being processed. It will be available soon.",
-        jobId,
-      });
-    } catch (error) {
-      res.status(500).json({
-        error: `Failed to queue video: ${error instanceof Error ? error.message : String(error)}`,
-      });
+  } catch (error) {
+    console.error("Lesson creation failed:", error);
+    res.status(500).json({
+      error: `Failed to create lesson: ${error instanceof Error ? error.message : String(error)}`,
+    });
+  }
+}),
+deleteLesson: wrapAsync(async (req: Request, res: Response) => {
+  const lessonId = req.params.lessonId;
+  const userId = req.user?.id;
+  if (!userId) throw new ApiError(401, "Unauthorized");
+
+  try {
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) {
+      throw new ApiError(404, "Lesson not found");
     }
-  }),
+
+    const chapter = await Chapter.findById(lesson.chapter);
+    if (!chapter) {
+      throw new ApiError(404, "Chapter not found");
+    }
+    const cohort = await Cohort.findById(chapter.cohort);
+    if (!cohort) {
+      throw new ApiError(404, "Cohort not found");
+    }
+
+    if(!cohort.mentor){
+      throw new ApiError(404, "Mentor not found");
+    }
+
+    if (cohort.mentor.toString() !== userId) {
+      throw new ApiError(403, "You are not authorized to delete this lesson");
+    }
+
+    await Lesson.findByIdAndUpdate(lessonId, { isDeleted: true });
+    chapter.lessons = chapter.lessons.filter((id) => id.toString() !== lessonId);
+    await chapter.save();
+
+
+    sendSuccess(res, 200, "Lesson deleted successfully");
+  } catch (error) {
+    console.error("Lesson deletion failed:", error);
+    res.status(500).json({
+      error: `Failed to delete lesson: ${error instanceof Error ? error.message : String(error)}`,
+    });
+  }
+}),
 };
 
 

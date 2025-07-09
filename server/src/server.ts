@@ -1,12 +1,12 @@
-import express from "express";
+import cookieParser from "cookie-parser";
 import cors from "cors";
+import express from "express";
+import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import morgan from "morgan";
-import cookieParser from "cookie-parser";
-import { rateLimit } from "express-rate-limit";
-import compression from "compression";
 import swaggerUi from "swagger-ui-express";
 import swaggerDocument from "../docs/swagger.json";
+
 
 
 
@@ -14,20 +14,19 @@ import { env_config } from "./configs/env";
 
 
 //middlewares
-import notFound from "@/middleware/notFound";
 import errorHandler from "@/middleware/errorHandler";
-import { swaggerSpec } from "./configs/swagger";
+import notFound from "@/middleware/notFound";
 
 // import userRouter from "@/routes/userRoutes";
 import orgRouter from "@/routes/orgRoutes";
 import subscriptionRouter from "@/routes/subscriptionRoute";
 // import paymentRouter from "./routes/paymentRoutes";
 // import studentRouter from "@/routes/studentRouter";
-import mentorRouter from "@/routes/mentorRoutes";
 import authRoutes from "@/routes/auth.routes";
-import cohortRoutes from "@/routes/cohort.routes";
 import chapterRoutes from "@/routes/chapter.routes";
+import cohortRoutes from "@/routes/cohort.routes";
 import lessonRoutes from "@/routes/lessons.routes";
+import mentorRouter from "@/routes/mentorRoutes";
 
 
 const app = express();

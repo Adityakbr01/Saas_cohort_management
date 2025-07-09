@@ -1,8 +1,10 @@
+version: "3.8"
+
 services:
   redis:
     image: redis:7.0-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -11,18 +13,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-
-  mongo:
-    image: mongo:6
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "localhost/test", "--eval", "db.runCommand({ ping: 1 })"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   app:
     build:
@@ -33,12 +23,10 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      mongo:
-        condition: service_healthy
     environment:
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      MONGO_URI: mongodb://mongo:27017/lms
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      MONGO_URI: ${MONGO_URI}
       BUNNY_CDN_HOST: ${BUNNY_CDN_HOST}
       BUNNY_API_KEY: ${BUNNY_API_KEY}
     volumes:
@@ -52,22 +40,23 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      mongo:
-        condition: service_healthy
     environment:
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      MONGO_URI: mongodb://mongo:27017/lms
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      MONGO_URI: ${MONGO_URI}
       BUNNY_CDN_HOST: ${BUNNY_CDN_HOST}
       BUNNY_API_KEY: ${BUNNY_API_KEY}
     volumes:
       - /tmp:/tmp
     deploy:
       replicas: 3
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1024m
       restart_policy:
         condition: on-failure
     command: ["tsx", "src/jobs/workers/video.worker.ts"]
 
 volumes:
   redis_data:
-  mongo_data:

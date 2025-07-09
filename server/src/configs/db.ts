@@ -1,20 +1,19 @@
-import mongoose from 'mongoose';
-import { logger } from '@/utils/logger.js';
+import mongoose from "mongoose";
+import { logger } from "@/utils/logger.js";
 
 const connectDB = async () => {
   try {
-    const MONGODB_URI = process.env.MONGO_URI;
-    if (!MONGODB_URI) {
-      throw new Error('MONGODB_URI is not defined in environment variables');
+    const MONGO_URI = process.env.MONGO_URI;
+    if (!MONGO_URI) {
+      throw new Error("MONGO_URI is not defined in .env file");
     }
 
-    await mongoose.connect(MONGODB_URI);
-    logger.info('MongoDB connected successfully');
+    await mongoose.connect(MONGO_URI);
+    logger.info("✅ MongoDB connected successfully");
   } catch (error) {
-    logger.error('MongoDB connection error:', error);
+    logger.error("❌ MongoDB connection error:", error);
     process.exit(1);
   }
 };
-
 
 export default connectDB;

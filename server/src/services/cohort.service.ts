@@ -250,14 +250,18 @@ export const CohortService = {
     };
   },
   async getCohortById(id: string) {
-    const cohort = await Cohort.findOne({ _id: id, isDeleted: false }) // ❌ filter out deleted cohort
-      .populate("mentor")
-      .populate("organization")
-      .populate({
-        path: "chapters",
-        match: { isDeleted: false }, // ❌ filter out deleted chapters
-      });
-
+ const cohort = await Cohort.findOne({ _id: id, isDeleted: false })
+  .populate("mentor")
+  .populate("organization")
+  .populate({
+    path: "chapters",
+    match: { isDeleted: false },
+    populate: {
+      path: "lessons",
+      model: "Lesson",
+      match: { isDeleted: false },
+    },
+  });
     if (!cohort) throw new ApiError(404, "Cohort not found");
     return cohort;
   },
