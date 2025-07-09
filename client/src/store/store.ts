@@ -7,7 +7,8 @@ import { paymentApi } from "./features/api/payment/payment";
 import { orgApi } from "./features/api/organization/orgApi";
 import {mentorApi} from "./features/api/mentor/mentorApi";
 import {cohortsApi} from "./features/api/cohorts/cohorts.api";
-
+import {chapterApi} from "./features/api/chapters/chapter";
+import {lessonApi} from "./features/api/lessons/lesson"
 
 import authReducer from "@/store/features/slice/UserAuthSlice"; // ✅ correct path lagayein
 
@@ -20,11 +21,13 @@ export const store = configureStore({
     [paymentApi.reducerPath]:paymentApi.reducer,
     [orgApi.reducerPath]:orgApi.reducer,
     [mentorApi.reducerPath]:mentorApi.reducer,
-    [cohortsApi.reducerPath]:cohortsApi.reducer,
+    [cohortsApi.reducerPath]:cohortsApi.reducer,  
+    [chapterApi.reducerPath]:chapterApi.reducer,
+    [lessonApi.reducerPath]:lessonApi.reducer,
 
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(authApi.middleware, subscriptionApi.middleware,plansApi.middleware,paymentApi.middleware,orgApi.middleware,mentorApi.middleware,cohortsApi.middleware),
+    getDefaultMiddleware().concat(authApi.middleware, subscriptionApi.middleware,plansApi.middleware,paymentApi.middleware,orgApi.middleware,mentorApi.middleware,cohortsApi.middleware,chapterApi.middleware,lessonApi.middleware),
   devTools: process.env.NODE_ENV !== "production",
 });
 

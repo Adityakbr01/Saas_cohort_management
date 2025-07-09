@@ -1,10 +1,10 @@
 import { Backend_URL } from "@/config/constant";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-export const cohortsApi = createApi({
-  reducerPath: "cohortsApi",
+export const chapterApi = createApi({
+  reducerPath: "chapterApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: `${Backend_URL}/cohorts`,
+    baseUrl: `${Backend_URL}/chapters`,
     credentials: "include", // Sends cookies with requests
     prepareHeaders: (headers) => {
       const token = localStorage.getItem("accessToken"); // Adjust based on your auth setup
@@ -14,24 +14,33 @@ export const cohortsApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ["Cohort", "myOrgCohorts"],
+  tagTypes: ["Chapter"],
   endpoints: (builder) => ({
     myOrgCohorts: builder.query({
       query: () => ({
         url: `/myOrgCohorts`,
         method: "GET",
       }),
-      providesTags: ["myOrgCohorts"],
+      providesTags: ["Chapter"],
     }),
-    createCohort: builder.mutation({
-      query: (formData: FormData) => {
+
+    // create chapters
+    createChapter: builder.mutation<any, any>({
+      query: (formData) => {
         return {
-          url: `/`, // Relative to baseUrl (i.e., /cohorts/)
+          url: `/cohort/${formData.cohortId}`, // Relative to baseUrl (i.e., /cohorts/)
           method: "POST",
           body: formData,
         };
       },
-      invalidatesTags: ["myOrgCohorts"],
+      invalidatesTags: ["Chapter"],
+    }),
+    deleteChapter: builder.mutation({
+      query: (chapterId: string) => ({
+        url: `/${chapterId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Chapter"],
     }),
     getCohortById: builder.query({
       query: (id: string) => ({
@@ -44,7 +53,7 @@ export const cohortsApi = createApi({
         url: `/getmentorCohorts`,
         method: "GET",
       }),
-      providesTags: ["myOrgCohorts"],
+      providesTags: ["Chapter"],
     }),
     updateCohort: builder.mutation({
       query: ({ id, data }) => ({
@@ -52,9 +61,9 @@ export const cohortsApi = createApi({
         method: "PUT",
         body: data,
       }),
-      invalidatesTags: ["myOrgCohorts"],
+      invalidatesTags: ["Chapter"],
     }),
   }),
 });
 
-export const { useMyOrgCohortsQuery, useCreateCohortMutation,useGetCohortByIdQuery,useGetmentorCohortQuery,useUpdateCohortMutation } = cohortsApi;
+export const {useCreateChapterMutation,useDeleteChapterMutation} = chapterApi;

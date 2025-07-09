@@ -54,9 +54,10 @@ interface CohortManagementProps {
 }
 
 export default function CohortManagement({ cohortId, onBack, onViewStudent, onEditCurriculum }: CohortManagementProps) {
-  const { data, isLoading, error } = useGetCohortByIdQuery(cohortId, {
+  const { data, isLoading, error,refetch:cohortrefreshByid } = useGetCohortByIdQuery(cohortId, {
     skip: !cohortId,
   })
+
 
   const cohortData = data?.data || {
     _id: "",
