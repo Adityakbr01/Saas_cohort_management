@@ -1,0 +1,14 @@
+node_modules
+dist
+build
+.env
+.env.*
+.git
+.gitignore
+.vscode
+.idea
+npm-debug.log
+yarn-error.log
+/public/build
+Dockerfile
+docker-compose.yml
