@@ -7,6 +7,7 @@ import { saveBufferToTempFile } from "@/utils/saveTemp";
 import { convertToHLS } from "@/services/ffmpeg.service";
 import { uploadHLSFolder } from "@/services/bunny.hls";
 import connectDB from "@/configs/db";
+import getVideoDuration from "@/utils/getVideoDuration";
 
 dotenv.config();
 
@@ -40,6 +41,16 @@ const connection = {
       const cloudFolder = `lms/hls/${job.id}_${Date.now()}`;
 
       try {
+
+        // ⏱ Step 1: Extract duration
+        console.log("⏱ Calculating video duration...");
+        const durationInSec = await getVideoDuration(inputPath);
+        console.log(`✅ Duration: ${durationInSec.toFixed(2)} seconds`);
+
+        await Lesson.findByIdAndUpdate(lessonId, {
+          duration: Math.round(durationInSec),
+        });
+
         console.log("⚙️ Converting to HLS...");
         await convertToHLS(inputPath, outputDir);
 
@@ -47,7 +58,10 @@ const connection = {
         const url = await uploadHLSFolder(outputDir, cloudFolder);
         console.log(`✅ Uploaded HLS URL: ${url}`);
 
-        await Lesson.findByIdAndUpdate(lessonId, { videoUrl: url });
+        await Lesson.findByIdAndUpdate(lessonId, {
+          videoUrl: url,
+          duration: durationInSec,
+        })
         console.log(`✅ Lesson ${lessonId} updated with video URL.`);
 
         return { url };

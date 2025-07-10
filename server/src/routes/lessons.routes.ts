@@ -4,7 +4,7 @@ import { validateRequest } from "@/middleware/validateRequest";
 // import { uploadMedia } from "@/middleware/multerConfig"; import { createLessonSchema, updateLessonSchema } from "@/utils/zod/lessonSchema";
 import { LessonController } from "@/controllers/lesson.controller";
 import { uploadMedia } from "@/middleware/multerConfig";
-import { createLessonSchema } from "@/utils/zod/lessonSchema";
+import { createLessonSchema, updateLessonSchema } from "@/utils/zod/lessonSchema";
 const router = express.Router();
 // Create lesson under a chapterrouter.post
 router.post(
@@ -13,15 +13,22 @@ router.post(
     validateRequest(createLessonSchema),
     LessonController.createLessonUnderChapter);
 
+router.put(
+    "/:lessonId",
+    protect,
+    restrictTo(Role.organization, Role.mentor),
+    validateRequest(updateLessonSchema),
+    LessonController.updateLesson
+);
 
 
-    //Delete lesson with id
-    router.delete(
-        "/:lessonId",
-        protect,
-        restrictTo(Role.organization, Role.mentor),
-        LessonController.deleteLesson
-    );
+//Delete lesson with id
+router.delete(
+    "/:lessonId",
+    protect,
+    restrictTo(Role.organization, Role.mentor),
+    LessonController.deleteLesson
+);
 
 // // Update lessonrouter.put(
 // "/chapter/:chapterId/:lessonId", protect,

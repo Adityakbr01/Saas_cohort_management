@@ -45,23 +45,21 @@ const lessonSchema = new Schema<ILesson>(
     },
     videoUrl: { type: String },
     body: { type: String },
-
     quizzes: [{ type: Schema.Types.ObjectId, ref: "Quiz" }],
     assignments: [{ type: Schema.Types.ObjectId, ref: "Assignment" }],
     resources: [{ type: Schema.Types.ObjectId, ref: "Resource" }],
     comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }],
     studentsCompleted: [{ type: Schema.Types.ObjectId, ref: "Student" }],
     studentsInProgress: [{ type: Schema.Types.ObjectId, ref: "Student" }],
-
     position: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
 
-// ✅ Index for unique position within each chapter
+// ✅ Unique index
 lessonSchema.index({ chapter: 1, position: 1 }, { unique: true });
 
-// ✅ Static method to get next available position
+// ✅ Static method for position
 lessonSchema.statics.getNextPosition = async function (
   chapterId: Types.ObjectId
 ): Promise<number> {
@@ -71,5 +69,46 @@ lessonSchema.statics.getNextPosition = async function (
     .lean();
   return lastLesson ? lastLesson.position + 1 : 1;
 };
+
+// ✅ Utility to update chapter status
+async function updateChapterStatus(chapterId: Types.ObjectId) {
+  const { Chapter } = await import("./chapter.model");
+  const Lesson = mongoose.model<ILesson>("Lesson");
+
+  const lessons = await Lesson.find({ chapter: chapterId, isDeleted: false });
+
+  const total = lessons.length;
+  const completed = lessons.filter((l) => l.status === "completed").length;
+  const inProgress = lessons.filter((l) => l.status === "inProgress").length;
+
+  let newStatus: "upcoming" | "inProgress" | "completed" = "upcoming";
+
+  if (completed === total && total > 0) {
+    newStatus = "completed";
+  } else if (completed > 0 || inProgress > 0) {
+    newStatus = "inProgress";
+  } else {
+    newStatus = "upcoming";
+  }
+
+  await Chapter.findByIdAndUpdate(chapterId, { status: newStatus });
+}
+
+// ✅ Hooks to trigger status update
+lessonSchema.post("save", async function (doc) {
+  await updateChapterStatus(doc.chapter);
+});
+
+lessonSchema.post("findOneAndUpdate", async function (doc) {
+  if (doc) {
+    await updateChapterStatus(doc.chapter);
+  }
+});
+
+lessonSchema.post("findOneAndDelete", async function (doc) {
+  if (doc) {
+    await updateChapterStatus(doc.chapter);
+  }
+});
 
 export const Lesson = mongoose.model<ILesson, ILessonModel>("Lesson", lessonSchema);

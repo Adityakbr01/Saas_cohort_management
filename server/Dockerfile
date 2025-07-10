@@ -1,19 +1,16 @@
-FROM node:20-alpine
+FROM node:20-slim
 
-# Install FFmpeg
-RUN apk add --no-cache ffmpeg
+RUN apt-get update && apt-get install -y ffmpeg curl
 
 WORKDIR /app
 
-# Copy package files first for caching
 COPY package*.json ./
-RUN npm install --production
+
+RUN npm install
 RUN npm install -g tsx
 
-# Copy source code
 COPY . .
 
-# Run as non-root user for security
 USER node
 
-CMD ["tsx", "index.ts"]
+CMD ["npm", "run", "dev"]

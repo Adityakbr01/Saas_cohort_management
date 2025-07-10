@@ -54,4 +54,6 @@ chapterSchema.statics.getNextPosition = async function (cohortId: Types.ObjectId
   return last ? last.position + 1 : 1;
 };
 
+
+
 export const Chapter = mongoose.model<IChapter, IChapterModel>("Chapter", chapterSchema);
