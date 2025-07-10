@@ -13,8 +13,6 @@ import ModuleList from "./ModuleList";
 export const ChapterSchema = z.object({
     title: z.string().min(1, "Title is required").max(100, "Title is too long"),
     shortDescription: z.string().min(1, "Description is required").max(500, "Description is too long"),
-    totalLessons: z.number().int().min(0, "Total lessons must be a non-negative integer"),
-    totalDuration: z.number().int().min(0, "Total duration must be a non-negative integer"),
     cohortId: z.string().min(1, "Cohort ID is required"),
 });
 
@@ -114,7 +112,6 @@ export default function CurriculumBuilder({ cohortId, onBack }: CurriculumBuilde
         }
     };
 
-
     if (isLoading) return <div>Loading...</div>;
     if (error) return <div>Error loading curriculum</div>;
 
@@ -149,7 +146,7 @@ export default function CurriculumBuilder({ cohortId, onBack }: CurriculumBuilde
                         refetch={refetch}
                         
                     />
-                    <EditItemDialog editingItem={editingItem} onClose={() => setEditingItem(null)} />
+                    <EditItemDialog editingItem={editingItem} onClose={() => setEditingItem(null)} refetch={refetch} />
                 </div>
             </div>
         </TooltipProvider>

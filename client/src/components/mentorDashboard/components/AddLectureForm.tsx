@@ -23,7 +23,6 @@ const AddLectureForm: React.FC<AddLectureFormProps> = ({ module, refetch }) => {
   const [formData, setFormData] = useState({
     title: "",
     contentType: "video",
-    duration: "",
     description: "",
     status: "upcoming",
     position: "end",
@@ -38,9 +37,9 @@ const AddLectureForm: React.FC<AddLectureFormProps> = ({ module, refetch }) => {
       });
       return;
     }
-    if (formData.contentType === "video" && (!formData.video || !formData.duration)) {
-      toast.error("Video file and duration are required", {
-        description: "Please upload a video and specify its duration.",
+    if (formData.contentType === "video" && !formData.video) {
+      toast.error("Video file is required", {
+        description: "Please upload a video.",
       });
       return;
     }
@@ -58,18 +57,12 @@ const AddLectureForm: React.FC<AddLectureFormProps> = ({ module, refetch }) => {
         ? 0
         : parseInt(formData.position.split("-")[1]) + 1;
 
-        const parsedDuration = parseInt(formData.duration);
-if (isNaN(parsedDuration)) {
-  toast.error("Please enter a valid duration.");
-  return;
-}
       
         await addVideoLessonMutation({
           chapterId: module._id,
           lesson: {
             title: formData.title,
             shortDescription: formData.description,
-            duration:parsedDuration * 60,
             contentType: formData.contentType,
             status: formData.status,
             isPrivate: false,
@@ -82,7 +75,7 @@ if (isNaN(parsedDuration)) {
         });
 
         setIsAddingLecture(false);
-        setFormData({ title: "", contentType: "video", duration: "", description: "", status: "upcoming", position: "end", video: null }); 
+        setFormData({ title: "", contentType: "video",description: "", status: "upcoming", position: "end", video: null }); 
     } catch (error) {
         
       console.error("Error adding lecture:", error);
@@ -99,7 +92,7 @@ if (isNaN(parsedDuration)) {
       open={isAddingLecture}
       onOpenChange={(open) => {
         setIsAddingLecture(open);
-        if (!open) setFormData({ title: "", contentType: "video", duration: "", description: "", status: "upcoming", position: "end", video: null });
+        if (!open) setFormData({ title: "", contentType: "video", description: "", status: "upcoming", position: "end", video: null });
       }}
     >
       <DialogTrigger asChild>
@@ -147,17 +140,7 @@ if (isNaN(parsedDuration)) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Duration (minutes)</Label>
-              <Input
-                placeholder="e.g., 45"
-                type="number"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                disabled={formData.contentType !== "video"}
-                required={formData.contentType === "video"}
-              />
-            </div>
+            
             {formData.contentType === "video" && (
               <div className="col-span-2 space-y-2">
                 <Label>Video File</Label>

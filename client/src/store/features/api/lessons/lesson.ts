@@ -6,7 +6,6 @@ interface Lesson {
   _id: string;
   title: string;
   shortDescription?: string;
-  duration?: number;
   status: string;
   contentType: string;
   position: number;
@@ -53,7 +52,6 @@ export const lessonApi = createApi({
         lesson: {
           title: string;
           shortDescription?: string;
-          duration: number;
           contentType: string;
           status: string;
           isPrivate?: boolean;
@@ -66,7 +64,6 @@ export const lessonApi = createApi({
         formData.append("video", lesson.video);
         formData.append("title", lesson.title);
         if (lesson.shortDescription) formData.append("shortDescription", lesson.shortDescription);
-        formData.append("duration", lesson.duration.toString());
         formData.append("contentType", lesson.contentType);
         formData.append("status", lesson.status);
         if (lesson.isPrivate) formData.append("isPrivate", lesson.isPrivate.toString());
@@ -76,6 +73,14 @@ export const lessonApi = createApi({
           body: formData,
         };
       },
+      invalidatesTags: ["Chapter", "Lesson"],
+    }),
+    updateLesson: builder.mutation({
+      query: ({ lessonId, updates }) => ({
+        url: `/${lessonId}`,
+        method: "PUT",
+        body: updates,
+      }),
       invalidatesTags: ["Chapter", "Lesson"],
     }),
     deleteLesson: builder.mutation({
@@ -88,4 +93,4 @@ export const lessonApi = createApi({
   }),
 });
 
-export const { useAddVideoLessonMutation, useDeleteLessonMutation } = lessonApi;
+export const { useAddVideoLessonMutation,useUpdateLessonMutation, useDeleteLessonMutation } = lessonApi;

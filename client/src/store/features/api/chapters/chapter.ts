@@ -35,6 +35,14 @@ export const chapterApi = createApi({
       },
       invalidatesTags: ["Chapter"],
     }),
+    updtateChapter:builder.mutation({
+      query: ({ chapterId, cohortId, data }) => ({
+        url: `/cohort/${cohortId}/${chapterId}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["Chapter"],
+    }),
     deleteChapter: builder.mutation({
       query: (chapterId: string) => ({
         url: `/${chapterId}`,
@@ -55,15 +63,7 @@ export const chapterApi = createApi({
       }),
       providesTags: ["Chapter"],
     }),
-    updateCohort: builder.mutation({
-      query: ({ id, data }) => ({
-        url: `/${id}`,
-        method: "PUT",
-        body: data,
-      }),
-      invalidatesTags: ["Chapter"],
-    }),
   }),
 });
 
-export const {useCreateChapterMutation,useDeleteChapterMutation} = chapterApi;
+export const {useCreateChapterMutation,useUpdtateChapterMutation,useDeleteChapterMutation} = chapterApi;

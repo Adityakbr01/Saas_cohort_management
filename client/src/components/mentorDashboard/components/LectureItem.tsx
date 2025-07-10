@@ -5,6 +5,7 @@ import { useDeleteLessonMutation } from "@/store/features/api/lessons/lesson";
 import type { Lecture } from "@/types/course";
 import { Clock, Edit, GripVertical, Trash2, Video, Book, Link, FileText, FileQuestion } from "lucide-react";
 import { toast } from "sonner";
+import { formatDuration } from "@/utils/formatDuration";
 
 
 interface LectureItemProps {
@@ -75,8 +76,6 @@ const LectureItem: React.FC<LectureItemProps> = ({
         }
     };
 
-
-
     return (
         <div
             className={`flex items-center gap-3 p-3 border rounded-lg transition-all duration-200 ${dragOverItem?.id === lecture._id && dragOverItem?.type === "lecture" ? "border-primary bg-primary/5" : "hover:bg-muted/50"
@@ -110,11 +109,11 @@ const LectureItem: React.FC<LectureItemProps> = ({
                         <TooltipTrigger asChild>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <Clock className="h-3 w-3" />
-                                {lecture.duration ? `${Math.round(lecture.duration / 60)} min` : "N/A"}
+                                {lecture.duration ? formatDuration(lecture.duration) : "Duration not available"}
                             </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>{lecture.duration ? `${lecture.duration} seconds (Exact Duration)` : "Duration not available"}</p>
+                            <p>{lecture.duration ? `${lecture.duration} seconds` : "Duration not available"}</p>
                         </TooltipContent>
                     </Tooltip>
                 </div>

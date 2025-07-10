@@ -135,7 +135,7 @@ const ChapterCard: React.FC<ChapterCardProps> = ({
           <div className="flex items-center gap-2">
             <Badge variant="outline">{module.totalDuration} min</Badge>
             <Button variant="ghost" size="sm" onClick={() => setEditingItem(module)}>
-              <Edit className="h-4 w-4" />
+              <Edit className="h-9 w-9" />
             </Button>
             <Button variant="ghost" size="sm" onClick={() => handleDeleteChapter(module._id)}>
               <Trash2 className="h-4 w-4" />
