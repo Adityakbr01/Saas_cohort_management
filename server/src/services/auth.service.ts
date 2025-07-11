@@ -181,6 +181,9 @@ export const authService = {
       user.otp = otpData.otp;
       user.otpExpiry = otpData.expiry;
       await user.save();
+      console.log(`Sending OTP email to ${user.email}`);
+      await sendOTPEmail(user.email, otpData.otp, user.name);
+      console.log(`OTP email sent successfully to ${user.email}`);
     } catch (error: any) {
       if (error.code === 11000) {
         throw new ApiError(400, `Email ${email} is already registered`);
@@ -648,7 +651,7 @@ export const authService = {
     user.password = password;
     await user.save();
   },
-   async updateProfile({
+  async updateProfile({
     userId,
     userRole,
     body,
