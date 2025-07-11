@@ -20,7 +20,7 @@ import notFound from "@/middleware/notFound";
 // import userRouter from "@/routes/userRoutes";
 import orgRouter from "@/routes/orgRoutes";
 import subscriptionRouter from "@/routes/subscriptionRoute";
-// import paymentRouter from "./routes/paymentRoutes";
+import paymentRouter from "./routes/paymentRoutes";
 // import studentRouter from "@/routes/studentRouter";
 import authRoutes from "@/routes/auth.routes";
 import chapterRoutes from "@/routes/chapter.routes";
@@ -57,7 +57,7 @@ app.use(limiter);
 
 app.use(
   cors({
-    origin:env_config.CORS_ORIGIN || process.env.CORS_ORIGIN || "*",
+    origin: env_config.CORS_ORIGIN || process.env.CORS_ORIGIN || "*",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     maxAge: 86400,
@@ -99,7 +99,7 @@ app.get("/", (_, res) => {
 
 // app.use("/api/v1/users", userRouter);
 app.use("/api/v1/subscription", subscriptionRouter);
-// app.use("/api/v1/payments",paymentRouter)
+app.use("/api/v1/payments", paymentRouter)
 app.use("/api/v1/org", orgRouter);
 
 // app.use("/api/v1/students", studentRouter);
@@ -107,7 +107,7 @@ app.use("/api/v1/mentors", mentorRouter);
 
 //New Routes
 app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/cohorts",cohortRoutes)
+app.use("/api/v1/cohorts", cohortRoutes)
 app.use("/api/v1/chapters", chapterRoutes);
 app.use("/api/v1/lessons", lessonRoutes);
 

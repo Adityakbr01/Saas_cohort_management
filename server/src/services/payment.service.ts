@@ -44,7 +44,6 @@
 //       throw new ApiError(500, "Failed to create order");
 //     }
 //   },
-
 //   async verifyPayment(req: Request) {
 //     const {
 //       razorpay_payment_id,
