@@ -66,7 +66,37 @@ const writeTempFile = (buffer: Buffer, filename: string): string => {
 
 // 2. Upload Video
 // Updated uploadVideo with retry + chunked upload
-export const uploadVideo = async (
+// export const uploadVideo = async (
+//   file: Express.Multer.File
+// ): Promise<UploadApiResponse> => {
+//   return new Promise((resolve, reject) => {
+//     const stream = cloudinary.uploader.upload_stream(
+//       {
+//         folder: "lms/videos",
+//         resource_type: "video",
+//         chunk_size: 6 * 1024 * 1024, // 6MB
+//       },
+//       (error, result) => {
+//         if (error || !result) {
+//           console.error("[ERROR] Cloudinary video upload error:", error);
+//           return reject(
+//             new Error(
+//               `Video upload failed: ${error?.message || "Unknown error"}`
+//             )
+//           );
+//         }
+
+//         console.log("[DEBUG] ✅ Video uploaded successfully:", result.secure_url);
+//         resolve(result);
+//       }
+//     );
+
+//     // Convert buffer to stream and pipe to Cloudinary
+//     bufferToStream(file.buffer).pipe(stream);
+//   });
+// };
+
+export const uploadVideo = (
   file: Express.Multer.File
 ): Promise<UploadApiResponse> => {
   return new Promise((resolve, reject) => {
@@ -74,24 +104,27 @@ export const uploadVideo = async (
       {
         folder: "lms/videos",
         resource_type: "video",
-        chunk_size: 6 * 1024 * 1024, // 6MB
+        chunk_size: 6 * 1024 * 1024,
+        eager: [
+          {
+            streaming_profile: "hd",
+            format: "m3u8",
+          },
+        ],
+        eager_async: true, // 🔥 background me adaptive HLS banega
       },
       (error, result) => {
         if (error || !result) {
-          console.error("[ERROR] Cloudinary video upload error:", error);
-          return reject(
-            new Error(
-              `Video upload failed: ${error?.message || "Unknown error"}`
-            )
-          );
+          console.error("❌ Cloudinary Upload Error:", error);
+          reject(new Error(`Video upload failed: ${error?.message || "Unknown error"}`));
+        } else {
+          console.log("✅ Uploaded:", result.secure_url);
+          console.log("🔥 background me adaptive HLS ban rha hai")
+          resolve(result);
         }
-
-        console.log("[DEBUG] ✅ Video uploaded successfully:", result.secure_url);
-        resolve(result);
       }
     );
 
-    // Convert buffer to stream and pipe to Cloudinary
     bufferToStream(file.buffer).pipe(stream);
   });
 };

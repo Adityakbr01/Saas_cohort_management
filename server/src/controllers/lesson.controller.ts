@@ -1,15 +1,19 @@
-// import { addVideoToQueue } from "@/jobs/queues/video.queue";
-import { addVideoToQueue } from "@/jobs/queues/queueJobs";
 import { Chapter } from "@/models/chapter.model";
 import { Cohort } from "@/models/cohort.model";
 import { Lesson } from "@/models/lesson.model";
+import { uploadVideo } from "@/services/cloudinaryService";
 import { ApiError } from "@/utils/apiError";
+import getVideoDurationFromBuffer from "@/utils/getVideoDuration";
 import { sendSuccess } from "@/utils/responseUtil";
 import { wrapAsync } from "@/utils/wrapAsync";
 import { Request, Response } from "express";
-import mongoose from "mongoose";
+import { Types } from "mongoose";
 
 
+type PopulatedCohort = {
+  _id: Types.ObjectId;
+  mentor: Types.ObjectId;
+};
 
 
 
@@ -17,104 +21,86 @@ export const LessonController = {
   createLessonUnderChapter: wrapAsync(async (req: Request, res: Response) => {
     const lessonData = req.body;
     const userId = req.user?.id;
+
     if (!userId) throw new ApiError(401, "Unauthorized");
 
+    const chapterId = req.params.chapterId;
+    if (!chapterId) throw new ApiError(400, "Chapter ID is required");
 
-    console.log("New mthod for Duration")
+   const chapter = await Chapter.findById(chapterId)
+  .populate<{ cohort: PopulatedCohort }>("cohort");
+   if (!chapter) throw new ApiError(404, "Chapter not found");
+if (!chapter.cohort) throw new ApiError(400, "Chapter is not linked with any cohort");
 
-    try {
-      const chapterId = req.params.chapterId;
-      if (!chapterId) {
-        throw new ApiError(400, "Chapter ID is required");
+  if (chapter.cohort.mentor.toString() !== userId) {
+  throw new ApiError(403, "You are not authorized to add a lesson to this chapter");
+}
+
+    const existingLesson = await Lesson.findOne({ chapter: chapterId, title: lessonData.title });
+    if (existingLesson) throw new ApiError(409, "Lesson title already exists in this chapter");
+
+    // 🛡️ Get position with retry logic in case of duplicate
+    let position = await Lesson.getNextPosition(chapter._id);
+    let newLesson;
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        newLesson = await Lesson.create({
+          title: lessonData.title,
+          shortDescription: lessonData.shortDescription,
+          duration: 0,
+          chapter: chapterId,
+          isPrivate: lessonData.isPrivate ?? false,
+          status: lessonData.status ?? "upcoming",
+          contentType: lessonData.contentType,
+          position,
+        });
+
+        break; // success
+      } catch (err: any) {
+        if (err.code === 11000 && err.keyPattern?.position) {
+          position += 1; // increment and try again
+        } else {
+          throw err;
+        }
       }
-
-      const chapter = await Chapter.findById(chapterId).populate("cohort");
-      if (!chapter) {
-        throw new ApiError(404, "Chapter not found");
-      }
-
-      if (!chapter?.cohort) {
-        throw new ApiError(400, "Chapter is not linked with any cohort");
-      }
-
-      if (chapter.cohort.mentor.toString() !== userId) {
-        throw new ApiError(403, "You are not authorized to add a lesson to this chapter");
-      }
-
-      if (lessonData.contentType === "video" && !req.file) {
-        throw new ApiError(400, "Video file is required");
-      }
-
-      const existingLesson = await Lesson.findOne({ chapter: chapterId, title: lessonData.title });
-      if (existingLesson) {
-        throw new ApiError(409, "A lesson with this title already exists in this chapter");
-      }
-
-      const position = await Lesson.getNextPosition(new mongoose.Types.ObjectId(chapterId));
-
-      const newLesson = await Lesson.create({
-        title: lessonData.title,
-        shortDescription: lessonData.shortDescription,
-        duration: "0",
-        chapter: chapterId,
-        isPrivate: lessonData.isPrivate ?? false,
-        status: lessonData.status ?? "upcoming",
-        contentType: lessonData.contentType,
-        position,
-      });
-
-      if (!newLesson) {
-        throw new ApiError(500, "Failed to create lesson");
-      }
-
-      console.log("New lesson created:", newLesson);
-      chapter.lessons.push(newLesson._id);
-      await chapter.save();
-
-      if (lessonData.contentType !== "video") {
-        sendSuccess(res, 201, "Lesson created successfully", newLesson);
-        return;
-      }
-
-      if (!req.file || !req.file.buffer) {
-        throw new ApiError(400, "Video file required");
-      }
-
-      if (lessonData.contentType === "video" && !req.file || !req.file.buffer) {
-        throw new ApiError(400, "Video file required");
-      }
-
-      if (lessonData.contentType === "video" && !req.file.mimetype.startsWith("video/")) {
-        throw new ApiError(400, "Invalid file type. Only video files are allowed");
-      }
-
-      const maxFileSize = 1 * 1024 * 1024 * 1024; // 1GB
-      if (lessonData.contentType === "video" && req.file.size > maxFileSize) {
-        throw new ApiError(400, "Video file too large. Max size: 1GB");
-      }
-
-      const jobId = await addVideoToQueue(req.file.buffer, {
-        lessonId: newLesson._id.toString(),
-        originalName: req.file.originalname,
-      });
-
-      if (!jobId) {
-        throw new ApiError(500, "Failed to queue video processing");
-      }
-
-      sendSuccess(res, 202, "Video is being processed. It will be available soon.", {
-        jobId,
-        lessonId: newLesson._id,
-      });
-
-    } catch (error) {
-      console.error("Lesson creation failed:", error);
-      res.status(500).json({
-        error: `Failed to create lesson: ${error instanceof Error ? error.message : String(error)}`,
-      });
     }
-  }),
 
+    if (!newLesson) {
+      throw new ApiError(500, "Failed to create lesson due to position conflict");
+    }
+
+    chapter.lessons.push(newLesson._id);
+    await chapter.save();
+
+    if (lessonData.contentType !== "video") {
+      sendSuccess(res, 201, "Lesson created successfully", newLesson);
+      return
+    }
+
+    // ✅ Validate Video
+    if (!req.file || !req.file.buffer) throw new ApiError(400, "Video file is required");
+    if (!req.file.mimetype.startsWith("video/")) {
+      throw new ApiError(400, "Invalid file type. Only video files allowed");
+    }
+
+    const maxFileSize = 1 * 1024 * 1024 * 1024; // 1GB
+    if (req.file.size > maxFileSize) {
+      throw new ApiError(400, "Video file too large. Max size: 1GB");
+    }
+
+    // 📤 Upload to Cloudinary or CDN
+    const cloudinaryResponse = await uploadVideo(req.file);
+    const durationInSeconds = await getVideoDurationFromBuffer(req.file.buffer);
+
+    const hlsUrl = cloudinaryResponse.secure_url.replace(/\.mp4$/, ".m3u8");
+
+    newLesson.videoUrl = hlsUrl;
+    newLesson.duration = Math.floor(durationInSeconds);
+    await newLesson.save();
+
+    sendSuccess(res, 201, "Video lesson created successfully", newLesson);
+  }),
   updateLesson: wrapAsync(async (req: Request, res: Response) => {
     const lessonId = req.params.lessonId;
     const updates = req.body;
@@ -156,9 +142,7 @@ export const LessonController = {
         error: `Failed to update lesson: ${error instanceof Error ? error.message : String(error)}`,
       });
     }
-  })
-  ,
-
+  }),
   deleteLesson: wrapAsync(async (req: Request, res: Response) => {
     const lessonId = req.params.lessonId;
     const userId = req.user?.id;
@@ -213,7 +197,6 @@ export const LessonController = {
       });
     }
   }),
-
 };
 
 

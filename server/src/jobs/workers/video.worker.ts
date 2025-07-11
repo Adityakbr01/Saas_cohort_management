@@ -42,10 +42,9 @@ const connection = {
 
       try {
 
-        // ⏱ Step 1: Extract duration
-        console.log("⏱ Calculating video duration...");
-        const durationInSec = await getVideoDuration(inputPath);
-        console.log(`✅ Duration: ${durationInSec.toFixed(2)} seconds`);
+        // ⏱ Step 1: Extract duration >> Todo
+
+        const durationInSec = 2
 
         await Lesson.findByIdAndUpdate(lessonId, {
           duration: Math.round(durationInSec),

@@ -63,10 +63,11 @@ lessonSchema.index({ chapter: 1, position: 1 }, { unique: true });
 lessonSchema.statics.getNextPosition = async function (
   chapterId: Types.ObjectId
 ): Promise<number> {
-  const lastLesson = await this.findOne({ chapter: chapterId })
+  const lastLesson = await this.findOne({ chapter: chapterId, isDeleted: false })
     .sort("-position")
     .select("position")
     .lean();
+
   return lastLesson ? lastLesson.position + 1 : 1;
 };
 

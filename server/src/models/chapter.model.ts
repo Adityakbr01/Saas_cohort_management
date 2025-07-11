@@ -1,6 +1,7 @@
 import mongoose, { Schema, Types, Document, Model } from "mongoose";
 
 interface IChapter extends Document {
+    _id: Types.ObjectId;
   title: string;
   totalLessons: number;
   totalDuration: number;

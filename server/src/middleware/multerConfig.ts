@@ -19,7 +19,7 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
     cb(null, true);
   } else {
     console.log("Invalid file type:", file.mimetype);
-    cb(new Error("Invalid file type"), false);
+    cb(new multer.MulterError("LIMIT_UNEXPECTED_FILE", file.fieldname)); 
   }
 };
 
