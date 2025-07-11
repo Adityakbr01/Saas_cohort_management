@@ -82,7 +82,6 @@ export const AuthController = {
       refreshToken,
     });
   }),
-
   verifyEmail: wrapAsync(async (req: Request, res: Response) => {
     const { email, otp, role }: VerifyEmailBody = req.body;
 

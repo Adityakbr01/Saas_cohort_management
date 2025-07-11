@@ -15,6 +15,8 @@ import { getCookieConfig } from "@/configs/cookieConfig";
 import jwt from "jsonwebtoken";
 import fileModel from "@/models/file.model";
 import { deleteFile, uploadImage } from "./cloudinaryService";
+import { Role } from "@/configs/roleConfig";
+import isSuperAdmin from "@/utils/isSuperAdmin";
 
 export const authService = {
   async register({
@@ -169,6 +171,8 @@ export const authService = {
             role,
             name,
             adminPrivileges,
+            isMasterAdmin: false,
+            isVerifiedByAdmin: false,
           });
           break;
         default:
@@ -304,12 +308,14 @@ export const authService = {
 
     if (!user.isVerified) {
       throw new ApiError(401, "Account is not verified");
-      return;
+    }
+
+    if (isSuperAdmin(user) && !user.isVerifiedByAdmin) {
+      throw new ApiError(401, "Invalid role");
     }
 
     if (user.suspended.isSuspended) {
       throw new ApiError(401, "Account is suspended Contact support");
-      return;
     }
 
     // Update last login time
@@ -455,7 +461,6 @@ export const authService = {
           break;
         default:
           throw new ApiError(400, "Invalid user role");
-          return;
       }
 
       if (!user) {
@@ -502,12 +507,11 @@ export const authService = {
         break;
       default:
         throw new ApiError(400, "Invalid role");
-        return;
     }
 
     if (!user) {
       throw new ApiError(404, "User not found");
-      return;
+
     }
 
     try {
