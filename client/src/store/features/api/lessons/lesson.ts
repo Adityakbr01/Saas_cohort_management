@@ -1,27 +1,10 @@
 
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Backend_URL } from "@/config/constant";
+import type { Lesson } from "@/types";
 
-interface Lesson {
-  _id: string;
-  title: string;
-  shortDescription?: string;
-  status: string;
-  contentType: string;
-  position: number;
-  isPrivate?: boolean;
-  videoUrl?: string;
-}
 
-interface Chapter {
-  _id: string;
-  title: string;
-  shortDescription?: string;
-  totalLessons: number;
-  totalDuration: number;
-  lessons: Lesson[];
-  status: string;
-}
+
 
 export interface AddLectureResponse {
   success: boolean;

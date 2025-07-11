@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCreateCohortMutation, useGetmentorCohortQuery } from "@/store/features/api/cohorts/cohorts.api";
 import { useGetmyorgQuery } from "@/store/features/api/mentor/mentorApi";
-import type { APIErrorResponse } from "@/types";
+import type { APIErrorResponse, Cohort } from "@/types";
 import {
   Plus,
   Search
@@ -263,7 +263,7 @@ export default function MentorDashboard() {
       toast.success("Cohort created successfully!", {
         id: toastId,
       });
-      window.location.reload(); 
+      window.location.reload();
       setThumbnailFile(null);
       setDemoVideoFile(null);
       setIsDialogOpen(false);
@@ -305,10 +305,12 @@ export default function MentorDashboard() {
   }
 
   if (currentView === "curriculum") {
+    console.log("v1")
     return <CurriculumBuilder cohortId={selectedCohort || ""} onBack={() => setCurrentView("cohort")} />;
   }
 
   if (currentView === "communication") {
+      console.log("v2")
     return <CommunicationCenter onBack={handleBackToDashboard} />;
   }
 
@@ -400,7 +402,7 @@ export default function MentorDashboard() {
                             <SelectValue placeholder="Select cohort" />
                           </SelectTrigger>
                           <SelectContent>
-                            {myCohorts.map(cohort => (
+                            {myCohorts.map((cohort: Cohort) => (
                               <SelectItem key={cohort._id} value={cohort._id}>
                                 {cohort.title}
                               </SelectItem>

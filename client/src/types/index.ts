@@ -7,7 +7,19 @@ export interface User {
   avatarUrl?: string;    // optional user avatar image URL
   createdAt: string;     // ISO date string
   updatedAt: string;
-  plan:any
+  plan: any
+}
+
+
+export interface OrganizationMember {
+  _id: string;
+  user: string; // ya `User` agar populated hai to
+  joinDate: string;
+  suspended: {
+    isSuspended: boolean;
+    suspendedAt: string | null;
+    reason: string;
+  };
 }
 
 // Organization type
@@ -20,6 +32,11 @@ export interface Organization {
   Members: User[];       // populated members array
   createdAt: string;
   updatedAt: string;
+  _id: string
+  email: string;
+  isVerified: boolean;
+  isActive: boolean;
+  plan: string;
 }
 
 // DashboardData type - example with counts and lists
@@ -44,4 +61,52 @@ export interface APIErrorResponse {
     message?: string;
     error?: FieldError[];
   };
+}
+
+
+export interface Cohort {
+  _id: string;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  organization: string;
+  mentors: string[];
+  students: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Chapter {
+  _id: string;
+  title: string;
+  description: string;
+  position: number;
+  cohort: string;
+  createdAt: string;
+  updatedAt: string;
+  lessons: Lesson[];
+  status: string;
+  totalDuration: number;
+  totalLessons: number;
+  shortDescription:string
+}
+
+export interface Lesson {
+  _id: string;
+  title: string;
+  description: string;
+  position: number;
+  chapter: string;
+  createdAt: string;
+  updatedAt: string;
+  shortDescription: string;
+  status: string;
+  contentType: string;
+  isPrivate?: boolean;
+  videoUrl?: string;
+duration: number;
+  type: string;
+  id: string;
+  order: number;
 }

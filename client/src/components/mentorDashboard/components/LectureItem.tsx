@@ -2,32 +2,28 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDeleteLessonMutation } from "@/store/features/api/lessons/lesson";
-import type { Lecture } from "@/types/course";
+
 import { Clock, Edit, GripVertical, Trash2, Video, Book, Link, FileText, FileQuestion } from "lucide-react";
 import { toast } from "sonner";
 import { formatDuration } from "@/utils/formatDuration";
+import type { Chapter, Lesson } from "@/types";
 
+
+
+export type DragItem =
+    | (Chapter & { type: "module" })
+    | (Lesson & { type: "Lesson" });
 
 interface LectureItemProps {
-    lecture: Lecture;
+    lecture: Lesson;
     lectureIndex: number;
-    draggedItem: any;
-    dragOverItem: any;
-    handleDragStart: (e: React.DragEvent, item: any, type: "module" | "lecture") => void;
-    handleDragOver: (e: React.DragEvent, item: any, type: "module" | "lecture") => void;
-    handleDrop: (e: React.DragEvent, item: any, type: "module" | "lecture") => void;
-    setEditingItem: (item: any) => void;
+    setEditingItem: (item: Lesson | Chapter | null) => void;
     refetch: () => void;
 }
 
 const LectureItem: React.FC<LectureItemProps> = ({
     lecture,
-    lectureIndex,
-    draggedItem,
-    dragOverItem,
-    handleDragStart,
-    handleDragOver,
-    handleDrop,
+
     setEditingItem,
     refetch,
 }) => {
@@ -78,12 +74,8 @@ const LectureItem: React.FC<LectureItemProps> = ({
 
     return (
         <div
-            className={`flex items-center gap-3 p-3 border rounded-lg transition-all duration-200 ${dragOverItem?.id === lecture._id && dragOverItem?.type === "lecture" ? "border-primary bg-primary/5" : "hover:bg-muted/50"
-                }`}
-            draggable
-            onDragStart={(e) => handleDragStart(e, lecture, "lecture")}
-            onDragOver={(e) => handleDragOver(e, lecture, "lecture")}
-            onDrop={(e) => handleDrop(e, lecture, "lecture")}
+            className={`flex items-center gap-3 p-3 border rounded-lg transition-all duration-200`}
+
         >
             <Tooltip>
                 <TooltipTrigger>

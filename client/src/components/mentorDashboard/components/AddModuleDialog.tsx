@@ -4,10 +4,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import  { ChapterSchema } from "@/utils/zod";
 import { Plus } from "lucide-react";
 import React, { useState } from "react";
 import { z } from "zod";
-import  { ChapterSchema } from "./curriculum-builder";
 
 // Add Module Dialog Component
 const AddModuleDialog: React.FC<{

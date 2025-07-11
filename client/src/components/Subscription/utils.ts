@@ -33,7 +33,7 @@ export const createSubscriptionPlans = (apiPlans: ApiPlan[]): SubscriptionPlans 
       name: apiPlan.name.charAt(0).toUpperCase() + apiPlan.name.slice(1),
       price: apiPlan.price,
       yearlyPrice,
-      originalPrice: undefined,
+      originalPrice: apiPlan.price * 12,
       description: apiPlan.description,
       icon: iconMap[normalizedName] || BookOpen,
       color: colorMap[normalizedName] || "bg-blue-500",

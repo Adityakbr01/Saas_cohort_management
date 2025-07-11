@@ -5,10 +5,6 @@ import path from "path"
 
 // https://vite.dev/config/
 export default defineConfig({
-  server: {
-    host: '0.0.0.0',      // 👈 allows Docker access from host
-    port: 5173,
-  },
   plugins: [react(),tailwindcss(),],
   resolve: {
     alias: {

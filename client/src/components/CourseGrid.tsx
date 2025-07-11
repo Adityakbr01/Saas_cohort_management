@@ -3,7 +3,7 @@ import CourseCard from "@/components/course-card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 
-const mockCourses = [
+const mockCourses: Course[] = [
   {
     id: "1",
     title: "Complete React Development Bootcamp",
@@ -78,6 +78,19 @@ const mockCourses = [
   },
 ]
 
+interface Course {
+  id: string;
+  title: string;
+  description: string;
+  instructor: string;
+  duration: string;
+  level: "Intermediate" | "Beginner" | "Advanced"; // Update this line
+  rating: number;
+  students: number;
+  thumbnail: string;
+  price: string;
+}
+
 function CourseCardSkeleton() {
   return (
     <Card className="overflow-hidden pt-0">
@@ -105,7 +118,7 @@ function CourseCardSkeleton() {
 }
 
 export default function CourseGrid() {
-  const [courses, setCourses] = useState([])
+  const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

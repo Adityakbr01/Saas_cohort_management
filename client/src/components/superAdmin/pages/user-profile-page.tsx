@@ -1,17 +1,5 @@
 "use client"
 
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Mail, Phone, MapPin, Calendar, Shield, LogOut, Lock, Eye, Download } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,9 +11,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { Calendar, Download, Eye, Lock, LogOut, Mail, MapPin, Phone, Shield } from "lucide-react"
+import { useState } from "react"
 
 export function UserProfilePage() {
-  const navigate = useNavigate()
+
   const [isEditing, setIsEditing] = useState(false)
 
   const handleLogout = () => {

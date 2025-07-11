@@ -209,6 +209,9 @@ export default function OrgAdminDashboard() {
   const [isCreateCohortOpen, setIsCreateCohortOpen] = useState(false)
   const [currentView, setCurrentView] = useState("dashboard") // dashboard, mentor, cohort, student
 
+  const [adminSearchTerm, setAdminSearchTerm] = useState("");
+  const [isCreateAdminOpen, setIsCreateAdminOpen] = useState(false);
+
   const dashboardStats = {
     totalOrgAdmins: orgAdmins.length,
     totalMentors: mentors.length,
@@ -392,7 +395,13 @@ export default function OrgAdminDashboard() {
 
           {/* Org Admins Tab */}
           <TabsContent value="admins" className="space-y-6">
-            <AdminsTab apiBaseUrl="/api" />
+            <AdminsTab
+              orgAdmins={orgAdmins}
+              searchTerm={adminSearchTerm}
+              setSearchTerm={setAdminSearchTerm}
+              isCreateAdminOpen={isCreateAdminOpen}
+              setIsCreateAdminOpen={setIsCreateAdminOpen}
+            />
           </TabsContent>
 
           {/* Enhanced Mentors Tab */}

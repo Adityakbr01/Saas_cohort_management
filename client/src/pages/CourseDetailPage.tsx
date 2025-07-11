@@ -6,10 +6,52 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { ArrowLeft, Clock, Users, Star, Play, Download, BadgeIcon as Certificate, Globe, BookOpen } from "lucide-react"
-import { Link } from "react-router-dom"
+
+
+type Course = {
+  id: string
+  title: string
+  description: string
+  longDescription: string
+  instructor: {
+    name: string
+    bio: string
+    avatar: string
+    rating: number
+    students: number
+    courses: number
+  }
+  duration: string
+  level: "Beginner" | "Intermediate" | "Advanced"
+  rating: number
+  students: number
+  reviewCount: number
+  thumbnail: string
+  price: string
+  originalPrice: string
+  language: string
+  lastUpdated: string
+  certificate: boolean
+  downloadable: boolean
+  syllabus: {
+    title: string
+    lessons: number
+    duration: string
+    topics: string[]
+  }[]
+  reviews: {
+    id: number
+    name: string
+    avatar: string
+    rating: number
+    date: string
+    comment: string
+  }[]
+}
+
 
 // Mock course data - in a real app, this would come from an API
-const courseData: { [key: string]: any } = {
+const courseData: { [key: string]: Course } = {
   "1": {
     id: "1",
     title: "Complete React Development Bootcamp",
@@ -777,7 +819,7 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
 
               <TabsContent value="syllabus" className="mt-6">
                 <div className="space-y-4">
-                  {course.syllabus.map((section: any, index: number) => (
+                  {course.syllabus.map((section: Course["syllabus"][number], index: number) => (
                     <Card key={index}>
                       <CardHeader>
                         <div className="flex justify-between items-start">
@@ -877,7 +919,7 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
                   </Card>
 
                   <div className="space-y-4">
-                    {course.reviews.map((review: any) => (
+                    {course.reviews.map((review: Course["reviews"][number]) => (
                       <Card key={review.id}>
                         <CardContent className="pt-6">
                           <div className="flex items-start gap-4">

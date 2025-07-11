@@ -60,7 +60,7 @@ export const paymentApi = createApi({
       query: (body) => ({
         url: "/create",
         method: "POST",
-        body: { planId: "68493bd66024452a916d7fd1" },
+        body: body,
       }),
     }),
     validatePayment: builder.mutation({

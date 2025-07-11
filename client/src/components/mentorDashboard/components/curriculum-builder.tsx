@@ -1,49 +1,46 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useCreateChapterMutation } from "@/store/features/api/chapters/chapter";
 import { useGetCohortByIdQuery } from "@/store/features/api/cohorts/cohorts.api";
-import React, { useCallback, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
 import AddModuleDialog from "./AddModuleDialog";
 import CurriculumHeader from "./CurriculumHeader";
 import CurriculumOverview from "./CurriculumOverview";
 import EditItemDialog from "./EditItemDialog";
 import ModuleList from "./ModuleList";
+import type { Chapter, Lesson } from "@/types";
+import type { ChapterSchema } from "@/utils/zod";
 
-// Zod schema for chapter creation
-export const ChapterSchema = z.object({
-    title: z.string().min(1, "Title is required").max(100, "Title is too long"),
-    shortDescription: z.string().min(1, "Description is required").max(500, "Description is too long"),
-    cohortId: z.string().min(1, "Cohort ID is required"),
-});
+
 
 // Mock curriculum data
-const curriculumData = {
-    cohortId: "cohort_1",
-    cohortName: "Data Science Bootcamp - Fall 2024",
-    modules: [
-        {
-            id: "module_1",
-            title: "Python Fundamentals",
-            description: "Introduction to Python programming language",
-            duration: "2 weeks",
-            order: 1,
-            status: "completed",
-            lectures: [
-                {
-                    id: "lecture_1_1",
-                    title: "Variables and Data Types",
-                    type: "video",
-                    duration: "45 min",
-                    order: 1,
-                    status: "completed",
-                    description: "Learn about Python variables and basic data types",
-                },
-                // Additional lectures omitted for brevity
-            ],
-        },
-        // Additional modules omitted for brevity
-    ],
-};
+// const curriculumData = {
+//     cohortId: "cohort_1",
+//     cohortName: "Data Science Bootcamp - Fall 2024",
+//     modules: [
+//         {
+//             id: "module_1",
+//             title: "Python Fundamentals",
+//             description: "Introduction to Python programming language",
+//             duration: "2 weeks",
+//             order: 1,
+//             status: "completed",
+//             lectures: [
+//                 {
+//                     id: "lecture_1_1",
+//                     title: "Variables and Data Types",
+//                     type: "video",
+//                     duration: "45 min",
+//                     order: 1,
+//                     status: "completed",
+//                     description: "Learn about Python variables and basic data types",
+//                 },
+//                 // Additional lectures omitted for brevity
+//             ],
+//         },
+//         // Additional modules omitted for brevity
+//     ],
+// };
 
 interface CurriculumBuilderProps {
     cohortId: string;
@@ -52,16 +49,19 @@ interface CurriculumBuilderProps {
 
 
 
+export type DragItem =
+    | (Chapter & { type: "module" })
+    | (Lesson & { type: "lecture" });
 
 
 // Main CurriculumBuilder Component
 export default function CurriculumBuilder({ cohortId, onBack }: CurriculumBuilderProps) {
-    const [curriculum, setCurriculum] = useState(curriculumData);
-    const [draggedItem, setDraggedItem] = useState(null);
-    const [dragOverItem, setDragOverItem] = useState(null);
+    // const [curriculum, setCurriculum] = useState(curriculumData);
+    // const [draggedItem, setDraggedItem] = useState<Chapter | Lesson | null>(null);
+    // const [dragOverItem, setDragOverItem] = useState<Chapter | Lesson | null>(null);
     const [isAddingModule, setIsAddingModule] = useState(false);
-    const [isAddingLecture, setIsAddingLecture] = useState<string | null>(null);
-    const [editingItem, setEditingItem] = useState(null);
+    // const [isAddingLecture, setIsAddingLecture] = useState<string | null>(null);
+    const [editingItem, setEditingItem] = useState<Chapter | Lesson | null>(null);
 
     const [createChapter] = useCreateChapterMutation();
     const { data, isLoading, error, refetch } = useGetCohortByIdQuery(cohortId, { skip: !cohortId });
@@ -74,32 +74,43 @@ export default function CurriculumBuilder({ cohortId, onBack }: CurriculumBuilde
     const diffInMs = end.getTime() - start.getTime();
     const weeks = Math.ceil(diffInMs / (1000 * 60 * 60 * 24 * 7));
 
-    // Drag and drop handlers
-    const handleDragStart = useCallback((e: React.DragEvent, item: any, type: "module" | "lecture") => {
-        setDraggedItem({ ...item, type });
-        e.dataTransfer.effectAllowed = "move";
-    }, []);
+    
 
-    const handleDragOver = useCallback((e: React.DragEvent, item: any, type: "module" | "lecture") => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
-        setDragOverItem({ ...item, type });
-    }, []);
+    // // Drag and drop handlers
+    // const handleDragStart = useCallback(
+    //     (e: React.DragEvent, item: Chapter | Lesson, type: "module" | "lecture") => {
+    //         setDraggedItem({ ...item, type });
+    //         e.dataTransfer.effectAllowed = "move";
+    //     },
+    //     []
+    // );
 
-    const handleDrop = useCallback(
-        (e: React.DragEvent, targetItem: any, targetType: "module" | "lecture") => {
-            e.preventDefault();
-            if (!draggedItem || draggedItem.id === targetItem.id) {
-                setDraggedItem(null);
-                setDragOverItem(null);
-                return;
-            }
-            // Implement reordering logic here if needed
-            setDraggedItem(null);
-            setDragOverItem(null);
-        },
-        [draggedItem]
-    );
+    // const handleDragOver = useCallback(
+    //     (e: React.DragEvent, item: Chapter | Lesson, type: "module" | "lecture") => {
+    //         e.preventDefault();
+    //         e.dataTransfer.dropEffect = "move";
+    //         setDragOverItem({ ...item, type });
+    //     },
+    //     []
+    // );
+
+    // const handleDrop = useCallback(
+
+    //                                                 //targetType: "module" | "lecture"         
+
+    //     (e: React.DragEvent, targetItem: Chapter | Lesson, ) => {
+    //         e.preventDefault();
+    //         if (!draggedItem || draggedItem?.id === targetItem?.id) {
+    //             setDraggedItem(null);
+    //             setDragOverItem(null);
+    //             return;
+    //         }
+    //         // Implement reordering logic here if needed
+    //         setDraggedItem(null);
+    //         setDragOverItem(null);
+    //     },
+    //     [draggedItem]
+    // );
 
     // Chapter creation handler
     const handleCreateChapter = async (formData: z.infer<typeof ChapterSchema>) => {
@@ -119,10 +130,10 @@ export default function CurriculumBuilder({ cohortId, onBack }: CurriculumBuilde
         <TooltipProvider>
             <div className="min-h-screen bg-background">
                 <div className="container mx-auto px-4 py-8">
-                    <CurriculumHeader cohortName={curriculum.cohortName} onBack={onBack} />
+                    <CurriculumHeader cohortName={data?.data?.name} onBack={onBack} />
                     <CurriculumOverview
                         chaptersLength={chapters.length}
-                        totalLectures={chapters.reduce((total:number, chapter) => total + chapter.lessons.length, 0)}
+                        totalLectures={chapters.reduce((total: number, chapter: Chapter) => total + chapter.lessons.length, 0)}
                         durationWeeks={weeks}
                     />
                     <div className="flex justify-between items-center mb-6">
@@ -136,15 +147,15 @@ export default function CurriculumBuilder({ cohortId, onBack }: CurriculumBuilde
                     </div>
                     <ModuleList
                         chapters={chapters}
-                        draggedItem={draggedItem}
-                        dragOverItem={dragOverItem}
-                        handleDragStart={handleDragStart}
-                        handleDragOver={handleDragOver}
-                        handleDrop={handleDrop}
+                        // draggedItem={draggedItem}
+                        // dragOverItem={dragOverItem}
+                        // handleDragStart={handleDragStart}
+                        // handleDragOver={handleDragOver}
+                        // handleDrop={handleDrop}
                         setEditingItem={setEditingItem}
-                        setIsAddingLecture={setIsAddingLecture}
+                        // setIsAddingLecture={setIsAddingLecture}
                         refetch={refetch}
-                        
+
                     />
                     <EditItemDialog editingItem={editingItem} onClose={() => setEditingItem(null)} refetch={refetch} />
                 </div>

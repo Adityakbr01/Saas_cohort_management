@@ -2,13 +2,14 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { Organization } from "@/types";
 import { Loader2, Plus } from "lucide-react";
 
 // CreateCohortDialog Component
 interface CreateCohortDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  orgData: any[];
+  orgData: Organization[];
   onCreateCohort: (event: React.FormEvent<HTMLFormElement>) => Promise<void>;
   isCreatingCohort: boolean;
   thumbnailFile: File | null;
@@ -47,6 +48,8 @@ function CreateCohortDialog({
       });
     }
   };
+
+  console.log(demoVideoFile,thumbnailFile)
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>

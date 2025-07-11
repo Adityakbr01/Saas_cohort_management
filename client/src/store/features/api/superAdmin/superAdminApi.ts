@@ -13,12 +13,12 @@ export type SubscriptionPlan = {
   createdAt: string;
   updatedAt: string;
   __v: number;
-  tax:number
-  yearlyPrice:number
-  discount:number
-  maxStudents:number
-  maxMentors:number
-  maxCourses:number
+  tax: number
+  yearlyPrice: number
+  discount: number
+  maxStudents: number
+  maxMentors: number
+  maxCourses: number
 };
 
 export interface GetSubscriptionsResponse {
@@ -45,12 +45,12 @@ export const subscriptionApi = createApi({
       providesTags: (result) =>
         result
           ? [
-              ...result.data.map(({ _id }) => ({
-                type: "SubscriptionPlan" as const,
-                id: _id,
-              })),
-              { type: "SubscriptionPlan", id: "LIST" },
-            ]
+            ...result.data.map(({ _id }) => ({
+              type: "SubscriptionPlan" as const,
+              id: _id,
+            })),
+            { type: "SubscriptionPlan", id: "LIST" },
+          ]
           : [{ type: "SubscriptionPlan", id: "LIST" }],
     }),
 
@@ -77,35 +77,37 @@ export const subscriptionApi = createApi({
             )
           );
         } catch (error) {
+          console.log(arg)
           console.error("Failed to create subscription:", error);
         }
       },
     }),
 
     updateSubscription: builder.mutation<
-      void,
-      { id: string; data: Partial<SubscriptionPlan> }
-    >({
-      query: ({ id, data }) => ({
-        url: `/${id}`,
-        method: "PUT",
-        body: data,
-      }),
-      invalidatesTags: (result, error, { id }) => [
-        { type: "SubscriptionPlan", id },
-        { type: "SubscriptionPlan", id: "LIST" },
-      ],
-    }),
-    deleteSubscription: builder.mutation<void, string>({
-      query: (id) => ({
-        url: `/${id}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: (result, error, id) => [
-        { type: "SubscriptionPlan", id },
-        { type: "SubscriptionPlan", id: "LIST" },
-      ],
-    }),
+  void,
+  { id: string; data: Partial<SubscriptionPlan> }
+>({
+  query: ({ id, data }) => ({
+    url: `/${id}`,
+    method: "PUT",
+    body: data,
+  }),
+  invalidatesTags: (_result, _error, { id }) => [
+    { type: "SubscriptionPlan", id },
+    { type: "SubscriptionPlan", id: "LIST" },
+  ],
+}),
+
+   deleteSubscription: builder.mutation<void, string>({
+  query: (id) => ({
+    url: `/${id}`,
+    method: "DELETE",
+  }),
+  invalidatesTags: (_result, _error, id) => [
+    { type: "SubscriptionPlan", id },
+    { type: "SubscriptionPlan", id: "LIST" },
+  ],
+}),
   }),
 });
 

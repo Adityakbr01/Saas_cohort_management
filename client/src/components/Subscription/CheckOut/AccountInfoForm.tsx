@@ -1,9 +1,8 @@
-import { memo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { FormData, FormErrors, FormAction } from "./types";
-import { debounce } from "lodash";
+import { memo } from "react";
+import type { FormAction, FormData, FormErrors } from "./types";
 
 interface AccountInfoFormProps {
     formData: FormData;

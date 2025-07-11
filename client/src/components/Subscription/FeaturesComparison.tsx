@@ -7,6 +7,12 @@ interface FeaturesComparisonProps {
 }
 
 const FeaturesComparison: React.FC<FeaturesComparisonProps> = ({ plans }) => {
+  const basic = plans?.basic;
+  const pro = plans?.pro;
+  const business = plans?.business;
+
+  if (!basic || !pro || !business) return null;
+
   return (
     <div className="mb-16">
       <h2 className="text-3xl font-bold text-center mb-8">Compare All Features</h2>
@@ -21,32 +27,36 @@ const FeaturesComparison: React.FC<FeaturesComparisonProps> = ({ plans }) => {
             </tr>
           </thead>
           <tbody>
-            {plans.basic.features.map((_, index) => (
-              <tr key={index} className="border-b hover:bg-muted/50">
-                <td className="p-4">{plans.basic.features[index]?.name || "N/A"}</td>
-                <td className="text-center p-4">
-                  {plans.basic.features[index]?.included ? (
-                    <Check className="h-5 w-5 text-green-500 mx-auto" aria-hidden="true" />
-                  ) : (
-                    <X className="h-5 w-5 text-muted-foreground mx-auto" aria-hidden="true" />
-                  )}
-                </td>
-                <td className="text-center p-4">
-                  {plans.pro.features[index]?.included ? (
-                    <Check className="h-5 w-5 text-green-500 mx-auto" aria-hidden="true" />
-                  ) : (
-                    <X className="h-5 w-5 text-muted-foreground mx-auto" aria-hidden="true" />
-                  )}
-                </td>
-                <td className="text-center p-4">
-                  {plans.business.features[index]?.included ? (
-                    <Check className="h-5 w-5 text-green-500 mx-auto" aria-hidden="true" />
-                  ) : (
-                    <X className="h-5 w-5 text-muted-foreground mx-auto" aria-hidden="true" />
-                  )}
-                </td>
-              </tr>
-            ))}
+            {basic.features.map((feature, index) => {
+              if (feature.name === "N/A") return null;
+
+              return (
+                <tr key={index} className="border-b hover:bg-muted/50">
+                  <td className="p-4">{feature.name}</td>
+                  <td className="text-center p-4">
+                    {feature.included ? (
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    ) : (
+                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
+                    )}
+                  </td>
+                  <td className="text-center p-4">
+                    {pro.features[index]?.included ? (
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    ) : (
+                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
+                    )}
+                  </td>
+                  <td className="text-center p-4">
+                    {business.features[index]?.included ? (
+                      <Check className="h-5 w-5 text-green-500 mx-auto" />
+                    ) : (
+                      <X className="h-5 w-5 text-muted-foreground mx-auto" />
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

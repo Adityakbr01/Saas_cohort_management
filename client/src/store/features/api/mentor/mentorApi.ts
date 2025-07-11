@@ -1,30 +1,9 @@
 import { Backend_URL } from "@/config/constant";
+import type { Organization } from "@/types";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-export interface OrganizationMember {
-  _id: string;
-  user: string; // ya `User` agar populated hai to
-  joinDate: string;
-  suspended: {
-    isSuspended: boolean;
-    suspendedAt: string | null;
-    reason: string;
-  };
-}
 
-export interface Organization {
-  _id: string;
-  name: string;
-  slug: string;
-  logo: string;
-  email: string;
-  isVerified: boolean;
-  isActive: boolean;
-  plan: string;
-  Members: OrganizationMember[];
-  createdAt: string;
-  updatedAt: string;
-}
+
 
 export const mentorApi = createApi({
   reducerPath: "mentorApi",
