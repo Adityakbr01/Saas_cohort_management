@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import http from "http";
 import cluster from "cluster";
 import os from "os";
-import app from "@/server"; // Your Express app
+import app from "@/server"; 
 import connectDB from "@/configs/db";
 import { logger } from "./src/utils/logger";
 

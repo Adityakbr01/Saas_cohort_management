@@ -5,7 +5,7 @@ import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
-import swaggerDocument from "../docs/swagger.json";
+// import swaggerDocument from "../docs/swagger.json";
 
 
 
@@ -88,7 +88,7 @@ app.use((_, res, next) => {
 });
 
 // ✅ API Docs
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // ✅ Health Check
 app.get("/", (_, res) => {
