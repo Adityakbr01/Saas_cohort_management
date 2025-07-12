@@ -26,6 +26,7 @@ export const CohortService = {
     schedule,
     location,
     progress,
+    
     completionRate,
     language,
     tags,
@@ -41,8 +42,10 @@ export const CohortService = {
     isPrivate,
   }: any) {
     // ✅ Validate mentor existence
+
+    console.log(mentor, organization);
     if (mentor) {
-      const mentorExists = await Mentor.findById(mentor);
+      const mentorExists = await Mentor.findById(mentor||createdBy);
       if (!mentorExists) {
         throw new ApiError(404, "Mentor does not exist");
       }

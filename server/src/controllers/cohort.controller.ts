@@ -16,8 +16,6 @@ export const CohortController = {
 
     const raw = req.body;
 
-    console.log("Raw data:", raw);
-
     // ✅ Convert/parse values
     const payload = {
       ...raw,
@@ -63,6 +61,8 @@ export const CohortController = {
       price: validated.price,
       originalPrice: validated.originalPrice,
       discount: validated.discount,
+      limitedTimeOffer: validated.limitedTimeOffer,
+      mentor: validated.mentor,
     });
 
     sendSuccess(res, 201, "Cohort created successfully");
