@@ -8,6 +8,7 @@ export interface User {
   createdAt: string;     // ISO date string
   updatedAt: string;
   plan: string;
+  _id: string;
 }
 
 

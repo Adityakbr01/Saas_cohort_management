@@ -2,8 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { selectCurrentUser } from "@/store/features/slice/UserAuthSlice";
 import type { Organization } from "@/types";
 import { Loader2, Plus } from "lucide-react";
+import { useSelector } from "react-redux";
 
 // CreateCohortDialog Component
 interface CreateCohortDialogProps {
@@ -28,7 +30,9 @@ function CreateCohortDialog({
   setDemoVideoFile,
 }: CreateCohortDialogProps) {
   
-  
+  const user = useSelector(selectCurrentUser);
+
+
   const handleDialogClose = (form: HTMLFormElement | null) => {
     onOpenChange(false);
     if (form) {
@@ -83,7 +87,7 @@ function CreateCohortDialog({
                 <Input
                   name="mentor"
                   placeholder="Enter mentor ID"
-                  defaultValue="686225d0975afe617d28b617"
+                  defaultValue={user?.role === "mentor" ? user._id : ""}
                   required
                 />
               </div>
