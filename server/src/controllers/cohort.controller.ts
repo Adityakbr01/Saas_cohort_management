@@ -16,6 +16,8 @@ export const CohortController = {
 
     const raw = req.body;
 
+    console.log("Raw data:", raw);
+
     // ✅ Convert/parse values
     const payload = {
       ...raw,
@@ -28,6 +30,10 @@ export const CohortController = {
           : [],
       chapters:
         typeof raw.chapters === "string" ? JSON.parse(raw.chapters) : [],
+      duration: Number(raw.duration),
+      price: Number(raw.price),
+      originalPrice: Number(raw.originalPrice),
+      discount: Number(raw.discount),
     };
 
     // ✅ Validate data
@@ -53,6 +59,10 @@ export const CohortController = {
       thumbnail,
       demoVideo,
       chapters: validated.chapters,
+      duration: validated.duration,
+      price: validated.price,
+      originalPrice: validated.originalPrice,
+      discount: validated.discount,
     });
 
     sendSuccess(res, 201, "Cohort created successfully");
@@ -97,6 +107,9 @@ export const CohortController = {
   updateCohort: wrapAsync(async (req, res) => {
     const userId = req.user?.id;
     const userRole = req.user?.role;
+
+    console.log(req.body)
+
     if (!userId) throw new ApiError(401, "Unauthorized");
     const cohortId = req.params.id;
     const updated = await CohortService.updateCohort(

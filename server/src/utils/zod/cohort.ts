@@ -35,6 +35,20 @@ export const createCohortSchema = z.object({
   thumbnail: z.string().optional(),
   demoVideo: z.string().optional(),
   createdBy: z.string().optional(), // Added to allow createdBy from controller
+  duration: z.string().optional(),
+  price: z.string() || z.number().optional(),
+  originalPrice: z.string() || z.number().optional(),
+  discount: z.string() || z.number().optional(),
+  isPrivate: z.boolean().optional(),
+ limitedTimeOffer: z.object({
+  isActive: z.boolean().optional(),
+  startDate: z.string().refine((val) => !val || !isNaN(Date.parse(val)), {
+    message: "Invalid date format",
+  }).optional(),
+  endDate: z.string().refine((val) => !val || !isNaN(Date.parse(val)), {
+    message: "Invalid date format",
+  }).optional(),
+}).optional()
 });
 
 export const updateCohortSchema = z.object({
@@ -58,4 +72,9 @@ export const updateCohortSchema = z.object({
   prerequisites: z.array(z.string()).optional(),
   certificateAvailable: z.boolean().optional(),
   chapters: z.array(z.string()).optional(),
+  duration: z.string().optional(),
+  price: z.number() || z.string().optional(),
+  originalPrice: z.number() || z.string().optional(),
+  discount: z.number() || z.number().optional(),
+  isPrivate: z.boolean().optional(),
 });

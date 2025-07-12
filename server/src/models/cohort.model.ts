@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
 
 export interface ICohort extends Document {
+  _id: Types.ObjectId;
   title: string;
   shortDescription: string;
   description: string;
@@ -8,6 +9,7 @@ export interface ICohort extends Document {
   organization: Types.ObjectId;
   startDate: Date;
   endDate: Date;
+  duration: string;
   maxCapacity: number;
   status: "active" | "completed" | "upcoming";
   category: string;
@@ -27,7 +29,25 @@ export interface ICohort extends Document {
   isDeleted: boolean;
   demoVideo: string;
   Thumbnail: string;
+  rating: number;
+  price: number;
+  originalPrice: number;
+  discount: number;
+  limitedTimeOffer?: {
+    isActive: boolean;
+    startDate: Date;
+    endDate: Date;
+  };
 }
+
+const limitedTimeOfferSchema = new Schema(
+  {
+    isActive: { type: Boolean, default: false },
+    startDate: { type: Date, default: Date.now },
+    endDate: { type: Date, default: Date.now },
+  },
+  { _id: false } // No need to generate _id for subdocument
+);
 
 const cohortSchema = new Schema<ICohort>(
   {
@@ -38,6 +58,7 @@ const cohortSchema = new Schema<ICohort>(
     organization: { type: Schema.Types.ObjectId, ref: "Organization", required: true },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
+    duration: { type: String, required: true },
     maxCapacity: { type: Number, required: true },
     status: {
       type: String,
@@ -65,7 +86,21 @@ const cohortSchema = new Schema<ICohort>(
     isDeleted: { type: Boolean, default: false },
     demoVideo: { type: String, default: "" },
     Thumbnail: { type: String, default: "" },
+    rating: { type: Number, default: 0 },
+    price: { type: Number, default: 0 },
+    originalPrice: { type: Number, default: 0 },
+    discount: { type: Number, default: 0 },
 
+    // ✅ Improved nested schema with proper structure
+    limitedTimeOffer: {
+      type: limitedTimeOfferSchema,
+      required: false,
+      default: {
+        isActive: false,
+        startDate: new Date(),
+        endDate: new Date(),
+      },
+    },
   },
   { timestamps: true }
 );

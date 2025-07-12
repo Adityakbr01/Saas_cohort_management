@@ -7,12 +7,20 @@ const storage = multer.memoryStorage();
 const allowedTypes = [
   "image/jpeg",
   "image/png",
-  "video/mp4",
+  "image/jpg",
+  "video/mp4", 
+  "video/webm",
+   "image/webp",
   "video/mpeg",
   "audio/mpeg",
   "audio/mp3",
+  "audio/wav",
+  "audio/ogg",
+  "image/svg+xml",
   "application/pdf",
+  "application/json",
 ];
+
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   if (allowedTypes.includes(file.mimetype)) {

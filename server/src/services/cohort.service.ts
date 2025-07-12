@@ -32,7 +32,11 @@ export const CohortService = {
     chapters,
     thumbnail,
     demoVideo,
-    payload,
+    duration,
+    price,
+    originalPrice,
+    discount,
+    isPrivate,
   }: any) {
     // ✅ Validate mentor existence
     if (mentor) {
@@ -168,6 +172,11 @@ export const CohortService = {
       chapters: chapterIds,
       Thumbnail: thumbnailUrl,
       demoVideo: demoVideoUrl,
+      duration,
+      price,
+      originalPrice,
+      discount,
+      isPrivate,
     });
 
     return await newCohort.save();
@@ -250,18 +259,18 @@ export const CohortService = {
     };
   },
   async getCohortById(id: string) {
- const cohort = await Cohort.findOne({ _id: id, isDeleted: false })
-  .populate("mentor")
-  .populate("organization")
-  .populate({
-    path: "chapters",
-    match: { isDeleted: false },
-    populate: {
-      path: "lessons",
-      model: "Lesson",
-      match: { isDeleted: false },
-    },
-  });
+    const cohort = await Cohort.findOne({ _id: id, isDeleted: false })
+      .populate("mentor")
+      .populate("organization")
+      .populate({
+        path: "chapters",
+        match: { isDeleted: false },
+        populate: {
+          path: "lessons",
+          model: "Lesson",
+          match: { isDeleted: false },
+        },
+      });
     if (!cohort) throw new ApiError(404, "Cohort not found");
     return cohort;
   },
@@ -279,8 +288,29 @@ export const CohortService = {
       throw new ApiError(403, "You are not allowed to update this cohort");
     }
 
-    // Optional: Org or admin-level permission check
+    // 💸 Apply discount logic before update
+    if (payload.originalPrice && payload.discount !== undefined) {
+      const discountAmount = (payload.originalPrice * payload.discount) / 100;
+      payload.price = Math.round(payload.originalPrice - discountAmount);
+      payload.discount = Math.round(payload.discount);
+    }
 
+if (payload.limitedTimeOffer) {
+  const { startDate, endDate } = payload.limitedTimeOffer;
+
+  if (startDate && typeof startDate === "string") {
+    payload.limitedTimeOffer.startDate = new Date(startDate);
+  }
+
+  if (endDate && typeof endDate === "string") {
+    payload.limitedTimeOffer.endDate = new Date(endDate);
+  }
+}
+
+
+    console.log(payload)
+
+    // ✅ Update cohort
     const updated = await Cohort.findByIdAndUpdate(cohortId, payload, {
       new: true,
       runValidators: true,
@@ -298,27 +328,20 @@ export const CohortService = {
       throw new ApiError(403, "You are not allowed to delete this cohort");
     }
 
-    const session = await Cohort.startSession();
-    session.startTransaction();
-
     try {
       cohort.isDeleted = true;
-      await cohort.save({ session });
+      await cohort.save();
 
       await Chapter.updateMany(
         { _id: { $in: cohort.chapters } },
-        { $set: { isDeleted: true } },
-        { session }
+        { $set: { isDeleted: true } }
       );
-
-      await session.commitTransaction();
-      session.endSession();
 
       return { success: true, message: "Cohort and chapters deleted" };
     } catch (err) {
-      await session.abortTransaction();
-      session.endSession();
+      console.error("Failed to delete cohort and chapters:", err);
       throw new ApiError(500, "Failed to delete cohort and its chapters");
     }
-  },
+  }
+  ,
 };
