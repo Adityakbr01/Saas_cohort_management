@@ -35,10 +35,10 @@ export const createCohortSchema = z.object({
   thumbnail: z.string().optional(),
   demoVideo: z.string().optional(),
   createdBy: z.string().optional(), // Added to allow createdBy from controller
-  duration: z.string().optional(),
-  price: z.string() || z.number().optional(),
-  originalPrice: z.string() || z.number().optional(),
-  discount: z.string() || z.number().optional(),
+  duration: z.number().optional(),
+  price: z.number() || z.number().optional(),
+  originalPrice: z.number() || z.number().optional(),
+  discount: z.number() || z.number().optional(),
   isPrivate: z.boolean().optional(),
  limitedTimeOffer: z.object({
   isActive: z.boolean().optional(),

@@ -5,6 +5,8 @@ import Organization from "@/models/organization.model";
 import { ApiError } from "@/utils/apiError";
 import { uploadImage, uploadVideo } from "./cloudinaryService";
 import { Role } from "@/configs/roleConfig";
+import { Lesson } from "@/models/lesson.model";
+import { Assignment } from "@/models/assignment.model";
 
 export const CohortService = {
   async createCohort({
@@ -336,6 +338,17 @@ if (payload.limitedTimeOffer) {
         { _id: { $in: cohort.chapters } },
         { $set: { isDeleted: true } }
       );
+
+      await Lesson.updateMany(
+        { chapter: { $in: cohort.chapters } },
+        { $set: { isDeleted: true } }
+      );
+
+      await Organization.updateMany(
+        { _id: cohort.organization },
+        { $pull: { cohorts: cohort._id } }
+      );
+
 
       return { success: true, message: "Cohort and chapters deleted" };
     } catch (err) {
