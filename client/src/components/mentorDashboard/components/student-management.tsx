@@ -21,6 +21,7 @@ import {
   Clock,
   BadgeCheck,
   XCircle,
+  Trash2,
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -31,7 +32,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUpdateCohortMutation } from "@/store/features/api/cohorts/cohorts.api";
+import { useDeleteCohortMutation, useUpdateCohortMutation } from "@/store/features/api/cohorts/cohorts.api";
 import { UpdateCohortDialog } from "./UpdateCohortDialog";
 // Cohort interface based on API response
 interface Cohort {
@@ -133,6 +134,7 @@ function StudentManagement({ cohorts, onViewCohort, onViewStudent }: StudentMana
   const [cohortFilter, setCohortFilter] = useState("all");
 
   const [updateCohort] = useUpdateCohortMutation()
+  const [deleteCohort] = useDeleteCohortMutation()
 
   const filteredStudents = allStudentsData.filter((student) => {
     const matchesSearch =
@@ -148,6 +150,16 @@ function StudentManagement({ cohorts, onViewCohort, onViewStudent }: StudentMana
     const matchesStatus = statusFilter === "all" || cohort.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const handleDeleteCohort = async (cohortId: string) => {
+    try {
+      await deleteCohort(cohortId).unwrap();
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to delete cohort:", err);
+    }
+  };
+
 
 
   return (
@@ -305,6 +317,15 @@ function StudentManagement({ cohorts, onViewCohort, onViewStudent }: StudentMana
                       cohort={cohort}
                       onUpdate={(updatedData) => updateCohort({ id: cohort._id, data: updatedData })}
                     />
+
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteCohort(cohort._id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

@@ -7,7 +7,7 @@ export interface User {
   avatarUrl?: string;    // optional user avatar image URL
   createdAt: string;     // ISO date string
   updatedAt: string;
-  plan: any
+  plan: string;
 }
 
 
@@ -72,10 +72,76 @@ export interface Cohort {
   endDate: string;
   organization: string;
   mentors: string[];
-  students: string[];
+
   createdAt: string;
   updatedAt: string;
+  shortDescription: string;
+  duration: string;
+  difficulty: "Beginner" | "Intermediate" | "Advanced";
+  rating: number;
+  students: number;
+  Thumbnail: string;
+  price: string;
 }
+
+
+export interface Student {
+  _id: string;
+  name: string;
+  email: string;
+  status: string;
+  progress: number;
+  lastActive: string;
+  avatar: string;
+  assignments: { completed: number; total: number };
+  grade: string;
+  attendanceRate: number;
+}
+
+export interface Cohort {
+  _id: string;
+  title: string;
+  shortDescription: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  organization: string;
+  mentors: string[];
+  mentor: Mentor;
+  students: number;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  Thumbnail: string;
+  demoVideo: string;
+  category: string;
+  certificateAvailable: boolean;
+  chapters: string[];
+  completionRate: number;
+  progress: number;
+  difficulty: "Beginner" | "Intermediate" | "Advanced";
+  language: string;
+  location: string;
+  maxCapacity: number;
+  isDeleted: boolean;
+  isPrivate: boolean;
+  schedule: string;
+  tags: string[];
+  prerequisites: string[];
+  __v: number;
+}
+
+export interface Mentor {
+  _id: string;
+  name: string;
+  phone: string;
+  // aap aur fields bhi add kar sakte hain based on actual data
+  refreshToken?: string;
+  suspended?: boolean;
+}
+
+
 
 export interface Chapter {
   _id: string;

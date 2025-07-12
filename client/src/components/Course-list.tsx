@@ -165,7 +165,21 @@ export default function CourseList() {
       {/* Course Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {currentCourses.map((course) => (
-          <CourseCard key={course.id} course={course} />
+         <CourseCard
+  key={course.id}
+  course={{
+    _id: course.id,
+    title: course.title,
+    shortDescription: course.description,
+    mentor: { name: course.instructor }, // assuming `course.instructor` is a string
+    duration: course.duration,
+    difficulty: course.level,
+    rating: course.rating,
+    students: course.students,
+    Thumbnail: course.thumbnail,
+    price: course.price
+  }}
+/>
         ))}
       </div>
 

@@ -54,7 +54,26 @@ export const cohortsApi = createApi({
       }),
       invalidatesTags: ["myOrgCohorts"],
     }),
+    getCohorts: builder.query({
+      query: () => ({
+        url: `/`,
+        method: "GET",
+      }),
+    }),
+    getCohortByCourseId: builder.query({
+      query: (courseId: string) => ({
+        url: `/${courseId}`,
+        method: "GET",
+      }),
+    }),
+    deleteCohort: builder.mutation({
+      query: (cohortId: string) => ({
+        url: `/${cohortId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["myOrgCohorts"],
+    }),
   }),
 });
 
-export const { useMyOrgCohortsQuery, useCreateCohortMutation,useGetCohortByIdQuery,useGetmentorCohortQuery,useUpdateCohortMutation } = cohortsApi;
+export const { useMyOrgCohortsQuery, useCreateCohortMutation,useGetCohortByIdQuery,useGetmentorCohortQuery,useUpdateCohortMutation,useGetCohortsQuery,useGetCohortByCourseIdQuery,useDeleteCohortMutation } = cohortsApi;

@@ -24,9 +24,7 @@ function CreateCohortDialog({
   orgData,
   onCreateCohort,
   isCreatingCohort,
-  thumbnailFile,
   setThumbnailFile,
-  demoVideoFile,
   setDemoVideoFile,
 }: CreateCohortDialogProps) {
   
@@ -49,7 +47,6 @@ function CreateCohortDialog({
     }
   };
 
-  console.log(demoVideoFile,thumbnailFile)
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -245,6 +242,22 @@ function CreateCohortDialog({
                     <SelectItem value="false">No</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Duration</label>
+                <Input name="duration" type="number" placeholder="e.g., 12 weeks" required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Price</label>
+                <Input name="price" type="number" placeholder="e.g., 100" required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Original Price</label>
+                <Input name="originalPrice" type="number" placeholder="e.g., 150" required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Discount</label>
+                <Input name="discount" type="number" placeholder="e.g., 20" required />
               </div>
             </div>
             <DialogFooter>

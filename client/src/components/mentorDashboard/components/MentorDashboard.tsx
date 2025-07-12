@@ -187,6 +187,18 @@ export default function MentorDashboard() {
         : [],
       certificateAvailable: formData.get("certificateAvailable") === "true",
       chapters: [],
+      duration: formData.get("duration")
+        ? Number(formData.get("duration"))
+        : 0,
+      price: formData.get("price")
+        ? Number(formData.get("price"))
+        : 0,
+      originalPrice: formData.get("originalPrice")
+        ? Number(formData.get("originalPrice"))
+        : 0,
+      discount: formData.get("discount")
+        ? Number(formData.get("discount"))
+        : 0,
     };
 
     const requiredFields: (keyof typeof cohortData)[] = [

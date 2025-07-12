@@ -61,7 +61,7 @@ const AppRoutes = () => {
       />
 
       <Route path="/courses" element={<CoursesPage />} />
-      <Route path="/courses/:id" element={<CourseDetailPage params={Promise.resolve({ id: "1" })} />} />
+      <Route path="/courses/:id" element={<CourseDetailPage />} />
 
 
       {/* Protected Super Admin Routes */}
