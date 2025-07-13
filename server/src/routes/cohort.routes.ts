@@ -49,6 +49,35 @@ router.delete(
 );
 
 
+// ----------------------------------------------------
+
+
+// Rate a cohort (1–5 stars) 
+router.post(
+  "/:id/rate",
+  protect,
+  restrictTo(Role.student,),
+  CohortController.rateCohort
+);
+
+// Unrate a cohort
+router.delete(
+  "/:id/rate",
+  protect,
+  restrictTo(Role.student),
+  CohortController.unrateCohort // ✅ Added unrateCohort function to handle unrating a cohort.
+);
+
+
+// Get cohort rating summary
+router.get(
+  "/:id/rating-summary",
+  protect,
+  restrictTo(Role.student),
+  CohortController.getRatingSummary
+);
+
+// ----------------------------------------------------
 
 router.post(
   "/:id/enroll",

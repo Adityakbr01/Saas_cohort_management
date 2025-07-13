@@ -160,11 +160,7 @@ export const AuthController = {
 
     const user = await authService.getProfile(userId, role);
 
-    res.status(200).json({
-      status: "success",
-      data: user,
-    });
-    sendSuccess(res, 200, "success", { data: user });
+    sendSuccess(res, 200, "User profile fetched", user);
   }),
   logout: wrapAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -267,12 +263,12 @@ export const AuthController = {
 
     sendSuccess(res, 200, "Password reset successfully");
   }),
-   updateProfile: wrapAsync(async (req: Request, res: Response) => {
+  updateProfile: wrapAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id;
     const userRole = req.user?.role;
     if (!userId || !userRole) {
-       sendError(res, 400, "User ID and role are required");
-       return
+      sendError(res, 400, "User ID and role are required");
+      return
     }
     const result = await authService.updateProfile({
       userId,
@@ -280,7 +276,7 @@ export const AuthController = {
       body: req.body,
       file: req.file,
     });
-     sendSuccess(res, 200, "Profile updated successfully", result);
-     return
+    sendSuccess(res, 200, "Profile updated successfully", result);
+    return
   }),
 };

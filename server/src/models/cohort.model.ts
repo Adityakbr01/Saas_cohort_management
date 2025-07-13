@@ -30,6 +30,7 @@ export interface ICohort extends Document {
   demoVideo: string;
   Thumbnail: string;
   rating: number;
+  ratingSummary?: Types.ObjectId[];
   price: number;
   originalPrice: number;
   discount: number;
@@ -101,6 +102,8 @@ const cohortSchema = new Schema<ICohort>(
         endDate: new Date(),
       },
     },
+
+    ratingSummary: [{ type: Schema.Types.ObjectId, ref: "CohortRating" }], // ✅ Added ratingSummary array with proper structure and reference to CohortRating model.
   },
   { timestamps: true }
 );

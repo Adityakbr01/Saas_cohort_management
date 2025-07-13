@@ -1,12 +1,13 @@
-import { Cohort, ICohort } from "@/models/cohort.model";
+import { Role } from "@/configs/roleConfig";
 import { Chapter } from "@/models/chapter.model";
+import { Cohort, ICohort } from "@/models/cohort.model";
+import { CohortRating } from "@/models/cohortRating.model";
+import { Lesson } from "@/models/lesson.model";
 import Mentor from "@/models/mentor.model";
 import Organization from "@/models/organization.model";
 import { ApiError } from "@/utils/apiError";
 import { uploadImage, uploadVideo } from "./cloudinaryService";
-import { Role } from "@/configs/roleConfig";
-import { Lesson } from "@/models/lesson.model";
-import { Assignment } from "@/models/assignment.model";
+import mongoose from "mongoose";
 
 export const CohortService = {
   async createCohort({
@@ -26,7 +27,7 @@ export const CohortService = {
     schedule,
     location,
     progress,
-    
+
     completionRate,
     language,
     tags,
@@ -45,7 +46,7 @@ export const CohortService = {
 
     console.log(mentor, organization);
     if (mentor) {
-      const mentorExists = await Mentor.findById(mentor||createdBy);
+      const mentorExists = await Mentor.findById(mentor || createdBy);
       if (!mentorExists) {
         throw new ApiError(404, "Mentor does not exist");
       }
@@ -125,20 +126,6 @@ export const CohortService = {
       chaptersArray = chapters;
     }
 
-    let thumbnailUrl = "";
-    let demoVideoUrl = "";
-
-    if (thumbnail) {
-      const uploadedImage = await uploadImage(thumbnail);
-      thumbnailUrl = uploadedImage.secure_url;
-    }
-
-    if (demoVideo) {
-      const uploadedVideo = await uploadVideo(demoVideo);
-
-      demoVideoUrl = uploadedVideo.secure_url;
-    }
-
     //   // ✅ Insert chapters
     //   let chapterIds: string[] = [];
     //   if (payload.chapters?.length) {
@@ -150,6 +137,43 @@ export const CohortService = {
     //   const createdChapters = await Chapter.insertMany(chaptersArray);
     //   chapterIds = createdChapters.map((ch) => ch._id.toString());
     // }
+
+
+
+
+    let thumbnailUrl: string | undefined;
+        let demoVideoUrl: string | undefined;
+    
+        if (thumbnail && thumbnail.buffer) {
+      try {
+        const thumbnailUploadRes = await uploadImage(thumbnail);
+        thumbnailUrl = thumbnailUploadRes?.secure_url;
+      } catch (err) {
+        console.error("❌ Thumbnail upload failed:", err);
+        throw new ApiError(400, "Thumbnail upload failed");
+      }
+    }
+    
+        if (demoVideo && demoVideo.buffer) {
+      try {
+        const demoVideoUploadRes = await uploadVideo(demoVideo);
+        demoVideoUrl = demoVideoUploadRes?.secure_url;
+      } catch (err) {
+        console.error("❌ Demo video upload failed:", err);
+        throw new ApiError(400, "Demo video upload failed");
+      }
+    }
+        console.log("Thumbnail buffer size:", thumbnail?.buffer?.length);
+    console.log("Demo video buffer size:", demoVideo?.buffer?.length);
+    
+        if (!thumbnailUrl) {
+          throw new ApiError(400, "Thumbnail upload failedssss");
+        }
+    
+        if (!demoVideoUrl) {
+          throw new ApiError(400, "Demo video upload failed");
+        }
+    
 
     // ✅ Finally, create cohort
     const newCohort = new Cohort({
@@ -187,15 +211,98 @@ export const CohortService = {
     return await newCohort.save();
   },
   async getAllCohorts(page: number, limit: number) {
-    const skip = (page - 1) * limit; // Adjust skip based on page and limit
+    const skip = (page - 1) * limit;
+
     const query = { isPrivate: false, isDeleted: false };
 
-    const [cohorts, total] = await Promise.all([
-      Cohort.find(query)
-        .populate("mentor organization")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
+    const [cohortsWithRating, total] = await Promise.all([
+      Cohort.aggregate([
+        { $match: query },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+
+        // 👇 Lookup ratings from CohortRating model
+        {
+          $lookup: {
+            from: "cohortratings", // 🔴 collection name (in lowercase & plural usually)
+            localField: "_id",
+            foreignField: "cohortId",
+            as: "ratings",
+          },
+        },
+
+        // 👇 Add calculated fields
+        {
+          $addFields: {
+            totalRatings: { $size: "$ratings" },
+            averageRating: {
+              $cond: [
+                { $gt: [{ $size: "$ratings" }, 0] },
+                {
+                  $avg: "$ratings.rating",
+                },
+                0,
+              ],
+            },
+            ratingsDistribution: {
+              $let: {
+                vars: {
+                  dist: {
+                    $map: {
+                      input: [1, 2, 3, 4, 5],
+                      as: "star",
+                      in: {
+                        k: { $toString: "$$star" },
+                        v: {
+                          $size: {
+                            $filter: {
+                              input: "$ratings",
+                              cond: { $eq: ["$$this.rating", "$$star"] },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+                in: {
+                  $arrayToObject: "$$dist",
+                },
+              },
+            },
+          },
+        },
+
+        // 👇 Remove heavy ratings array from output
+        {
+          $project: {
+            ratings: 0,
+          },
+        },
+
+        // 👇 Optional: Populate mentor and organization manually
+        {
+          $lookup: {
+            from: "mentors",
+            localField: "mentor",
+            foreignField: "_id",
+            as: "mentor",
+          },
+        },
+        { $unwind: "$mentor" },
+        {
+          $lookup: {
+            from: "organizations",
+            localField: "organization",
+            foreignField: "_id",
+            as: "organization",
+          },
+        },
+        { $unwind: "$organization" },
+      ]),
+
+      // ✅ Count for pagination
       Cohort.countDocuments(query),
     ]);
 
@@ -215,11 +322,11 @@ export const CohortService = {
     };
 
     return {
-      cohorts,
+      cohorts: cohortsWithRating,
       pagination: paginationInfo,
       meta: {
         totalCohorts: total,
-        shownCohorts: cohorts.length,
+        shownCohorts: cohortsWithRating.length,
         currentPage: page,
         itemsPerPage: limit,
       },
@@ -264,18 +371,114 @@ export const CohortService = {
     };
   },
   async getCohortById(id: string) {
-    const cohort = await Cohort.findOne({ _id: id, isDeleted: false })
-      .populate("mentor")
-      .populate("organization")
-      .populate({
-        path: "chapters",
-        match: { isDeleted: false },
-        populate: {
-          path: "lessons",
-          model: "Lesson",
-          match: { isDeleted: false },
+    const [cohort] = await Cohort.aggregate([
+      { $match: { _id: new mongoose.Types.ObjectId(id), isDeleted: false } },
+
+      // Lookup Ratings
+      {
+        $lookup: {
+          from: "cohortratings",
+          localField: "_id",
+          foreignField: "cohortId",
+          as: "ratings",
         },
-      });
+      },
+
+      // Add rating fields
+      {
+        $addFields: {
+          totalRatings: { $size: "$ratings" },
+          averageRating: {
+            $cond: [
+              { $gt: [{ $size: "$ratings" }, 0] },
+              { $avg: "$ratings.rating" },
+              0,
+            ],
+          },
+          ratingsDistribution: {
+            $let: {
+              vars: {
+                dist: {
+                  $map: {
+                    input: [1, 2, 3, 4, 5],
+                    as: "star",
+                    in: {
+                      k: { $toString: "$$star" },
+                      v: {
+                        $size: {
+                          $filter: {
+                            input: "$ratings",
+                            cond: { $eq: ["$$this.rating", "$$star"] },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              in: { $arrayToObject: "$$dist" },
+            },
+          },
+        },
+      },
+
+      { $project: { ratings: 0 } },
+
+      // Lookup mentor
+      {
+        $lookup: {
+          from: "mentors",
+          localField: "mentor",
+          foreignField: "_id",
+          as: "mentor",
+        },
+      },
+      { $unwind: { path: "$mentor", preserveNullAndEmptyArrays: true } },
+
+      // Lookup organization
+      {
+        $lookup: {
+          from: "organizations",
+          localField: "organization",
+          foreignField: "_id",
+          as: "organization",
+        },
+      },
+      { $unwind: { path: "$organization", preserveNullAndEmptyArrays: true } },
+
+      // Lookup chapters (with lessons inside)
+      {
+        $lookup: {
+          from: "chapters",
+          let: { chapterIds: "$chapters" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $in: ["$_id", "$$chapterIds"] },
+                    { $eq: ["$isDeleted", false] },
+                  ],
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: "lessons",
+                localField: "lessons",
+                foreignField: "_id",
+                as: "lessons",
+                pipeline: [
+                  { $match: { isDeleted: false } },
+                ],
+              },
+            },
+          ],
+          as: "chapters",
+        },
+      },
+    ]);
+
     if (!cohort) throw new ApiError(404, "Cohort not found");
     return cohort;
   },
@@ -300,17 +503,17 @@ export const CohortService = {
       payload.discount = Math.round(payload.discount);
     }
 
-if (payload.limitedTimeOffer) {
-  const { startDate, endDate } = payload.limitedTimeOffer;
+    if (payload.limitedTimeOffer) {
+      const { startDate, endDate } = payload.limitedTimeOffer;
 
-  if (startDate && typeof startDate === "string") {
-    payload.limitedTimeOffer.startDate = new Date(startDate);
-  }
+      if (startDate && typeof startDate === "string") {
+        payload.limitedTimeOffer.startDate = new Date(startDate);
+      }
 
-  if (endDate && typeof endDate === "string") {
-    payload.limitedTimeOffer.endDate = new Date(endDate);
-  }
-}
+      if (endDate && typeof endDate === "string") {
+        payload.limitedTimeOffer.endDate = new Date(endDate);
+      }
+    }
 
 
     console.log(payload)
@@ -358,6 +561,86 @@ if (payload.limitedTimeOffer) {
       console.error("Failed to delete cohort and chapters:", err);
       throw new ApiError(500, "Failed to delete cohort and its chapters");
     }
-  }
-  ,
+  },
+  async rateCohort(cohortId: string, userId: string, rating: number) {
+    const cohort = await Cohort.findById(cohortId);
+    if (!cohort) throw new ApiError(404, "Cohort not found");
+
+    const existingRating = await CohortRating.findOne({
+      cohortId,
+      userId,
+    });
+
+    if (existingRating) {
+      existingRating.rating = rating;
+      await existingRating.save();
+      return existingRating;
+    }
+
+    const newRating = new CohortRating({
+      cohortId,
+      userId,
+      rating,
+    });
+
+  if (!cohort.ratingSummary) {
+  cohort.ratingSummary = [];
+}
+
+cohort.ratingSummary.push(newRating._id);
+
+// ✅ Use old count * old rating logic
+const oldTotal = cohort.rating * (cohort.ratingSummary.length - 1);
+const newTotal = oldTotal + rating;
+const newAvg = Math.round(newTotal / cohort.ratingSummary.length);
+
+cohort.rating = newAvg;
+
+await cohort.save();
+
+
+    await newRating.save();
+    return newRating;
+  },
+  async unrateCohort(cohortId: string, userId: string) {
+    const cohort = await Cohort.findById(cohortId);
+    if (!cohort) throw new ApiError(404, "Cohort not found");
+
+    const existingRating = await CohortRating.findOne({
+      cohortId,
+      userId,
+    });
+    if (!existingRating) {
+      throw new ApiError(404, "Rating not found");
+    }
+    await existingRating.deleteOne();
+    return { success: true, message: "Rating deleted" };
+  },
+  async getRatingSummary(cohortId: string) {
+    const cohort = await Cohort.findById(cohortId);
+    if (!cohort) throw new ApiError(404, "Cohort not found");
+
+    const ratings = await CohortRating.find({ cohortId });
+
+    const summary = {
+      totalRatings: ratings.length,
+      averageRating: ratings.length
+        ? ratings.reduce((acc, rating) => acc + rating.rating, 0) / ratings.length
+        : 0,
+      ratingsDistribution: {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 0,
+      },
+    };
+
+    ratings.forEach((rating) => {
+      const key = rating.rating.toString() as keyof typeof summary.ratingsDistribution;
+      summary.ratingsDistribution[key]++;
+    });
+
+    return summary;
+  },
 };

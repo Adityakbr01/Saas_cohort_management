@@ -25,37 +25,33 @@ const bufferToStream = (buffer: Buffer): Readable => {
 export const uploadImage = async (
   file: Express.Multer.File
 ): Promise<UploadApiResponse> => {
-  try {
-    console.log("[DEBUG] Uploading image to Cloudinary:", file.originalname);
-    return new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: "lms/images",
-          resource_type: "image",
-        },
-        (error, result) => {
-          if (error || !result) {
-            console.error("[DEBUG] Cloudinary image upload error:", error);
-            return reject(
-              new Error(
-                `Image upload failed: ${error?.message || "Unknown error"}`
-              )
-            );
-          }
-          console.log(
-            "[DEBUG] Image uploaded successfully:",
-            result.secure_url
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "lms/images",
+        resource_type: "image",
+      },
+      (error, result) => {
+        if (error || !result) {
+          console.error("[DEBUG] Cloudinary image upload error:", error);
+          return reject(
+            new Error(
+              `Image upload failed: ${error?.message || "Unknown error"}`
+            )
           );
-          resolve(result);
         }
-      );
+        console.log("[DEBUG] ✅ Image uploaded:", result.secure_url);
+        resolve(result);
+      }
+    );
+
+    // ✅ Small delay to ensure stream readiness
+    setTimeout(() => {
       bufferToStream(file.buffer).pipe(stream);
-    });
-  } catch (error) {
-    console.error("[DEBUG] uploadImage error:", error);
-    throw error;
-  }
+    }, 0);
+  });
 };
+
 
 // Helper to save buffer to temp file
 const writeTempFile = (buffer: Buffer, filename: string): string => {
