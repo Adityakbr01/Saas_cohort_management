@@ -53,16 +53,29 @@ const limiter = rateLimit({
 app.use(limiter);
 
 
+const allowedOrigins = [
+  process.env.CORS_ORIGIN,    // "http://www.edulaunch.shop"
+  process.env.CORS_ORIGIN2?.replace(/\/$/, ""), // Remove trailing slash if exists
+].filter(Boolean); // remove undefined/null
+
+
 
 
 app.use(
   cors({
-    origin: env_config.CORS_ORIGIN || process.env.CORS_ORIGIN || "*",
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     maxAge: 86400,
   })
 );
+
 
 
 app.use(cookieParser());
