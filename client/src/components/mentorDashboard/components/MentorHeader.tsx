@@ -1,24 +1,17 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import type { User } from "@/types";
 import { MessageSquare, Bell, Settings } from "lucide-react";
 
 interface MentorHeaderProps {
-  mentorData: {
-    id: string;
-    name: string;
-    email: string;
-    avatar: string;
-    specialization: string;
-    totalStudents: number;
-    activeCohorts: number;
-    completedCohorts: number;
-    averageRating: number;
-    responseTime: string;
-  };
+  mentorData: User ;
   onMessagesClick: () => void;
 }
 
 function MentorHeader({ mentorData, onMessagesClick }: MentorHeaderProps) {
+  
+  console.log(mentorData)
+
   const nameParts = mentorData.name.trim().split(" ");
   const displayName = nameParts.length > 1 ? nameParts[1] : nameParts[0];
   const initials =
@@ -31,7 +24,7 @@ function MentorHeader({ mentorData, onMessagesClick }: MentorHeaderProps) {
       <div className="flex items-center gap-4">
         <Avatar className="h-16 w-16">
           <AvatarImage
-            src={mentorData.avatar || "/placeholder.svg"}
+            src={mentorData.profileImageUrl || "/placeholder.svg"}
             alt={mentorData.name || "Mentor"}
           />
           <AvatarFallback className="text-lg font-medium">

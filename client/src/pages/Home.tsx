@@ -6,8 +6,10 @@ import Navigation from '@/components/Navigation'
 function Home() {
   return (
     <div className="min-h-screen w-full bg-background">
+      
       <Navigation />
       <main>
+        
         <HeroSection />
         <CourseGrid />
       </main>

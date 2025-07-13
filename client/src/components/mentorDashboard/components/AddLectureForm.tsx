@@ -24,6 +24,7 @@ import { LectureSchema } from "@/utils/zod";
 import { Loader, Plus } from "lucide-react";
 import { useState, useEffect, type FormEvent } from "react";
 import { toast } from "sonner";
+import { FancyFileUploader } from "./FancyFileUploader";
 
 interface AddLectureFormProps {
   module: Chapter;
@@ -210,16 +211,17 @@ const AddLectureForm: React.FC<AddLectureFormProps> = ({ module, refetch }) => {
               <>
                 <div className="col-span-2 space-y-2">
                   <Label>Video File</Label>
-                  <Input
-                    type="file"
+                  <FancyFileUploader
+                    label="Upload Video"
                     accept="video/mp4,video/mpeg,video/quicktime"
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        video: e.target.files?.[0] || null,
-                      })
+                    onFileSelect={(file) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        video: file,
+                      }))
                     }
                   />
+
                 </div>
 
                 {/* Video Preview */}

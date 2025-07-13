@@ -30,6 +30,7 @@ import ProfilePage from "@/pages/Student/ProfilePage";
 import CoursesPage from "@/pages/Courses";
 import CourseDetailPage from "@/pages/CourseDetailPage";
 import { Role } from "@/config/constant";
+import Whiteboard from "@/pages/WhiteboardPage";
 
 const AppRoutes = () => {
   return (
@@ -111,7 +112,7 @@ const AppRoutes = () => {
       <Route
         path="/dashboard/mentor"
         element={
-          <ProtectedRoute allowedRoles={["mentor","org_admin"]}>
+          <ProtectedRoute allowedRoles={["mentor", "org_admin"]}>
             <MentorPage />
           </ProtectedRoute>
         }
@@ -129,6 +130,16 @@ const AppRoutes = () => {
       {/* Fallback Routes */}
       <Route path="/unauthorized" element={<Unauthorized />} />
       <Route path="*" element={<NotFound />} />
+
+      {/* ------------------------------ */}
+      <Route
+        path="/whiteboard"
+        element={
+          <ProtectedRoute allowedRoles={["student", "mentor", "org_admin", "super_admin"]}>
+            <Whiteboard />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 };

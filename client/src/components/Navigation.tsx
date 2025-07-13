@@ -16,7 +16,9 @@ export default function Navigation() {
 
   const navItems = useMemo(() => {
     // Common items
-    const items = [{ name: "Home", href: "/" }]
+    const items = [{ name: "Home", href: "/" },
+    { name: "Whiteboard", href: "/whiteboard" },
+    ]
 
     if (!userRole) {
       items.push({ name: "Courses", href: "/courses" })
@@ -34,19 +36,19 @@ export default function Navigation() {
     ) {
       items.push({ name: "Dashboard", href: "/dashboard/super_admin" })
     }
-      if (
+    if (
       userRole === Role.org_admin || userRole === Role.organization
 
     ) {
       items.push({ name: "Dashboard", href: "/dashboard/org_admin" })
-    } if(userRole === Role.mentor){
+    } if (userRole === Role.mentor) {
       items.push({ name: "Dashboard", href: "/dashboard/mentor" })
     }
 
 
 
     // Optional for all logged-in users
-    if ( userRole === Role.org_admin || userRole === Role.organization) {
+    if (userRole === Role.org_admin || userRole === Role.organization) {
       items.push({ name: "Subscription", href: "/subscription" })
     }
 
@@ -72,8 +74,8 @@ export default function Navigation() {
                 key={item.name}
                 to={item.href}
                 className={`text-sm font-medium transition-colors hover:text-primary ${isActive(item.href)
-                    ? "text-primary border-b-2 border-primary pb-1"
-                    : "text-muted-foreground"
+                  ? "text-primary border-b-2 border-primary pb-1"
+                  : "text-muted-foreground"
                   }`}
                 aria-current={isActive(item.href) ? "page" : undefined}
               >
@@ -84,38 +86,48 @@ export default function Navigation() {
           </div>
 
           {/* Mobile Navigation */}
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon" aria-label="Open menu">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-              <div className="flex flex-col space-y-4 mt-8">
-                <div className="flex items-center space-x-2 mb-6">
-                  <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                    <span className="text-primary-foreground font-bold text-sm">EL</span>
-                  </div>
-                  <span className="font-bold text-xl">EduLaunch</span>
-                </div>
-                {navItems.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    onClick={() => setIsOpen(false)}
-                    className={`text-lg font-medium transition-colors hover:text-primary ${isActive(item.href) ? "text-primary" : "text-muted-foreground"
-                      }`}
-                    aria-current={isActive(item.href) ? "page" : undefined}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-                <div className="mt-6">
-                  <ModeToggle />
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
+<Sheet open={isOpen} onOpenChange={setIsOpen}>
+  <SheetTrigger asChild className="md:hidden">
+    <Button variant="ghost" size="icon" aria-label="Open menu">
+      <Menu className="h-5 w-5" />
+    </Button>
+  </SheetTrigger>
+
+  <SheetContent side="right" className="w-[300px] sm:w-[400px] px-6 py-6">
+    {/* Branding */}
+    <div className="flex items-center space-x-3 mb-8">
+      <div className="h-9 w-9 rounded-md bg-primary flex items-center justify-center shadow-sm">
+        <span className="text-primary-foreground font-bold text-sm">EL</span>
+      </div>
+      <span className="text-xl font-bold tracking-tight">EduLaunch</span>
+    </div>
+
+    {/* Navigation Items */}
+    <nav className="flex flex-col space-y-4">
+      {navItems.map((item) => (
+        <Link
+          key={item.name}
+          to={item.href}
+          onClick={() => setIsOpen(false)}
+          className={`text-base font-medium transition-colors px-2 py-1 rounded-md hover:bg-muted hover:text-primary ${
+            isActive(item.href)
+              ? "text-primary bg-muted"
+              : "text-muted-foreground"
+          }`}
+          aria-current={isActive(item.href) ? "page" : undefined}
+        >
+          {item.name}
+        </Link>
+      ))}
+    </nav>
+
+    {/* Dark Mode Toggle */}
+    <div className="mt-10 border-t pt-6">
+      <ModeToggle />
+    </div>
+  </SheetContent>
+</Sheet>
+
         </div>
       </div>
     </nav>

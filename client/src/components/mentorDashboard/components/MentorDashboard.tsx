@@ -13,12 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCreateCohortMutation, useGetmentorCohortQuery } from "@/store/features/api/cohorts/cohorts.api";
 import { useGetmyorgQuery } from "@/store/features/api/mentor/mentorApi";
+import { selectCurrentUser } from "@/store/features/slice/UserAuthSlice";
 import type { APIErrorResponse, Cohort } from "@/types";
 import {
   Plus,
   Search
 } from "lucide-react";
 import { useState } from "react";
+import { useSelector } from "react-redux";
 import { toast } from "sonner";
 import Analytics from "./Analytics";
 import CohortManagement from "./cohort-management";
@@ -35,19 +37,7 @@ import { StudentsTable } from "./StudentsTable";
 import Tools from "./Tools";
 import UpcomingEvents from "./UpcomingEvents";
 
-// Mock data (unchanged from previous)
-const mentorData = {
-  id: "mentor_1",
-  name: "Dr. Sarah Johnson",
-  email: "sarah.johnson@edulaunch.com",
-  avatar: "/placeholder.svg?height=80&width=80",
-  specialization: "Data Science",
-  totalStudents: 45,
-  activeCohorts: 3,
-  completedCohorts: 8,
-  averageRating: 4.9,
-  responseTime: "< 2 hours",
-};
+
 const dashboardStats = {
   totalStudents: 45,
   activeStudents: 42,
@@ -137,6 +127,9 @@ export default function MentorDashboard() {
   const [createCohort, { isLoading: isCreatingCohort }] = useCreateCohortMutation();
   const { data } = useGetmentorCohortQuery(undefined);
   const myCohorts = data?.data?.cohorts || [];
+    const user = useSelector(selectCurrentUser)
+
+
 
   const handleViewCohort = (cohortId: string) => {
     setSelectedCohort(cohortId);
@@ -326,10 +319,11 @@ export default function MentorDashboard() {
     return <CommunicationCenter onBack={handleBackToDashboard} />;
   }
 
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        <MentorHeader mentorData={mentorData} onMessagesClick={() => setCurrentView("communication")} />
+        <MentorHeader mentorData={user!} onMessagesClick={() => setCurrentView("communication")} />
         <QuickStats stats={dashboardStats} />
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">

@@ -9,6 +9,26 @@ export interface User {
   updatedAt: string;
   plan: string;
   _id: string;
+  profileImageUrl: string;
+  specialization: string;
+  experience: string;
+  bio: string;
+  certifications: {
+    name: string;
+    issuer: string;
+    date: string;
+  }[];
+  skillsExpertise: string[];
+  yearsOfExperience: number;
+  availability: string[];
+  teachingStyle: string;
+  studentCapacity: number;
+  currentStudents: number;
+  rating: number;
+  overallRating: number;
+  studentCompletionRate: number;
+  responseTime: string;
+
 }
 
 

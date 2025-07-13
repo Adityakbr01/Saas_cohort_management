@@ -1,36 +1,12 @@
 import CourseCard from "@/components/course-card"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
+
 import { useGetCohortsQuery } from "@/store/features/api/cohorts/cohorts.api"
 import type { Cohort } from "@/types"
+import CourseCardSkeleton from "./CourseCardSkeleton"
 
 
 
-function CourseCardSkeleton() {
-  return (
-    <Card className="overflow-hidden pt-0">
-      <CardHeader className="p-0">
-        <Skeleton className="aspect-video w-full" />
-      </CardHeader>
-      <CardContent className="p-6">
-        <Skeleton className="h-6 w-3/4 mb-2" />
-        <Skeleton className="h-4 w-full mb-1" />
-        <Skeleton className="h-4 w-2/3 mb-4" />
-        <div className="flex items-center justify-between mb-4">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-16" />
-        </div>
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-4 w-24" />
-        </div>
-      </CardContent>
-      <CardFooter className="p-6 pt-0">
-        <Skeleton className="h-10 w-full" />
-      </CardFooter>
-    </Card>
-  )
-}
+
 
 export default function CourseGrid() {
 
@@ -39,7 +15,6 @@ export default function CourseGrid() {
   })
 
   const{cohorts}  = data?.data || []
-
 
 
   return (
@@ -55,7 +30,7 @@ export default function CourseGrid() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {isLoading
             ? Array.from({ length: 6 }).map((_, index) => <CourseCardSkeleton key={index} />)
-            : cohorts.map((course:Cohort,index:number) => <CourseCard key={index} course={course} />)}
+            : cohorts && cohorts.map((course:Cohort,index:number) => <CourseCard key={index} course={course} />)}
         </div>
 
         {!isLoading && (

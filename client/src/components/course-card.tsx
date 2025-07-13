@@ -1,10 +1,11 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { Clock, Star, Users, ArrowRight, Bookmark, BookmarkCheck, GraduationCap } from "lucide-react"
-import { Link } from "react-router-dom"
+import { ArrowRight, Bookmark, BookmarkCheck, Clock, GraduationCap, Users } from "lucide-react"
 import { useEffect, useState } from "react"
-
+import { Link } from "react-router-dom"
+import RatingDisplay from "./RatingDisplay"
+import { motion, AnimatePresence } from "framer-motion"
 interface CourseCardProps {
   course: {
     _id: string
@@ -17,6 +18,15 @@ interface CourseCardProps {
     students: number
     Thumbnail: string
     price: string | null | undefined // values: "Free" or "Paid"
+    averageRating?: number
+    totalRatings?: number
+    ratingsDistribution?: {
+      1: number
+      2: number
+      3: number
+      4: number
+      5: number
+    }
   }
 }
 
@@ -37,22 +47,26 @@ export default function CourseCard({ course }: CourseCardProps) {
   const [bookmarked, setBookmarked] = useState(false)
 
   useEffect(() => {
-    const bookmarks = JSON.parse(localStorage.getItem("bookmarkedCourses") || "[]")
-    setBookmarked(bookmarks.includes(course._id))
-  }, [course._id])
+    const bookmarks: string[] = JSON.parse(localStorage.getItem("bookmarkedCourses") || "[]");
+    setBookmarked(bookmarks.includes(course._id.toString()));
+  }, [course._id]);
 
   const toggleBookmark = () => {
-    const bookmarks = JSON.parse(localStorage.getItem("bookmarkedCourses") || "[]")
-    let updatedBookmarks
-    if (bookmarks.includes(course._id)) {
-      updatedBookmarks = bookmarks.filter((id: string) => id !== course._id)
-      setBookmarked(false)
+    const bookmarks: string[] = JSON.parse(localStorage.getItem("bookmarkedCourses") || "[]");
+    const courseId = course._id.toString();
+    let updatedBookmarks;
+
+    if (bookmarks.includes(courseId)) {
+
+      updatedBookmarks = bookmarks.filter((id) => id !== courseId);
+      setBookmarked(false);
     } else {
-      updatedBookmarks = [...bookmarks, course._id]
-      setBookmarked(true)
+      updatedBookmarks = [...bookmarks, courseId];
+      setBookmarked(true);
     }
-    localStorage.setItem("bookmarkedCourses", JSON.stringify(updatedBookmarks))
-  }
+    localStorage.setItem("bookmarkedCourses", JSON.stringify(updatedBookmarks));
+  };
+
 
   return (
     <Card
@@ -75,22 +89,44 @@ export default function CourseCard({ course }: CourseCardProps) {
           </div>
           <div className="absolute top-4 right-4">
             <Badge variant="secondary" className={CoursePrice[priceKey]} aria-label={`Price: ${course.price || "Free"}`}>
-             ₹{course.price || "Free"}
+              ₹{course.price || "Free"}
             </Badge>
           </div>
 
-          {/* 🔖 Bookmark Button */}
-          <button
+          {/* 🔖 Bookmark Button with animation */}
+          <motion.button
             onClick={toggleBookmark}
+            whileTap={{ scale: 0.8, rotate: -15 }}
+            whileHover={{ scale: 1.1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
             className="absolute bottom-4 right-4 bg-white/90 hover:bg-white/100 p-2 rounded-full shadow-md transition-all"
             aria-label={bookmarked ? "Remove from bookmarks" : "Add to bookmarks"}
           >
-            {bookmarked ? (
-              <BookmarkCheck className="h-5 w-5 text-primary" />
-            ) : (
-              <Bookmark className="h-5 w-5 text-muted-foreground" />
-            )}
-          </button>
+            <AnimatePresence mode="wait">
+              {bookmarked ? (
+                <motion.div
+                  key="check"
+                  initial={{ scale: 0, rotate: -90 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  exit={{ scale: 0, rotate: 90 }}
+                  transition={{ type: "spring", stiffness: 900, damping: 60 }}
+                >
+                  <BookmarkCheck className="h-5 w-5 text-primary" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="bookmark"
+                  initial={{ scale: 0, rotate: 90 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  exit={{ scale: 0, rotate: -90 }}
+                  transition={{ type: "spring", stiffness: 900, damping: 75 }}
+                >
+                  <Bookmark className="h-5 w-5 text-muted-foreground" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.button>
+
         </div>
       </CardHeader>
 
@@ -102,15 +138,16 @@ export default function CourseCard({ course }: CourseCardProps) {
           {course.shortDescription}
         </p>
 
-        <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-         <span className="font-medium flex items-center gap-1" aria-label={`Mentor: ${course.mentor?.name || "Unknown"}`}>
-  <GraduationCap className="h-4 w-4 text-muted-foreground" />
-  By {course.mentor?.name || "Unknown"}
-</span>
-          <div className="flex items-center gap-1" aria-label={`Rating: ${course.rating ?? 0}`}>
-            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-            <span>{course.rating ?? 0}</span>
-          </div>
+        <div className="flex items-center justify-between text-sm text-muted-foreground mb-4 gap-4">
+          <span className="font-medium flex items-center gap-1" aria-label={`Mentor: ${course.mentor?.name || "Unknown"}`}>
+            <GraduationCap className="h-4 w-4 text-muted-foreground" />
+            By {course.mentor?.name || "Unknown"}
+          </span>
+          <RatingDisplay
+            averageRating={course.averageRating ?? 0}
+            totalRatings={course.totalRatings ?? 0}
+            ratingsDistribution={course.ratingsDistribution}
+          />
         </div>
 
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
