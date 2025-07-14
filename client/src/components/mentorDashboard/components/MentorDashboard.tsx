@@ -192,6 +192,9 @@ export default function MentorDashboard() {
       discount: formData.get("discount")
         ? Number(formData.get("discount"))
         : 0,
+      activateOn: formData.get("activateOn")
+        ? new Date(formData.get("activateOn") as string).toISOString()
+        : undefined, // ✅ NEW FIELD
     };
 
     const requiredFields: (keyof typeof cohortData)[] = [
@@ -208,6 +211,7 @@ export default function MentorDashboard() {
       "difficulty",
       "language",
       "schedule",
+      "activateOn",
     ];
 
     const missingFields = requiredFields.filter(
@@ -246,13 +250,15 @@ export default function MentorDashboard() {
     }
 
     const apiFormData = new FormData();
-    Object.entries(cohortData).forEach(([key, value]) => {
-      if (["tags", "prerequisites", "chapters"].includes(key)) {
-        apiFormData.append(key, JSON.stringify(value));
-      } else {
-        apiFormData.append(key, value.toString());
-      }
-    });
+
+Object.entries(cohortData).forEach(([key, value]) => {
+  if (["tags", "prerequisites", "chapters"].includes(key)) {
+    apiFormData.append(key, JSON.stringify(value ?? []));
+  } else if (value !== undefined && value !== null) {
+    apiFormData.append(key, value.toString());
+  }
+});
+
 
     if (thumbnailFile) {
       apiFormData.append("Thumbnail", thumbnailFile);

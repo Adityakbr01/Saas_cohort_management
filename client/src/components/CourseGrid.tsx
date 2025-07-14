@@ -16,6 +16,7 @@ export default function CourseGrid() {
 
   const{cohorts}  = data?.data || []
 
+  console.log(cohorts)
 
   return (
     <section className="py-16 lg:py-24">

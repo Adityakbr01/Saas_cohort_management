@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 
-export function useCountdown(endTime: string | null) {
+export function useCountdown(
+  endTime: string | null,
+  onComplete?: () => void,
+  refetch?: () => void
+) {
   const [timeLeft, setTimeLeft] = useState("00:00:00");
 
   useEffect(() => {
@@ -11,7 +15,20 @@ export function useCountdown(endTime: string | null) {
     const updateCountdown = () => {
       const now = Date.now();
       const end = new Date(endTime).getTime();
-      const diff = Math.max(end - now, 0);
+      const diff = end - now;
+
+      if (diff <= 0) {
+        setTimeLeft("00:00:00");
+
+        // ✅ Trigger optional callbacks
+        if (onComplete) onComplete();
+        if (refetch) refetch();
+
+        // ✅ Reload page automatically
+        window.location.reload();
+
+        return; // 🛑 Stop further updates
+      }
 
       const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
       const minutes = Math.floor((diff / (1000 * 60)) % 60);
@@ -26,9 +43,9 @@ export function useCountdown(endTime: string | null) {
       animationFrame = requestAnimationFrame(updateCountdown);
     };
 
-    updateCountdown();
+    animationFrame = requestAnimationFrame(updateCountdown);
     return () => cancelAnimationFrame(animationFrame);
-  }, [endTime]);
+  }, [endTime, onComplete, refetch]);
 
   return timeLeft;
 }

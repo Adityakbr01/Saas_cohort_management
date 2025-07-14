@@ -1,10 +1,10 @@
 // File: CourseDetailPage.tsx
+import NotFound404 from "@/components/404/NotFound404";
 import CourseHeader from "@/components/courseDetail/CourseHeader";
 import CourseMedia from "@/components/courseDetail/CourseMedia";
 import CourseTabs from "@/components/courseDetail/CourseTabs";
 import EnrollmentCard from "@/components/courseDetail/EnrollmentCard";
 import CourseDetailSkeleton from "@/components/CourseDetailSkeleton";
-import { Button } from "@/components/ui/button";
 import { useGetCohortByCourseIdQuery } from "@/store/features/api/cohorts/cohorts.api";
 import { formatDuration } from "@/utils/formatDuration";
 import formatDuration2 from "@/utils/formatDuration2";
@@ -61,6 +61,7 @@ type Course = {
   };
   ratingsDistribution: Record<string, number>;
   downloadable: boolean;
+  activateOn: string;
 };
 
 type Chapter = {
@@ -142,6 +143,7 @@ export default function CourseDetailPage() {
       limitedTimeOffer: cohort.data.limitedTimeOffer || { isActive: false, startDate: "", endDate: "" },
       ratingsDistribution: cohort.data.ratingsDistribution || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
       downloadable: cohort.data.isDownloadable || false,
+      activateOn: cohort.data.activateOn || "", // ✅ NEW FIELD
     };
   }, [cohort]);
 
@@ -151,7 +153,20 @@ export default function CourseDetailPage() {
     offerEndTime &&
     !isNaN(new Date(offerEndTime).getTime());
 
-  const countdown = useCountdown(isOfferValid ? offerEndTime : null);
+
+  const countdown = useCountdown(
+    isOfferValid ? offerEndTime : null,
+  );
+
+  const isUpcoming = useMemo(() => {
+    return course?.activateOn
+      ? new Date(course.activateOn).getTime() > Date.now()
+      : false;
+  }, [course?.activateOn]);
+
+  const launchCountdown = useCountdown(
+    isUpcoming ? course.activateOn : null,
+  );
 
   // Memoize total lessons and duration
   const totalLessons = useMemo(() => course.syllabus?.reduce((acc, s) => acc + s.lessons, 0) || 0, [course.syllabus]);
@@ -170,25 +185,19 @@ export default function CourseDetailPage() {
     }));
   }, [course.ratingsDistribution, course.reviewCount]);
 
+
+
+
+
   if (isLoading) {
     return <CourseDetailSkeleton />;
   }
 
+
   if (error || !course.id) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center py-8 text-destructive" aria-label="Error loading course details">
-          <p>Failed to load course details. Please try again.</p>
-          <Button
-            variant="outline"
-            className="mt-4 hover:scale-105 transition-transform focus:ring-2 focus:ring-primary"
-            onClick={refetch}
-            aria-label="Retry loading course details"
-            tabIndex={0}
-          >
-            Retry
-          </Button>
-        </div>
+      <div className="min-h-screen w-full flex items-center justify-center bg-background">
+        <NotFound404 message="Course not found" />
       </div>
     );
   }
@@ -233,7 +242,7 @@ export default function CourseDetailPage() {
             <CourseMedia course={course} bookmarked={bookmarked} toggleBookmark={toggleBookmark} />
             <CourseTabs course={course} totalLessons={totalLessons} totalDuration={totalDuration} ratingsPercentages={ratingsPercentages} />
           </section>
-          <EnrollmentCard course={course} countdown={countdown} />
+          <EnrollmentCard refetch={refetch} course={course} countdown={countdown} isUpcoming={isUpcoming} launchCountdown={launchCountdown} bookmarked={bookmarked} toggleBookmark={toggleBookmark} />
         </div>
       </div>
     </main>

@@ -103,6 +103,7 @@ export interface Cohort {
   students: number;
   Thumbnail: string;
   price: string;
+  status: "upcoming" | "active" | "completed";
 }
 
 
@@ -126,7 +127,7 @@ export interface Cohort {
   description: string;
   startDate: string;
   endDate: string;
-  status: string;
+  status: "upcoming" | "active" | "completed";
   organization: string;
   mentors: string[];
   mentor: Mentor;

@@ -177,7 +177,8 @@ export default function CourseList() {
     rating: course.rating,
     students: course.students,
     Thumbnail: course.thumbnail,
-    price: course.price
+    price: course.price,
+    status: "upcoming"
   }}
 />
         ))}

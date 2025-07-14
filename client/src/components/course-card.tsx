@@ -20,6 +20,7 @@ interface CourseCardProps {
     price: string | null | undefined // values: "Free" or "Paid"
     averageRating?: number
     totalRatings?: number
+     status: "upcoming" | "active" | "completed";
     ratingsDistribution?: {
       1: number
       2: number
@@ -27,7 +28,8 @@ interface CourseCardProps {
       4: number
       5: number
     }
-  }
+  },
+
 }
 
 export default function CourseCard({ course }: CourseCardProps) {
@@ -88,9 +90,13 @@ export default function CourseCard({ course }: CourseCardProps) {
             </Badge>
           </div>
           <div className="absolute top-4 right-4">
-            <Badge variant="secondary" className={CoursePrice[priceKey]} aria-label={`Price: ${course.price || "Free"}`}>
+            {
+              (course.status !="upcoming") && (
+                <Badge variant="secondary" className={CoursePrice[priceKey]} aria-label={`Price: ${course.price || "Free"}`}>
               ₹{course.price || "Free"}
             </Badge>
+              )
+            }
           </div>
 
           {/* 🔖 Bookmark Button with animation */}

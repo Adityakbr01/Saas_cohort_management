@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { selectCurrentUser } from "@/store/features/slice/UserAuthSlice";
 import type { Organization } from "@/types";
 import { Loader2, Plus } from "lucide-react";
+import { useState } from "react";
 import { useSelector } from "react-redux";
 
 // CreateCohortDialog Component
@@ -20,6 +21,8 @@ interface CreateCohortDialogProps {
   setDemoVideoFile: (file: File | null) => void;
 }
 
+
+
 function CreateCohortDialog({
   isOpen,
   onOpenChange,
@@ -29,7 +32,8 @@ function CreateCohortDialog({
   setThumbnailFile,
   setDemoVideoFile,
 }: CreateCohortDialogProps) {
-  
+  const [selectedStatus, setSelectedStatus] = useState("upcoming");
+
   const user = useSelector(selectCurrentUser);
 
 
@@ -108,7 +112,7 @@ function CreateCohortDialog({
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Start Date</label>
-                <Input name="startDate" type="date" required />
+                <Input name="startDate" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">End Date</label>
@@ -120,17 +124,30 @@ function CreateCohortDialog({
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Status</label>
-                <Select name="status" defaultValue="upcoming" required>
+                <Select name="status" defaultValue="upcoming" required  onValueChange={(value) => setSelectedStatus(value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="upcoming">Upcoming</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              {selectedStatus === "upcoming" && (
+  <div className="space-y-2 col-span-2">
+    <label className="text-sm font-medium">Activate On</label>
+    <Input
+      name="activateOn"
+      type="datetime-local"
+      defaultValue={new Date().toISOString().slice(0, 16)}
+      required
+    />
+  </div>
+)}
+
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">Category</label>
                 <Select name="category" required>
@@ -199,9 +216,11 @@ function CreateCohortDialog({
                 <Input
                   name="schedule"
                   placeholder="e.g., Monday, Wednesday, Friday — 7:00 PM to 9:00 PM"
+                  defaultValue="Monday, Wednesday, Friday — 7:00 PM to 9:00 PM"
                   required
                 />
               </div>
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">Location</label>
                 <Select name="location" defaultValue="Online" required>
@@ -261,7 +280,7 @@ function CreateCohortDialog({
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Discount</label>
-                <Input name="discount" type="number" placeholder="e.g., 20" required />
+                <Input name="discount" type="number" placeholder="e.g., 20" required  max={100}/>
               </div>
             </div>
             <DialogFooter>
