@@ -48,7 +48,8 @@ export const createCohortSchema = z.object({
   endDate: z.string().refine((val) => !val || !isNaN(Date.parse(val)), {
     message: "Invalid date format",
   }).optional(),
-}).optional()
+}).optional(), activateOn: z.coerce.date().optional()
+
 });
 
 export const updateCohortSchema = z.object({
@@ -73,8 +74,8 @@ export const updateCohortSchema = z.object({
   certificateAvailable: z.boolean().optional(),
   chapters: z.array(z.string()).optional(),
   duration: z.string().optional(),
-  price: z.number() || z.string().optional(),
+  price: z.any().optional(),
   originalPrice: z.number() || z.string().optional(),
-  discount: z.number() || z.number().optional(),
+  discount: z.any().optional(),
   isPrivate: z.boolean().optional(),
 });

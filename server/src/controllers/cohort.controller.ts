@@ -1,13 +1,8 @@
-import { Cohort } from "@/models/cohort.model";
-import { Chapter } from "@/models/chapter.model";
-import { wrapAsync } from "@/utils/wrapAsync";
-import { sendSuccess } from "@/utils/responseUtil";
-import { ApiError } from "@/utils/apiError";
 import { CohortService } from "@/services/cohort.service";
-import { Role } from "@/configs/roleConfig";
+import { ApiError } from "@/utils/apiError";
+import { sendSuccess } from "@/utils/responseUtil";
+import { wrapAsync } from "@/utils/wrapAsync";
 import { createCohortSchema } from "@/utils/zod/cohort";
-import { uploadImage, uploadVideo } from "@/services/cloudinaryService";
-import { authService } from "@/services/auth.service";
 
 export const CohortController = {
   createCohort: wrapAsync(async (req, res) => {
@@ -15,6 +10,8 @@ export const CohortController = {
     if (!userId) throw new ApiError(401, "Unauthorized");
 
     const raw = req.body;
+
+    console.log(req.body)
 
     // ✅ Convert/parse values
     const payload = {
@@ -32,6 +29,7 @@ export const CohortController = {
       price: Number(raw.price),
       originalPrice: Number(raw.originalPrice),
       discount: Number(raw.discount),
+      activateOn: raw.activateOn ? new Date(raw.activateOn) : undefined, // ✅ NEW FIELD
     };
 
     // ✅ Validate data
@@ -41,9 +39,6 @@ export const CohortController = {
     const files = req.files as Express.Multer.File[];
     const thumbnail = files.find((file) => file.fieldname === "Thumbnail");
     const demoVideo = files.find((file) => file.fieldname === "demoVideo");
-
-    
-    
 
 
     const newCohort = await CohortService.createCohort({
@@ -58,6 +53,7 @@ export const CohortController = {
       discount: validated.discount,
       limitedTimeOffer: validated.limitedTimeOffer,
       mentor: validated.mentor,
+      activateOn: validated.activateOn,
     });
 
     sendSuccess(res, 201, "Cohort created successfully", newCohort);

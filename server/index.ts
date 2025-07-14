@@ -5,6 +5,7 @@ import os from "os";
 import app from "@/server"; 
 import connectDB from "@/configs/db";
 import { logger } from "./src/utils/logger";
+import { startAllCronJobs } from "@/jobs/Cron";
 
 
 // Load environment variables from .env
@@ -57,7 +58,7 @@ if (cluster.isPrimary) {
       process.exit(1);
     }
   };
-
+startAllCronJobs();
   startServer();
 }
 

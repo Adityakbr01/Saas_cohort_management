@@ -39,6 +39,7 @@ export interface ICohort extends Document {
     startDate: Date;
     endDate: Date;
   };
+  activateOn?: Date; // ✅ NEW FIELD
 }
 
 const limitedTimeOfferSchema = new Schema(
@@ -104,6 +105,7 @@ const cohortSchema = new Schema<ICohort>(
     },
 
     ratingSummary: [{ type: Schema.Types.ObjectId, ref: "CohortRating" }], // ✅ Added ratingSummary array with proper structure and reference to CohortRating model.
+    activateOn: { type: Date, required: false }, // ✅ NEW FIELD
   },
   { timestamps: true }
 );

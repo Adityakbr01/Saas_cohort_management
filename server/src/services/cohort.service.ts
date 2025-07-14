@@ -41,6 +41,7 @@ export const CohortService = {
     originalPrice,
     discount,
     isPrivate,
+    activateOn,
   }: any) {
     // ✅ Validate mentor existence
 
@@ -175,6 +176,14 @@ export const CohortService = {
         }
     
 
+        // 💸 Apply discount logic before update
+    if (originalPrice && discount !== undefined) {
+      const discountAmount = (originalPrice *discount) / 100;
+      price = Math.round(originalPrice - discountAmount);
+      discount = Math.round(discount);
+    }
+
+
     // ✅ Finally, create cohort
     const newCohort = new Cohort({
       title,
@@ -201,11 +210,12 @@ export const CohortService = {
       chapters: chapterIds,
       Thumbnail: thumbnailUrl,
       demoVideo: demoVideoUrl,
-      duration,
+      duration: `${duration} week`,
       price,
       originalPrice,
       discount,
       isPrivate,
+      activateOn, // ✅ NEW FIELD
     });
 
     return await newCohort.save();
@@ -478,7 +488,6 @@ export const CohortService = {
         },
       },
     ]);
-
     if (!cohort) throw new ApiError(404, "Cohort not found");
     return cohort;
   },
@@ -515,6 +524,7 @@ export const CohortService = {
       }
     }
 
+    
 
     console.log(payload)
 
