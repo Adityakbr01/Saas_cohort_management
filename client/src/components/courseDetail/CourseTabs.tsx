@@ -83,7 +83,7 @@ function CourseTabs({ course, totalLessons, totalDuration, ratingsPercentages }:
                     <div>
                       <CardTitle className="text-lg">{section.title}</CardTitle>
                       <p className="text-sm text-muted-foreground">
-                        {section.lessons} lessons • {section.duration}
+                        {section.lessons} lessons • {section.duration}s
                       </p>
                     </div>
                   </div>
