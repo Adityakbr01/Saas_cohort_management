@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Dialog,
   DialogContent,
@@ -12,25 +14,31 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Edit } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 
-// Zod schema with conditional validation
+// ✅ Schema
 const cohortSchema = z
   .object({
-    title: z.string().min(1),
+    title: z.string().min(1, "Title is required"),
     shortDescription: z.string(),
     description: z.string(),
-    startDate: z.string(),
-    endDate: z.string(),
+    startDate: z.string().min(1, "Start date is required"),
+    endDate: z.string().min(1, "End date is required"),
     maxCapacity: z.coerce.number(),
     category: z.string(),
     difficulty: z.string(),
-    schedule: z.string(),
+    schedule: z.string().optional(),
     location: z.string(),
     language: z.string(),
     certificateAvailable: z.boolean(),
@@ -42,7 +50,7 @@ const cohortSchema = z
     originalPrice: z.coerce.number(),
     discount: z.coerce.number(),
     isPrivate: z.boolean(),
-    activateOn: z.string().optional(),
+    activateOn: z.string().nullable().optional(),
     limitedTimeOffer: z.object({
       isActive: z.boolean(),
       startDate: z.string().optional(),
@@ -54,6 +62,14 @@ const cohortSchema = z
       ctx.addIssue({
         path: ["discount"],
         message: "Discount must be greater than 0 when limited time offer is active",
+        code: z.ZodIssueCode.custom,
+      });
+    }
+
+    if (data.status === "upcoming" && !data.activateOn) {
+      ctx.addIssue({
+        path: ["activateOn"],
+        message: "Activate On date is required for upcoming cohorts",
         code: z.ZodIssueCode.custom,
       });
     }
@@ -80,6 +96,7 @@ export function UpdateCohortDialog({
     resolver: zodResolver(cohortSchema),
     defaultValues: {
       ...cohort,
+      activateOn: cohort.activateOn ?? "",
       tags: cohort.tags?.join(", ") || "",
       prerequisites: cohort.prerequisites?.join(", ") || "",
     },
@@ -88,17 +105,27 @@ export function UpdateCohortDialog({
   const isLimitedOffer = watch("limitedTimeOffer.isActive");
   const status = watch("status");
 
+  const toUTCString = (datetime: string | undefined | null) =>
+    datetime ? new Date(datetime).toISOString() : undefined;
+
   const onSubmit = (data: CohortFormData) => {
     const finalData = {
       ...data,
       tags: data.tags.split(",").map((t) => t.trim()),
       prerequisites: data.prerequisites.split(",").map((p) => p.trim()),
-      activateOn: data.status === "upcoming" ? data.activateOn : undefined,
+      activateOn:
+        data.status === "upcoming" ? toUTCString(data.activateOn) : undefined,
+      limitedTimeOffer: {
+        ...data.limitedTimeOffer,
+        startDate: toUTCString(data.limitedTimeOffer.startDate),
+        endDate: toUTCString(data.limitedTimeOffer.endDate),
+      },
     };
+
+    console.log("🚀 Final UTC Data:", finalData);
     onUpdate(finalData);
     setOpen(false);
   };
-
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -115,8 +142,12 @@ export function UpdateCohortDialog({
           <DialogDescription>Edit cohort details below.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
+        <form
+          onSubmit={handleSubmit(onSubmit, (e) =>
+            console.error("❌ Form Validation Errors:", e)
+          )}
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
           <div>
             <Label>Title</Label>
             <Input {...register("title")} />
@@ -136,11 +167,13 @@ export function UpdateCohortDialog({
           <div>
             <Label>Start Date</Label>
             <Input type="date" {...register("startDate")} />
+            {errors.startDate && <p className="text-red-500 text-sm">{errors.startDate.message}</p>}
           </div>
 
           <div>
             <Label>End Date</Label>
             <Input type="date" {...register("endDate")} />
+            {errors.endDate && <p className="text-red-500 text-sm">{errors.endDate.message}</p>}
           </div>
 
           <div>
@@ -150,11 +183,18 @@ export function UpdateCohortDialog({
 
           <div>
             <Label>Category</Label>
-            <Select onValueChange={(value) => setValue("category", value)} value={watch("category")}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+            <Select
+              onValueChange={(val) => setValue("category", val)}
+              value={watch("category")}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
               <SelectContent>
                 {["Web Development", "Mobile Development", "Data Science"].map((cat) => (
-                  <SelectItem value={cat} key={cat}>{cat}</SelectItem>
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -162,8 +202,13 @@ export function UpdateCohortDialog({
 
           <div>
             <Label>Difficulty</Label>
-            <Select onValueChange={(value) => setValue("difficulty", value)} value={watch("difficulty")}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+            <Select
+              onValueChange={(val) => setValue("difficulty", val)}
+              value={watch("difficulty")}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Beginner">Beginner</SelectItem>
                 <SelectItem value="Intermediate">Intermediate</SelectItem>
@@ -174,8 +219,13 @@ export function UpdateCohortDialog({
 
           <div>
             <Label>Language</Label>
-            <Select onValueChange={(value) => setValue("language", value)} value={watch("language")}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+            <Select
+              onValueChange={(val) => setValue("language", val)}
+              value={watch("language")}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="English">English</SelectItem>
                 <SelectItem value="Hindi">Hindi</SelectItem>
@@ -185,8 +235,13 @@ export function UpdateCohortDialog({
 
           <div>
             <Label>Location</Label>
-            <Select onValueChange={(value) => setValue("location", value)} value={watch("location")}>
-              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+            <Select
+              onValueChange={(val) => setValue("location", val)}
+              value={watch("location")}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Online">Online</SelectItem>
                 <SelectItem value="In-Person">In-Person</SelectItem>
@@ -198,6 +253,9 @@ export function UpdateCohortDialog({
             <div className="md:col-span-2">
               <Label>Activate On</Label>
               <Input type="datetime-local" {...register("activateOn")} />
+              {errors.activateOn && (
+                <p className="text-red-500 text-sm">{errors.activateOn.message}</p>
+              )}
             </div>
           )}
 
@@ -213,7 +271,7 @@ export function UpdateCohortDialog({
 
           <div>
             <Label>Duration</Label>
-            <Input type="text" {...register("duration")} />
+            <Input {...register("duration")} />
           </div>
 
           <div>
@@ -229,16 +287,20 @@ export function UpdateCohortDialog({
           <div>
             <Label>Discount</Label>
             <Input type="number" {...register("discount")} />
-            {errors.discount && <p className="text-red-500 text-sm">{errors.discount.message}</p>}
+            {errors.discount && (
+              <p className="text-red-500 text-sm">{errors.discount.message}</p>
+            )}
           </div>
 
           {/* Limited Time Offer */}
           <div className="md:col-span-2">
             <Label>Limited Time Offer</Label>
-            <div className="flex items-center gap-2">
+            <div className="flex gap-2 items-center">
               <Switch
                 checked={isLimitedOffer}
-                onCheckedChange={(checked) => setValue("limitedTimeOffer.isActive", checked)}
+                onCheckedChange={(val) =>
+                  setValue("limitedTimeOffer.isActive", val)
+                }
               />
               <Input
                 type="datetime-local"
@@ -257,7 +319,9 @@ export function UpdateCohortDialog({
             <Label>Certificate</Label>
             <Switch
               checked={watch("certificateAvailable")}
-              onCheckedChange={(val) => setValue("certificateAvailable", val)}
+              onCheckedChange={(val) =>
+                setValue("certificateAvailable", val)
+              }
             />
           </div>
 
