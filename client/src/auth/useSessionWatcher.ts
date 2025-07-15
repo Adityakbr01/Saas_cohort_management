@@ -74,6 +74,7 @@ const useSessionWatcher = () => {
               console.log("[DEBUG] Access token refreshed");
             }
           } catch (err) {
+            handleLogout();
             console.error("[DEBUG] Refresh failed", err);
           }
         }
@@ -83,7 +84,7 @@ const useSessionWatcher = () => {
       }
     };
 
-    const handleLogout = async () => {
+     const handleLogout = async () => {
       clearInterval(intervalRef.current!);
       intervalRef.current = null;
       localLogout();
