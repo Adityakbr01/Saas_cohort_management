@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { BarChart3, Building2, CreditCard, Users, TrendingUp, DollarSign } from "lucide-react"
 
-export function Overview() {
+export default function Overview() {
   return (
     <div className="space-y-6">
       <div>

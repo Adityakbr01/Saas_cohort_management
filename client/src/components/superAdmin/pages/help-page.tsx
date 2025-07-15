@@ -1,7 +1,6 @@
-"use client"
 
 import { HelpCenter } from "@/components/help-center"
 
-export function HelpPage() {
+export default function HelpPage() {
   return <HelpCenter />
 }

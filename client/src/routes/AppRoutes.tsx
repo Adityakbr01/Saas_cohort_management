@@ -1,169 +1,225 @@
-import ProtectedRoute from "@/auth/ProtectedRoute"; // Import ProtectedRoute
-import PublicRoute from "@/auth/PublicRoute"; // Import PublicRoute
-import About from "@/components/About";
-import SubscriptionPage from "@/components/Subscription/Subscription";
-import { DashboardLayout } from "@/components/superAdmin/DashboardLayout";
-import { AnalyticsPage } from "@/components/superAdmin/pages/analytics-page";
-import { CalendarPage } from "@/components/superAdmin/pages/calendar-page";
-import { HelpPage } from "@/components/superAdmin/pages/help-page";
-import { NotificationsPage } from "@/components/superAdmin/pages/notifications-page";
-import { OrgAdminsPage } from "@/components/superAdmin/pages/org-admins-page";
-import { Overview } from "@/components/superAdmin/pages/overview";
-import { PermissionsPage } from "@/components/superAdmin/pages/permissions-page";
-import { ReportsPage } from "@/components/superAdmin/pages/reports-page";
-import { SettingsPage } from "@/components/superAdmin/pages/settings-page";
-import { SubscriptionsPage } from "@/components/superAdmin/pages/subscriptions-page";
-import { UserManagementPage } from "@/components/superAdmin/pages/user-management-page";
-import { UserProfilePage } from "@/components/superAdmin/pages/user-profile-page";
-import ForgotPassword from "@/pages/Auth/ForgotPassword";
-import Login from "@/pages/Auth/Login";
-import Register from "@/pages/Auth/Register2";
-import Home from "@/pages/Home";
-import NotFound from "@/pages/NotFound";
-import Unauthorized from "@/pages/Unauthorized";
 import { Route, Routes } from "react-router-dom";
-// import Org_admin_Dashboard from "@/components/orgAdmin/Org_admin_Dashboard";
-import MentorPage from "@/components/mentorDashboard/MentorPage";
-import OrgAdminDashboard from "@/components/orgAdmin/DashboardLayout";
-import CreateOrg from "@/components/orgAdmin/pages/CreateOrg";
-import { Role } from "@/config/constant";
-import CourseDetailPage from "@/pages/CourseDetailPage";
-import CoursesPage from "@/pages/Courses";
-import ProfilePage from "@/pages/Student/ProfilePage";
-
-
-import LoaderPage from "@/components/Loader";
 import { Suspense, lazy } from "react";
 
-// Lazy load
-const Whiteboard = lazy(() => import("@/pages/WhiteboardPage"));
+import ProtectedRoute from "@/auth/ProtectedRoute";
+import PublicRoute from "@/auth/PublicRoute";
+import { Role } from "@/config/constant";
+import LoaderPage from "@/components/Loader";
+import HomeSkeleton from "@/components/HomeSkeleton";
+
+// 👇 Lazy-loaded components
+const Home = lazy(() => import("@/pages/Home"));
+const About = lazy(() => import("@/components/About"));
+const SubscriptionPage = lazy(() => import("@/components/Subscription/Subscription"));
+
+const CoursesPage = lazy(() => import("@/pages/Courses"));
+const CourseDetailPage = lazy(() => import("@/pages/CourseDetailPage"));
 const LearnCourse = lazy(() => import("@/pages/LearnCourse"));
+
+const Login = lazy(() => import("@/pages/Auth/Login"));
+const Register = lazy(() => import("@/pages/Auth/Register2"));
+const ForgotPassword = lazy(() => import("@/pages/Auth/ForgotPassword"));
+
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const Unauthorized = lazy(() => import("@/pages/Unauthorized"));
+
+const Whiteboard = lazy(() => import("@/pages/WhiteboardPage"));
+const ProfilePage = lazy(() => import("@/pages/Student/ProfilePage"));
+
+const DashboardLayout = lazy(() => import("@/components/superAdmin/DashboardLayout"));
+const Overview = lazy(() => import("@/components/superAdmin/pages/overview"));
+const SubscriptionsPage = lazy(() => import("@/components/superAdmin/pages/subscriptions-page"));
+const OrgAdminsPage = lazy(() => import("@/components/superAdmin/pages/org-admins-page"));
+const AnalyticsPage = lazy(() => import("@/components/superAdmin/pages/analytics-page"));
+const UserManagementPage = lazy(() => import("@/components/superAdmin/pages/user-management-page"));
+const PermissionsPage = lazy(() => import("@/components/superAdmin/pages/permissions-page"));
+const NotificationsPage = lazy(() => import("@/components/superAdmin/pages/notifications-page"));
+const ReportsPage = lazy(() => import("@/components/superAdmin/pages/reports-page"));
+const CalendarPage = lazy(() => import("@/components/superAdmin/pages/calendar-page"));
+const HelpPage = lazy(() => import("@/components/superAdmin/pages/help-page"));
+const SettingsPage = lazy(() => import("@/components/superAdmin/pages/settings-page"));
+const UserProfilePage = lazy(() => import("@/components/superAdmin/pages/user-profile-page"));
+
+const OrgAdminDashboard = lazy(() => import("@/components/orgAdmin/DashboardLayout"));
+const CreateOrg = lazy(() => import("@/components/orgAdmin/pages/CreateOrg"));
+const MentorPage = lazy(() => import("@/components/mentorDashboard/MentorPage"));
 
 const AppRoutes = () => {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={<Home />} />
+      <Route
+        path="/"
+        element={
+          <Suspense fallback={<HomeSkeleton />}>
+            <Home />
+          </Suspense>
+        }
+      />
 
-      <Route path="/about" element={<About />} />
-      <Route path="/subscription" element={<SubscriptionPage />} />
+      <Route
+        path="/about"
+        element={
+          <Suspense fallback={<LoaderPage />}>
+            <About />
+          </Suspense>
+        }
+      />
+
+      <Route
+        path="/subscription"
+        element={
+          <Suspense fallback={<LoaderPage />}>
+            <SubscriptionPage />
+          </Suspense>
+        }
+      />
+
       <Route
         path="/login"
         element={
           <PublicRoute>
-            <Login />
+            <Suspense fallback={<LoaderPage />}>
+              <Login />
+            </Suspense>
           </PublicRoute>
         }
       />
+
       <Route
         path="/register"
         element={
           <PublicRoute>
-            <Register />
+            <Suspense fallback={<LoaderPage />}>
+              <Register />
+            </Suspense>
           </PublicRoute>
         }
       />
+
       <Route
         path="/forgot-password"
-        element={<ForgotPassword />}
+        element={
+          <Suspense fallback={<LoaderPage />}>
+            <ForgotPassword />
+          </Suspense>
+        }
       />
 
-      <Route path="/courses" element={<CoursesPage />} />
-      <Route path="/courses/:id" element={<CourseDetailPage />} />
+      <Route
+        path="/courses"
+        element={
+          <Suspense fallback={<LoaderPage />}>
+            <CoursesPage />
+          </Suspense>
+        }
+      />
 
+      <Route
+        path="/courses/:id"
+        element={
+          <Suspense fallback={<LoaderPage />}>
+            <CourseDetailPage />
+          </Suspense>
+        }
+      />
 
       {/* Protected Super Admin Routes */}
       <Route
         element={
           <ProtectedRoute allowedRoles={["super_admin"]}>
-            <DashboardLayout />
+            <Suspense fallback={<LoaderPage />}>
+              <DashboardLayout />
+            </Suspense>
           </ProtectedRoute>
         }
       >
-        <Route path="/dashboard/super_admin" element={<Overview />} />
-        <Route path="/subscriptions" element={<SubscriptionsPage />} />
-        <Route path="/org-admins" element={<OrgAdminsPage />} />
-        <Route path="/analytics" element={<AnalyticsPage />} />
-        <Route path="/users" element={<UserManagementPage />} />
-        <Route path="/permissions" element={<PermissionsPage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/calendar" element={<CalendarPage />} />
-        <Route path="/help" element={<HelpPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/dashboard/profile" element={<UserProfilePage />} />
+        <Route path="/dashboard/super_admin" element={<Suspense fallback={<LoaderPage />}><Overview /></Suspense>} />
+        <Route path="/subscriptions" element={<Suspense fallback={<LoaderPage />}><SubscriptionsPage /></Suspense>} />
+        <Route path="/org-admins" element={<Suspense fallback={<LoaderPage />}><OrgAdminsPage /></Suspense>} />
+        <Route path="/analytics" element={<Suspense fallback={<LoaderPage />}><AnalyticsPage /></Suspense>} />
+        <Route path="/users" element={<Suspense fallback={<LoaderPage />}><UserManagementPage /></Suspense>} />
+        <Route path="/permissions" element={<Suspense fallback={<LoaderPage />}><PermissionsPage /></Suspense>} />
+        <Route path="/notifications" element={<Suspense fallback={<LoaderPage />}><NotificationsPage /></Suspense>} />
+        <Route path="/reports" element={<Suspense fallback={<LoaderPage />}><ReportsPage /></Suspense>} />
+        <Route path="/calendar" element={<Suspense fallback={<LoaderPage />}><CalendarPage /></Suspense>} />
+        <Route path="/help" element={<Suspense fallback={<LoaderPage />}><HelpPage /></Suspense>} />
+        <Route path="/settings" element={<Suspense fallback={<LoaderPage />}><SettingsPage /></Suspense>} />
+        <Route path="/dashboard/profile" element={<Suspense fallback={<LoaderPage />}><UserProfilePage /></Suspense>} />
       </Route>
 
-      {/* Protected org admin Routes */}
+      {/* Org Admin */}
       <Route
         path="/dashboard/org_admin"
         element={
           <ProtectedRoute allowedRoles={[Role.organization]}>
-            <OrgAdminDashboard />
+            <Suspense fallback={<LoaderPage />}>
+              <OrgAdminDashboard />
+            </Suspense>
           </ProtectedRoute>
         }
-      >
-      </Route>
+      />
 
       <Route
         path="/create-org"
         element={
           <ProtectedRoute allowedRoles={["org_admin"]}>
-            <CreateOrg />
+            <Suspense fallback={<LoaderPage />}>
+              <CreateOrg />
+            </Suspense>
           </ProtectedRoute>
         }
       />
 
-      {/* Mentor Routes */}
-
+      {/* Mentor */}
       <Route
         path="/dashboard/mentor"
         element={
           <ProtectedRoute allowedRoles={["mentor", "org_admin"]}>
-            <MentorPage />
+            <Suspense fallback={<LoaderPage />}>
+              <MentorPage />
+            </Suspense>
           </ProtectedRoute>
         }
       />
-      {/* Student Routes */}
+
+      {/* Student */}
       <Route
         path="/profile"
         element={
           <ProtectedRoute allowedRoles={["student"]}>
-            <ProfilePage />
+            <Suspense fallback={<LoaderPage />}>
+              <ProfilePage />
+            </Suspense>
           </ProtectedRoute>
         }
       />
 
-      {/* Fallback Routes */}
-      <Route path="/unauthorized" element={<Unauthorized />} />
-      <Route path="*" element={<NotFound />} />
-
-      {/* ------------------------------ */}
-     <Route
-  path="/whiteboard"
-  element={
-    <ProtectedRoute allowedRoles={["student", "mentor", "org_admin", "super_admin"]}>
-      <Suspense fallback={<LoaderPage/>}>
-        <Whiteboard />
-      </Suspense>
-    </ProtectedRoute>
-  }
-/>
-
-
-
-      {/* -----------------------Lerning Modules----------------------------------- */}
-
+      {/* Whiteboard */}
       <Route
-  path="/learn/:cohortId"
-  element={
-    <Suspense fallback={<LoaderPage/>}>
-      <LearnCourse params={{cohortId: "1"}}/>
-    </Suspense>
-  }
-/>
+        path="/whiteboard"
+        element={
+          <ProtectedRoute allowedRoles={["student", "mentor", "org_admin", "super_admin"]}>
+            <Suspense fallback={<LoaderPage />}>
+              <Whiteboard />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
 
+      {/* Learn */}
+      <Route
+        path="/learn/:cohortId"
+        element={
+          <Suspense fallback={<LoaderPage />}>
+            <LearnCourse params={{ cohortId: "1" }} />
+          </Suspense>
+        }
+      />
 
+      {/* Others */}
+      <Route path="/unauthorized" element={<Suspense fallback={<LoaderPage />}><Unauthorized /></Suspense>} />
+      <Route path="*" element={<Suspense fallback={<LoaderPage />}><NotFound /></Suspense>} />
     </Routes>
   );
 };

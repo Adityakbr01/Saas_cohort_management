@@ -64,7 +64,7 @@ const data = {
   ],
 };
 
-export function DashboardLayout() {
+export default function DashboardLayout() {
   const location = useLocation();
 
   const getCurrentPageTitle = () => {

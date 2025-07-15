@@ -59,7 +59,7 @@ const subscriptionSchema = z.object({
 
 type SubscriptionFormData = z.infer<typeof subscriptionSchema>;
 
-export function SubscriptionsPage() {
+export default function SubscriptionsPage() {
   const { data, error, isLoading } = useGetSubscriptionsQuery();
   const [updateSubscription, { isLoading: updateSubscriptionLoading }] = useUpdateSubscriptionMutation();
   const [createSubscription, { isLoading: createSubscriptionLoading }] = useCreateSubscriptionMutation();

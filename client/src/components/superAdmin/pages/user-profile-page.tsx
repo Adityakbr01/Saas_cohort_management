@@ -1,4 +1,3 @@
-"use client"
 
 import {
   AlertDialog,
@@ -23,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Calendar, Download, Eye, Lock, LogOut, Mail, MapPin, Phone, Shield } from "lucide-react"
 import { useState } from "react"
 
-export function UserProfilePage() {
+export default function UserProfilePage() {
 
   const [isEditing, setIsEditing] = useState(false)
 

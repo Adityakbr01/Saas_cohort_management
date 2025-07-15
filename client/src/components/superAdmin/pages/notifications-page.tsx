@@ -1,7 +1,6 @@
-"use client"
 
 import { NotificationsPanel } from "@/components/notifications-panel"
 
-export function NotificationsPage() {
+export default function NotificationsPage() {
   return <NotificationsPanel />
 }
