@@ -29,9 +29,15 @@ import CreateOrg from "@/components/orgAdmin/pages/CreateOrg";
 import { Role } from "@/config/constant";
 import CourseDetailPage from "@/pages/CourseDetailPage";
 import CoursesPage from "@/pages/Courses";
-import LearnCourse from "@/pages/LearnCourse";
 import ProfilePage from "@/pages/Student/ProfilePage";
-import Whiteboard from "@/pages/WhiteboardPage";
+
+
+import LoaderPage from "@/components/Loader";
+import { Suspense, lazy } from "react";
+
+// Lazy load
+const Whiteboard = lazy(() => import("@/pages/WhiteboardPage"));
+const LearnCourse = lazy(() => import("@/pages/LearnCourse"));
 
 const AppRoutes = () => {
   return (
@@ -133,25 +139,29 @@ const AppRoutes = () => {
       <Route path="*" element={<NotFound />} />
 
       {/* ------------------------------ */}
-      <Route
-        path="/whiteboard"
-        element={
-          <ProtectedRoute allowedRoles={["student", "mentor", "org_admin", "super_admin"]}>
-            <Whiteboard />
-          </ProtectedRoute>
-        }
-      />
+     <Route
+  path="/whiteboard"
+  element={
+    <ProtectedRoute allowedRoles={["student", "mentor", "org_admin", "super_admin"]}>
+      <Suspense fallback={<LoaderPage/>}>
+        <Whiteboard />
+      </Suspense>
+    </ProtectedRoute>
+  }
+/>
 
 
 
       {/* -----------------------Lerning Modules----------------------------------- */}
 
       <Route
-        path="/learn/:cohortId"
-        element={
-            <LearnCourse params={{cohortId: "1"}} />
-        }
-      />
+  path="/learn/:cohortId"
+  element={
+    <Suspense fallback={<LoaderPage/>}>
+      <LearnCourse params={{cohortId: "1"}}/>
+    </Suspense>
+  }
+/>
 
 
     </Routes>
