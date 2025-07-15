@@ -346,7 +346,7 @@ export const authService = {
     //remove cached user
     safeCache.del(user._id.toString());
 
-    return { accessToken, refreshToken, user };
+    return { accessToken,refreshToken, user };
   },
   async getProfile(userId: string, role: string) {
     if (!userId || !role) {
