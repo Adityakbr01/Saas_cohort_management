@@ -1,14 +1,14 @@
-import { Route, Routes } from "react-router-dom";
 import { Suspense, lazy } from "react";
+import { Route, Routes } from "react-router-dom";
 
 import ProtectedRoute from "@/auth/ProtectedRoute";
 import PublicRoute from "@/auth/PublicRoute";
-import { Role } from "@/config/constant";
 import LoaderPage from "@/components/Loader";
-import HomeSkeleton from "@/components/HomeSkeleton";
+import { Role } from "@/config/constant";
+import Home from "@/pages/Home";
 
 // 👇 Lazy-loaded components
-const Home = lazy(() => import("@/pages/Home"));
+
 const About = lazy(() => import("@/components/About"));
 const SubscriptionPage = lazy(() => import("@/components/Subscription/Subscription"));
 
@@ -51,9 +51,7 @@ const AppRoutes = () => {
       <Route
         path="/"
         element={
-          <Suspense fallback={<HomeSkeleton />}>
-            <Home />
-          </Suspense>
+          <Home />
         }
       />
 
