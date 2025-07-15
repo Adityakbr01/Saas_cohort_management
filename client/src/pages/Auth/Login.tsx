@@ -22,6 +22,8 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import AES from "crypto-js/aes";
 import encUtf8 from "crypto-js/enc-utf8";
 
+
+
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z
@@ -106,7 +108,7 @@ function Login() {
       }
 
       const { name, role } = response.data.user;
-      const { accessToken, refreshToken } = response.data;
+      const { accessToken } = response.data;
 
       // Show success toast
       toast.success("Login Successful", {
@@ -116,8 +118,6 @@ function Login() {
       // Store user data in localStorage
       localStorage.setItem("user", JSON.stringify(response.data.user));
       localStorage.setItem("accessToken", JSON.stringify(accessToken));
-      localStorage.setItem("refreshToken", JSON.stringify(refreshToken));
-
       // Role-based navigation
       const redirectPath = role === "super_admin" ? "/dashboard/super_admin" : "/";
       navigate(redirectPath, { replace: true });

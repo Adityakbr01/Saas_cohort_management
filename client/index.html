@@ -1,40 +1,59 @@
 <!doctype html>
 <html lang="en">
-  <head>
+
+<head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
-  <!-- ✅ Title and Description for SEO -->
+  <!-- ✅ SEO Tags -->
   <title>EduLaunch - Transform Your Learning Journey</title>
-  <meta name="description" content="Join 50K+ students on EduLaunch. Access 500+ expert-led courses, learn at your pace, and boost your career." />
+  <meta name="description"
+    content="Join 50K+ students on EduLaunch. Access 500+ expert-led courses, learn at your pace, and boost your career." />
   <meta name="keywords" content="EduLaunch, Online Courses, LMS, eLearning, Certificates, Career, Students" />
+  <meta name="robots" content="index, follow" />
 
-  <!-- ✅ Favicon -->
-  <link rel="icon" type="image/png" href="/eduLaunch.png" />
+  <!-- ✅ Favicons -->
+  <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32" />
+  <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-title" content="EduLaunch" />
 
-  <!-- ✅ Manifest (for PWA) -->
-  <link rel="manifest" href="/manifest.json" />
+  <!-- ✅ Manifest -->
+  <link rel="manifest" href="/site.webmanifest" />
 
-  <!-- ✅ Open Graph (for LinkedIn, Facebook) -->
+  <!-- ✅ Open Graph -->
   <meta property="og:title" content="EduLaunch - Online Learning Platform" />
-  <meta property="og:description" content="Learn anytime, anywhere with EduLaunch. 500+ expert courses, 50K+ learners." />
+  <meta property="og:description"
+    content="Learn anytime, anywhere with EduLaunch. 500+ expert courses, 50K+ learners." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://www.edulaunch.shop/" />
-  <meta property="og:image" content="/og-banner.png" />
+  <meta property="og:image" content="https://www.edulaunch.shop/og-banner.png" />
 
   <!-- ✅ Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="EduLaunch - Learn Online Easily" />
   <meta name="twitter:description" content="Join 50K+ students. Access 500+ expert courses now." />
-  <meta name="twitter:image" content="/og-banner.png" />
+  <meta name="twitter:image" content="https://www.edulaunch.shop/og-banner.png" />
 
-  <!-- ✅ Robots tag (if needed) -->
-  <meta name="robots" content="index, follow" />
+  <!-- ✅ Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "EduLaunch",
+    "url": "https://www.edulaunch.shop",
+    "logo": "https://www.edulaunch.shop/eduLaunch.png"
+  }
+  </script>
 </head>
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

@@ -23,13 +23,14 @@ import NotFound from "@/pages/NotFound";
 import Unauthorized from "@/pages/Unauthorized";
 import { Route, Routes } from "react-router-dom";
 // import Org_admin_Dashboard from "@/components/orgAdmin/Org_admin_Dashboard";
+import MentorPage from "@/components/mentorDashboard/MentorPage";
 import OrgAdminDashboard from "@/components/orgAdmin/DashboardLayout";
 import CreateOrg from "@/components/orgAdmin/pages/CreateOrg";
-import MentorPage from "@/components/mentorDashboard/MentorPage";
-import ProfilePage from "@/pages/Student/ProfilePage";
-import CoursesPage from "@/pages/Courses";
-import CourseDetailPage from "@/pages/CourseDetailPage";
 import { Role } from "@/config/constant";
+import CourseDetailPage from "@/pages/CourseDetailPage";
+import CoursesPage from "@/pages/Courses";
+import LearnCourse from "@/pages/LearnCourse";
+import ProfilePage from "@/pages/Student/ProfilePage";
 import Whiteboard from "@/pages/WhiteboardPage";
 
 const AppRoutes = () => {
@@ -140,6 +141,19 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
+
+
+      {/* -----------------------Lerning Modules----------------------------------- */}
+
+      <Route
+        path="/learn/:cohortId"
+        element={
+            <LearnCourse params={{cohortId: "1"}} />
+        }
+      />
+
+
     </Routes>
   );
 };

@@ -1,8 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { jwtDecode } from "jwt-decode";
-import { logout } from "@/utils/authUtils";
-import { useLogoutMutation, useRefreshTokenMutation } from "@/store/features/auth/authApi";
+import { logout as localLogout } from "@/utils/authUtils";
+import {
+  useLogoutMutation,
+  useRefreshTokenMutation,
+} from "@/store/features/auth/authApi";
 import { selectIsAuthenticated } from "@/store/features/slice/UserAuthSlice";
 
 interface DecodedToken {
@@ -10,14 +13,14 @@ interface DecodedToken {
 }
 
 const PUBLIC_ROUTES = [
-  '/login',
-  '/register',
-  '/forgot-password',
-  '/verify-email',
-  '/reset-password',
-  '/about',
-  '/subscription',
-  '/courses',
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/verify-email",
+  "/reset-password",
+  "/about",
+  "/subscription",
+  "/courses",
 ];
 
 const useSessionWatcher = () => {
@@ -28,97 +31,70 @@ const useSessionWatcher = () => {
 
   useEffect(() => {
     const isPublicRoute = () => {
-      if (typeof window === 'undefined') return false;
+      if (typeof window === "undefined") return false;
       const currentPath = window.location.pathname;
-      return PUBLIC_ROUTES.some(route => currentPath.startsWith(route));
+      return PUBLIC_ROUTES.some((route) => currentPath.startsWith(route));
     };
 
-    const hasValidTokens = () => {
-      const accessToken = localStorage.getItem("accessToken");
-      const refreshTokenStr = localStorage.getItem("refreshToken");
-      const user = localStorage.getItem("user");
-      return !!(accessToken && refreshTokenStr && user);
-    };
+    const canWatchSession =
+      isAuthenticated &&
+      !isPublicRoute() &&
+      localStorage.getItem("accessToken") &&
+      localStorage.getItem("user");
 
-    const canWatchSession = isAuthenticated && !isPublicRoute() && hasValidTokens();
-
-    // Cleanup existing interval
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
 
-    if (!canWatchSession) {
-      return;
-    }
+    if (!canWatchSession) return;
 
     const checkSession = async () => {
       const accessToken = localStorage.getItem("accessToken");
-      const refreshTokenStr = localStorage.getItem("refreshToken");
-
       if (!accessToken) {
-        if (refreshTokenStr) {
-          try {
-            const result = await refreshToken({ refreshToken: refreshTokenStr }).unwrap();
-            if (result?.data?.accessToken) {
-              console.log("[DEBUG] Token refreshed from absence");
-              localStorage.setItem("accessToken", result?.data?.accessToken);
-              return;
-            }
-          } catch (refreshError) {
-            console.error("[DEBUG] Refresh failed (no accessToken):", refreshError);
-            handleLogout();
-          }
-        } else {
-          console.warn("[DEBUG] No tokens found, logging out");
-          handleLogout();
-        }
+        console.warn("[DEBUG] No token found, logging out");
+        handleLogout();
         return;
       }
 
       try {
         const decoded: DecodedToken = jwtDecode(accessToken);
-        const currentTime = Date.now();
-        const expiryTime = decoded.exp * 1000;
-        const isExpired = expiryTime < currentTime;
-        const isNearExpiry = expiryTime - currentTime < 5 * 60 * 1000;
+        const now = Date.now();
+        const expiry = decoded.exp * 1000;
+        const nearExpiry = expiry - now < 5 * 60 * 1000; // 5 min
 
-        if (isExpired) {
-          console.log("[DEBUG] Access token expired, logging out");
+        if (expiry < now) {
+          console.log("[DEBUG] Token expired");
           handleLogout();
-          return;
-        }
-
-        if (isNearExpiry && refreshTokenStr) {
+        } else if (nearExpiry) {
           try {
-            const result = await refreshToken({ refreshToken: refreshTokenStr }).unwrap();
-            if (result?.data?.accessToken) {
-              console.log("[DEBUG] Access token refreshed (near expiry)");
-              localStorage.setItem("accessToken", result?.data?.accessToken);
+            const res = await refreshToken(undefined).unwrap();
+            if (res?.data?.accessToken) {
+              localStorage.setItem("accessToken", res.data.accessToken);
+              console.log("[DEBUG] Access token refreshed");
             }
-          } catch (refreshError) {
-            console.error("[DEBUG] Refresh failed (near expiry):", refreshError);
-            // Don’t force logout immediately, next interval will handle
+          } catch (err) {
+            console.error("[DEBUG] Refresh failed", err);
           }
         }
-      } catch (decodeError) {
-        console.error("[DEBUG] Failed to decode token:", decodeError);
-        // Retry on next interval
+      } catch (err) {
+        console.error("[DEBUG] Failed to decode token", err);
+        // Let next interval handle it
       }
     };
 
     const handleLogout = async () => {
       clearInterval(intervalRef.current!);
       intervalRef.current = null;
-      logout(); // Local logout
+      localLogout();
       try {
-        await logoutApi(undefined).unwrap(); // Server logout
-      } catch (logoutError) {
-        console.error("[DEBUG] Logout API failed:", logoutError);
+        await logoutApi().unwrap();
+      } catch (err) {
+        console.error("[DEBUG] Logout API failed:", err);
       }
     };
 
-    intervalRef.current = setInterval(checkSession, 5000);
+    intervalRef.current = setInterval(checkSession, 5000); // 5 sec
 
     return () => {
       if (intervalRef.current) {
@@ -128,15 +104,6 @@ const useSessionWatcher = () => {
       }
     };
   }, [isAuthenticated, refreshToken, logoutApi]);
-
-  // Safety: stop watcher if user logs out
-  useEffect(() => {
-    if (!isAuthenticated && intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-      console.log("[DEBUG] Cleared session watcher after logout");
-    }
-  }, [isAuthenticated]);
 
   return null;
 };
