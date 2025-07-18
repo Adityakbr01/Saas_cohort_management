@@ -339,6 +339,9 @@ paymentRouter.post(
   async (req, res) => {
     const sig = req.headers["stripe-signature"];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET_COHORT;
+    if (!endpointSecret) {
+      throw new ApiError(400, "Webhook secret missing")
+    }
 
     let event: Stripe.Event;
 
