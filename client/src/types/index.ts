@@ -28,7 +28,7 @@ export interface User {
   overallRating: number;
   studentCompletionRate: number;
   responseTime: string;
-
+  phone:string
 }
 
 

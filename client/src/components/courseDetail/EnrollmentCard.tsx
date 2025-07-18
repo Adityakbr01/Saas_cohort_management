@@ -16,6 +16,8 @@ type Course = {
   language: string;
   certificate: boolean;
   id: string;
+  title: string;
+  description:string
 };
 
 const stripePromise = loadStripe(
@@ -40,27 +42,19 @@ function EnrollmentCard({
   refetch: () => void;
 }) {
 
-    const user = useSelector(selectCurrentUser);
+  const user = useSelector(selectCurrentUser);
   const [createCheckoutSession, { isLoading }] = useCreate_checkout_session_cohortMutation();
 
   console.log(user)
 
   const formData = useMemo(
     () => ({
-      email: "user@example.com",
-      firstName: "John",
-      lastName: "Doe",
-      phone: "1234567890",
-      billingAddress: {
-        street: "123 Main St",
-        city: "Anytown",
-        state: "CA",
-        zipCode: "12345",
-        country: "IN",
-      },
+      email: user?.email,
+      firstName: user?.name,
+      phone:user?.phone || "1234567890",
       agreeToTerms: true,
     }),
-    []
+    [user?.email, user?.name, user?.phone]
   );
 
   const handleEnroll = async () => {
@@ -77,8 +71,8 @@ function EnrollmentCard({
         formData,
         amount: total,
         plan: {
-          name: "Full Course Access",
-          description: "Access to all course content",
+          name: course.title,
+          description: course.description,
         },
       }).unwrap();
       console.log(response)
@@ -93,6 +87,7 @@ function EnrollmentCard({
       }
       refetch();
     } catch (err) {
+      console.log(err)
       console.error("❌ Stripe Checkout Error:", err);
       alert("Something went wrong during enrollment.");
     }
