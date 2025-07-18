@@ -53,6 +53,13 @@ function EnrollmentCard({
       firstName: user?.name,
       phone:user?.phone || "1234567890",
       agreeToTerms: true,
+      billingAddress: {
+        street: "123 Main St",
+        city: "Anytown",
+        state: "CA",
+        zipCode: "12345",
+        country: "IN",
+      },
     }),
     [user?.email, user?.name, user?.phone]
   );
