@@ -339,46 +339,92 @@ paymentRouter.post(
   async (req, res) => {
     const sig = req.headers["stripe-signature"];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET_COHORT;
+
     if (!endpointSecret) {
-      throw new ApiError(400, "Webhook secret missing")
+      console.error("❌ STRIPE_WEBHOOK_SECRET_COHORT missing");
+       res.status(500).send("Webhook secret missing");
+       return
     }
 
     let event: Stripe.Event;
 
     try {
-      event = stripe.webhooks.constructEvent(req.body, sig!, endpointSecret!);
+      event = stripe.webhooks.constructEvent(req.body, sig!, endpointSecret);
     } catch (err: any) {
-      console.error("⚠️ Webhook Error:", err.message);
-      res.status(400).send(`Webhook Error: ${err.message}`);
-      return
+      console.error("❌ Webhook signature verification failed:", err.message);
+       res.status(400).send(`Webhook Error: ${err.message}`);
+       return
     }
+
+    console.log(`📩 Received Stripe event: ${event.type}`);
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
 
       const userId = session.metadata?.userId;
-      const cohortId = session.metadata?.cohortId;
-
-
+      const cohortId = session.metadata?.cohort_id;
 
       if (!userId || !cohortId) {
-        res.status(400).send("Metadata missing");
-        return
+        console.error("❌ Missing metadata: userId or cohortId");
+         res.status(400).send("Metadata missing");
+         return
       }
 
-      console.log("✅ Payment Successful for:", userId, cohortId);
+      console.log("✅ Payment Successful:");
+      console.log("🔹 userId:", userId);
+      console.log("🔹 cohortId:", cohortId);
+      console.log("🔹 sessionId:", session.id);
 
-      const alreadyEnrolled = await CohortEnrollment.findOne({ user: userId, cohort: cohortId, isPaid: true, paymentMethod: "stripe" });
-      if (!alreadyEnrolled) {
-        await CohortEnrollment.create({ user: userId, cohort: cohortId, isPaid: true, paymentMethod: "stripe", paymentId: session.id, paymentAmount: session.amount_total, paymentDate: new Date(), paymentStatus: "paid", paymentDetails: session });
-        await Cohort.findByIdAndUpdate(cohortId, { $addToSet: { students: userId } });
-        await User.findByIdAndUpdate(userId, { $addToSet: { cohorts: cohortId } });
-        await Student.findByIdAndUpdate(userId, { $addToSet: { cohorts: cohortId,enrolledCourses: cohortId } });
-        console.log("Enrolled successfully");
+      try {
+        const alreadyEnrolled = await CohortEnrollment.findOne({
+          user: userId,
+          cohort: cohortId,
+          isPaid: true,
+          paymentMethod: "stripe",
+        });
+
+        if (alreadyEnrolled) {
+          console.log("ℹ️ User already enrolled. Skipping duplicate.");
+        } else {
+          await CohortEnrollment.create({
+            user: userId,
+            cohort: cohortId,
+            isPaid: true,
+            paymentMethod: "stripe",
+            paymentId: session.id,
+            paymentAmount: session.amount_total,
+            paymentDate: new Date(),
+            paymentStatus: "paid",
+            paymentDetails: session,
+          });
+
+          await Cohort.findByIdAndUpdate(cohortId, {
+            $addToSet: { students: userId },
+          });
+
+          await User.findByIdAndUpdate(userId, {
+            $addToSet: { cohorts: cohortId },
+          });
+
+          await Student.findByIdAndUpdate(userId, {
+            $addToSet: { cohorts: cohortId, enrolledCourses: cohortId },
+          });
+
+          console.log("🎉 User enrolled successfully in cohort!");
+        }
+
+         res.status(200).send("Webhook processed");
+         return
+      } catch (dbError: any) {
+        console.error("❌ DB Error during enrollment:", dbError.message);
+         res.status(500).send("Error while enrolling user");
+         return
       }
+    } else {
+      console.log("ℹ️ Unhandled event type:", event.type);
     }
 
-    res.status(200).send("Webhook received");
+    res.status(200).send("Event received");
   }
 );
 
