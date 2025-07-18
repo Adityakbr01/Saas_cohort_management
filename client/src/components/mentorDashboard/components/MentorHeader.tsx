@@ -12,7 +12,7 @@ function MentorHeader({ mentorData, onMessagesClick }: MentorHeaderProps) {
   
   console.log(mentorData)
 
-  const nameParts = mentorData.name.trim().split(" ");
+  const nameParts = mentorData?.name?.trim().split(" ");
   const displayName = nameParts.length > 1 ? nameParts[1] : nameParts[0];
   const initials =
     nameParts.length > 1

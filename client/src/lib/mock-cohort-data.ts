@@ -1,6 +1,6 @@
 import type { CohortData } from "@/types/cohort";
 
-export const mockCohort:CohortData  = {
+export const mockCohort: CohortData = {
   id: "cohort_1",
   title: "Full Stack Web Development Bootcamp",
   description: "Master modern web development with React, Node.js, and databases",
@@ -10,15 +10,8 @@ export const mockCohort:CohortData  = {
     avatar: "/placeholder.svg?height=40&width=40",
     bio: "Senior Full Stack Developer with 8+ years experience",
   },
-
-
-
   progress: {
     overall: 45,
-
-
-
-
     // ✅ Yeh 4 field type ke andar hone chahiye (percent values)
     byType: {
       video: 60,
@@ -27,7 +20,6 @@ export const mockCohort:CohortData  = {
       lessons: 10,
       assignments: 1,
     },
-
     // ✅ Required fields
     completedLessons: 7,
     totalLessons: 12,
@@ -35,7 +27,6 @@ export const mockCohort:CohortData  = {
     streak: "3 days",
     streakDays: [1, 2, 3, 4, 5],
     xp: 2200,
-
     // ✅ Achievements list
     achievements: ["Completed 5 lessons", "Completed first quiz", "3-day streak!"],
   },
@@ -203,7 +194,7 @@ git log --oneline`,
               explanation:
                 "HTML stands for Hyper Text Markup Language, which is the standard markup language for creating web pages.",
             },
-            
+
           ],
         },
       ],

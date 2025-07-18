@@ -1,5 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useCreate_checkout_session_cohortMutation } from "@/store/features/api/payment/payment";
+import { loadStripe } from "@stripe/stripe-js";
+import { useMemo } from "react";
 
 type Course = {
   price: string;
@@ -10,7 +13,12 @@ type Course = {
   level: string;
   language: string;
   certificate: boolean;
+  id: string;
 };
+
+const stripePromise = loadStripe(
+  "pk_test_51QZVRzFmcVwSRAFowZJVSN37k5u3IUyBN8m5961COu12oEz8AGzp29bwMpdRwqE4g9jQCtw2NPzVGD09G7Z1dnph00Y8V6sozf"
+);
 
 function EnrollmentCard({
   course,
@@ -29,6 +37,60 @@ function EnrollmentCard({
   toggleBookmark: () => void;
   refetch: () => void;
 }) {
+  const [createCheckoutSession, { isLoading }] =
+    useCreate_checkout_session_cohortMutation();
+
+  const formData = useMemo(
+    () => ({
+      email: "user@example.com",
+      firstName: "John",
+      lastName: "Doe",
+      phone: "1234567890",
+      billingAddress: {
+        street: "123 Main St",
+        city: "Anytown",
+        state: "CA",
+        zipCode: "12345",
+        country: "IN",
+      },
+      agreeToTerms: true,
+    }),
+    []
+  );
+
+  const handleEnroll = async () => {
+    try {
+      const stripe = await stripePromise;
+      if (!stripe) throw new Error("Stripe failed to initialize");
+
+      const total = parseFloat(course.price) * 100; // Stripe expects amount in paisa
+
+      const response = await createCheckoutSession({
+        cohortId: course.id,
+        currency: "INR",
+        formData,
+        amount: total,
+        plan: {
+          name: "Full Course Access",
+          description: "Access to all course content",
+        },
+      }).unwrap();
+      console.log(response)
+
+      if (response?.id) {
+        const result = await stripe.redirectToCheckout({ sessionId: response.id });
+        if (result.error) {
+          throw new Error(result.error.message);
+        }
+      } else {
+        throw new Error("Failed to create checkout session.");
+      }
+      refetch();
+    } catch (err) {
+      console.error("❌ Stripe Checkout Error:", err);
+      alert("Something went wrong during enrollment.");
+    }
+  };
 
   return (
     <aside className="lg:col-span-1" aria-label="Course enrollment details">
@@ -37,13 +99,13 @@ function EnrollmentCard({
           <div className="text-center mb-6">
             <div className="flex items-center justify-center gap-2 mb-2">
               <span className="text-3xl font-bold">{course.price}</span>
-              {course.originalPrice &&
-                course.originalPrice !== course.price && (
-                  <span className="text-lg text-muted-foreground line-through">
-                    {course.originalPrice}
-                  </span>
-                )}
+              {course.originalPrice !== course.price && (
+                <span className="text-lg text-muted-foreground line-through">
+                  {course.originalPrice}
+                </span>
+              )}
             </div>
+
             {course.discount > 0 && (
               <p className="text-sm text-muted-foreground">
                 {`${course.discount}% off for limited time`}
@@ -51,88 +113,58 @@ function EnrollmentCard({
             )}
 
             {isUpcoming && (
-              <div className="text-center text-sm text-yellow-600">
+              <div className="text-sm text-yellow-600">
                 🚀 Course Launching In: {launchCountdown}
               </div>
             )}
 
-            {/* 🔥 Limited Offer Countdown (if not upcoming) */}
             {!isUpcoming &&
               course.limitedTimeOffer?.isActive &&
               countdown && (
-                <div className="text-xs px-3 py-2 rounded-md flex items-center justify-center font-NeuMechina mt-4">
+                <div className="text-xs px-3 py-2 rounded-md flex items-center justify-center mt-4">
                   <span className="font-medium">
-                    🔥 Limited Offer Ends In:
-                    <span className="sr-only">
-                      Offer ends on{" "}
-                      {course.limitedTimeOffer.endDate
-                        ? new Date(
-                          course.limitedTimeOffer.endDate
-                        ).toLocaleString()
-                        : "unknown date"}
-                    </span>
+                    🔥 Limited Offer Ends In:{" "}
                   </span>
-                  <span className="ml-2 font-NeuMechina">
-                    {countdown}
-                  </span>
+                  <span className="ml-2">{countdown}</span>
                 </div>
               )}
           </div>
 
-          {/* ✅ Buttons */}
+          {/* Buttons */}
           <div className="space-y-3 mb-6">
             <Button
-              className="w-full hover:scale-101 cursor-pointer transition-transform focus:ring-2 focus:ring-primary"
+              className="w-full hover:scale-101 transition-transform focus:ring-2 focus:ring-primary"
               size="lg"
-              aria-label={isUpcoming ? "Course not yet launched" : "Enroll in the course"}
-              disabled={isUpcoming}
-              tabIndex={0}
-              onClick={() => {
-                refetch();
-              }}
+              disabled={isUpcoming || isLoading}
+              onClick={handleEnroll}
             >
               {isUpcoming ? "🚀 Launching Soon" : "Enroll Now"}
             </Button>
 
             <Button
               variant="outline"
-              className="w-full hover:scale-101 cursor-pointer transition-transform focus:ring-2 focus:ring-primary"
-              aria-label="Add course to wishlist"
-              tabIndex={0}
+              className="w-full hover:scale-101 transition-transform focus:ring-2 focus:ring-primary"
               onClick={toggleBookmark}
             >
               {bookmarked ? "Remove from Wishlist" : "Add to Wishlist"}
             </Button>
           </div>
 
-          {/* ✅ Info Section */}
+          {/* Info */}
           <div className="space-y-3 text-sm">
-            <div
-              className="flex justify-between"
-              aria-label={`Duration: ${course.duration}`}
-            >
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Duration:</span>
               <span>{course.duration}</span>
             </div>
-            <div
-              className="flex justify-between"
-              aria-label={`Level: ${course.level}`}
-            >
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Level:</span>
               <span>{course.level}</span>
             </div>
-            <div
-              className="flex justify-between"
-              aria-label={`Language: ${course.language}`}
-            >
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Language:</span>
               <span>{course.language}</span>
             </div>
-            <div
-              className="flex justify-between"
-              aria-label={`Certificate: ${course.certificate ? "Yes" : "No"
-                }`}
-            >
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Certificate:</span>
               <span>{course.certificate ? "Yes" : "No"}</span>
             </div>
