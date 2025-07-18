@@ -28,4 +28,6 @@ const CohortEnrollmentSchema = new Schema<ICohortEnrollment>({
 
 });
 
+CohortEnrollmentSchema.index({ user: 1, cohort: 1 }, { unique: true });
+
 export const CohortEnrollment = mongoose.model<ICohortEnrollment>('CohortEnrollment', CohortEnrollmentSchema);

@@ -335,7 +335,6 @@ paymentRouter.post("/create-checkout-session-cohort", protect, express.json({ li
 );
 
 //Course enrollement webhook
-
 paymentRouter.post(
   "/stripe/webhook/enrollment",
   express.raw({ type: "application/json" }),
@@ -399,7 +398,7 @@ paymentRouter.post(
                 isPaid: true,
                 paymentMethod: "stripe",
                 paymentId: sessionId,
-                paymentAmount: session?.amount_total && session.amount_total / 100,
+               paymentAmount: session?.amount_total ? Math.round(session.amount_total / 100) : 0,
                 paymentDate: new Date(),
                 paymentStatus: "paid",
                 paymentDetails: session,
