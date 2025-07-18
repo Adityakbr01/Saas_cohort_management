@@ -1,7 +1,7 @@
 import { ArrowLeft, Clock, Globe, Users } from "lucide-react";
-import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
 import RatingDisplay from "../RatingDisplay";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 
 // Course type definition
 type Course = {
@@ -55,6 +55,7 @@ type Course = {
 
 // Course Header Component
 function CourseHeader({ course }: { course: Course }) {
+
   return (
     <section aria-label="Course navigation">
       <div className="mb-6">
@@ -99,7 +100,7 @@ function CourseHeader({ course }: { course: Course }) {
           />
           <div className="flex items-center gap-1" aria-label={`${course.students.toLocaleString()} students enrolled`}>
             <Users className="h-4 w-4" />
-            <span>{course.students.toLocaleString()} students</span>
+            <span>{(Array.isArray(course.students) ? course.students.length : course.students).toLocaleString() || 0} students</span>
           </div>
           <div className="flex items-center gap-1" aria-label={`Duration: ${course.duration}`}>
             <Clock className="h-4 w-4" />

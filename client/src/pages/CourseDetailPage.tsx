@@ -123,7 +123,7 @@ export default function CourseDetailPage() {
       duration: cohort.data.duration || formatDuration2(cohort.data.chapters?.reduce((acc: number, chapter: Chapter) => acc + (chapter.totalDuration || 0), 0) || 0),
       level: cohort.data.difficulty || "Beginner",
       rating: cohort.data.averageRating || 0,
-      students: cohort.data.mentor?.studentsCount || 0,
+      students: cohort.data?.students || 0,
       reviewCount: cohort.data.totalRatings || 0,
       thumbnail: cohort.data.Thumbnail || "/placeholder.svg",
       demoVideo: cohort.data.demoVideo || "",
@@ -184,9 +184,6 @@ export default function CourseDetailPage() {
       count: course.ratingsDistribution?.[rating.toString()] || 0,
     }));
   }, [course.ratingsDistribution, course.reviewCount]);
-
-
-
 
 
   if (isLoading) {

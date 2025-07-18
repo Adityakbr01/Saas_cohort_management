@@ -13,12 +13,16 @@ interface PricingCardsProps {
 }
 
 const PricingCards: React.FC<PricingCardsProps> = ({ plans, onPlanSelect, isYearly }) => {
+
+
+    const user = useSelector(selectCurrentUser);
+  user?.plan // plan id hai 
+
   if (!plans || Object.keys(plans).length === 0) {
     return <div className="text-center text-muted-foreground">No plans available</div>;
   }
 
-  const user = useSelector(selectCurrentUser);
-  user?.plan // plan id hai 
+
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">

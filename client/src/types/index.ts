@@ -29,6 +29,8 @@ export interface User {
   studentCompletionRate: number;
   responseTime: string;
   phone:string
+  cohorts: string[];
+  enrolledCourses:  string[];
 }
 
 

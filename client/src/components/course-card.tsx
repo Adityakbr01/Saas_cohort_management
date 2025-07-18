@@ -165,7 +165,7 @@ export default function CourseCard({ course }: CourseCardProps) {
           </div>
           <div className="flex items-center gap-1" aria-label={`${Array.isArray(course.students) ? course.students.length : course.students} students enrolled`}>
             <Users className="h-4 w-4" />
-            <span>{(Array.isArray(course.students) ? course.students.length : course.students).toLocaleString()} students</span>
+            <span>{(Array.isArray(course.students) ? course.students.length : course.students).toLocaleString() || 0} students</span>
           </div>
 
         </div>

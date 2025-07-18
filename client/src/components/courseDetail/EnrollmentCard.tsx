@@ -18,7 +18,7 @@ type Course = {
   certificate: boolean;
   id: string;
   title: string;
-  description:string
+  description: string
 };
 
 const stripePromise = loadStripe(
@@ -48,13 +48,13 @@ function EnrollmentCard({
 
   console.log(user)
 
-  console.log(user)
+
 
   const formData = useMemo(
     () => ({
       email: user?.email,
       firstName: user?.name,
-      phone:user?.phone || "1234567890",
+      phone: user?.phone || "1234567890",
       agreeToTerms: true,
       billingAddress: {
         street: "123 Main St",
@@ -103,6 +103,9 @@ function EnrollmentCard({
     }
   };
 
+  const isEnrolled = user?.cohorts?.includes(course.id) || user?.enrolledCourses?.includes(course.id);
+
+
   return (
     <aside className="lg:col-span-1" aria-label="Course enrollment details">
       <Card className="sticky top-8">
@@ -146,11 +149,18 @@ function EnrollmentCard({
             <Button
               className="w-full hover:scale-101 transition-transform focus:ring-2 focus:ring-primary"
               size="lg"
-              disabled={isUpcoming || isLoading}
+              disabled={isUpcoming || isLoading || isEnrolled}
               onClick={handleEnroll}
             >
-              {isUpcoming ? "🚀 Launching Soon" : isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enroll Now"}
+              {isEnrolled
+                ? "✅ Already Enrolled"
+                : isUpcoming
+                  ? "🚀 Launching Soon"
+                  : isLoading
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : "Enroll Now"}
             </Button>
+
 
             <Button
               variant="outline"
