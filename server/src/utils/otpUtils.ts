@@ -2,10 +2,7 @@ import crypto from "crypto";
 
 import { logger } from "@/utils/logger";
 // import { UserDAO } from "@/dao/user.dao";
-import { IUser } from "@/models/userModel";
-import { IStudent } from "@/models/student";
 // import { StudentDAO } from "@/dao/studentDao";
-import { IMentor } from "@/models/mentorModel";
 // import { MentorDAO } from "@/dao/mentorDao";
 
 // Interface for OTP verification result
