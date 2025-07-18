@@ -86,7 +86,15 @@ app.use(cookieParser());
 
 // app.use("/api/v1/payments",paymentRouter)
 
-app.use(express.json({ limit: "24kb" }));
+// Skip JSON parser for Stripe webhook
+app.use((req, res, next) => {
+  if (req.originalUrl === "/api/v1/payments/stripe/webhook/enrollment" ||  req.originalUrl === "/api/v1/payments/stripe/webhook") {
+    next(); // skip parsing
+  } else {
+    express.json({ limit: "24kb" })(req, res, next);
+  }
+});
+
 app.use(express.urlencoded({ extended: true, limit: "24kb" }));
 
 

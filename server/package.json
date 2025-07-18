@@ -43,6 +43,7 @@
     "@stripe/react-stripe-js": "^3.7.0",
     "@stripe/stripe-js": "^7.3.1",
     "bcrypt": "^6.0.0",
+    "body-parser": "^2.2.0",
     "bullmq": "^5.56.1",
     "chalk": "^5.4.1",
     "cloudinary": "^2.7.0",

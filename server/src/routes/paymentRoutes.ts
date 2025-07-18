@@ -273,6 +273,7 @@ paymentRouter.post(
 paymentRouter.post("/create-checkout-session-cohort", protect, express.json({ limit: "24kb" }), async (req, res) => {
   try {
     const { cohortId, currency = "INR", formData } = req.body;
+    console.log(req.body)
     const userId = req.user.id;
 
     if (!cohortId) {
@@ -335,7 +336,7 @@ paymentRouter.post("/create-checkout-session-cohort", protect, express.json({ li
 //Course enrollement webhook
 paymentRouter.post(
   "/stripe/webhook/enrollment",
-  express.raw({ type: "application/json" }),
+   express.raw({ type: "application/json" }),
   async (req, res) => {
     const sig = req.headers["stripe-signature"];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET_COHORT;
