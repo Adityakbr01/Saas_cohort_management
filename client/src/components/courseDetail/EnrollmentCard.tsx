@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useCreate_checkout_session_cohortMutation } from "@/store/features/api/payment/payment";
 import { selectCurrentUser } from "@/store/features/slice/UserAuthSlice";
 import { loadStripe } from "@stripe/stripe-js";
+import { Loader2 } from "lucide-react";
 import { useMemo } from "react";
 import { useSelector } from "react-redux";
 
@@ -44,6 +45,8 @@ function EnrollmentCard({
 
   const user = useSelector(selectCurrentUser);
   const [createCheckoutSession, { isLoading }] = useCreate_checkout_session_cohortMutation();
+
+  console.log(user)
 
   console.log(user)
 
@@ -146,7 +149,7 @@ function EnrollmentCard({
               disabled={isUpcoming || isLoading}
               onClick={handleEnroll}
             >
-              {isUpcoming ? "🚀 Launching Soon" : "Enroll Now"}
+              {isUpcoming ? "🚀 Launching Soon" : isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enroll Now"}
             </Button>
 
             <Button

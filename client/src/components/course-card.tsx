@@ -20,7 +20,7 @@ interface CourseCardProps {
     price: string | null | undefined // values: "Free" or "Paid"
     averageRating?: number
     totalRatings?: number
-     status: "upcoming" | "active" | "completed";
+    status: "upcoming" | "active" | "completed";
     ratingsDistribution?: {
       1: number
       2: number
@@ -70,6 +70,8 @@ export default function CourseCard({ course }: CourseCardProps) {
   };
 
 
+
+
   return (
     <Card
       className="group pt-0 transition-all duration-300 hover:-translate-y-1 overflow-hidden rounded-xl border border-muted"
@@ -91,10 +93,10 @@ export default function CourseCard({ course }: CourseCardProps) {
           </div>
           <div className="absolute top-4 right-4">
             {
-              (course.status !="upcoming") && (
+              (course.status != "upcoming") && (
                 <Badge variant="secondary" className={CoursePrice[priceKey]} aria-label={`Price: ${course.price || "Free"}`}>
-              ₹{course.price || "Free"}
-            </Badge>
+                  ₹{course.price || "Free"}
+                </Badge>
               )
             }
           </div>
@@ -156,15 +158,16 @@ export default function CourseCard({ course }: CourseCardProps) {
           />
         </div>
 
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <div className="flex items-center md:gap-4 gap-10  text-sm text-muted-foreground">
           <div className="flex items-center gap-1" aria-label={`Duration: ${course.duration}`}>
             <Clock className="h-4 w-4" />
             <span>{course.duration}</span>
           </div>
-          <div className="flex items-center gap-1" aria-label={`${course.students.toLocaleString()} students enrolled`}>
+          <div className="flex items-center gap-1" aria-label={`${Array.isArray(course.students) ? course.students.length : course.students} students enrolled`}>
             <Users className="h-4 w-4" />
-            <span>{course.students.toLocaleString() || 0} students</span>
+            <span>{(Array.isArray(course.students) ? course.students.length : course.students).toLocaleString()} students</span>
           </div>
+
         </div>
       </CardContent>
 
