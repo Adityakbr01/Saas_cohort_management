@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCreate_checkout_session_cohortMutation } from "@/store/features/api/payment/payment";
+import { selectCurrentUser } from "@/store/features/slice/UserAuthSlice";
 import { loadStripe } from "@stripe/stripe-js";
 import { useMemo } from "react";
+import { useSelector } from "react-redux";
 
 type Course = {
   price: string;
@@ -37,8 +39,11 @@ function EnrollmentCard({
   toggleBookmark: () => void;
   refetch: () => void;
 }) {
-  const [createCheckoutSession, { isLoading }] =
-    useCreate_checkout_session_cohortMutation();
+
+    const user = useSelector(selectCurrentUser);
+  const [createCheckoutSession, { isLoading }] = useCreate_checkout_session_cohortMutation();
+
+  console.log(user)
 
   const formData = useMemo(
     () => ({
@@ -67,6 +72,7 @@ function EnrollmentCard({
 
       const response = await createCheckoutSession({
         cohortId: course.id,
+        userId: user?._id,
         currency: "INR",
         formData,
         amount: total,
