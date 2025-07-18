@@ -14,6 +14,7 @@ import User from "@/models/userModel";
 import { Cohort } from "@/models/cohort.model";
 import { CohortEnrollment } from "@/models/CohortEnrollment";
 import Student from "@/models/student.model";
+import mongoose from "mongoose";
 
 export const paymentSchema = z.object({
   razorpay_payment_id: z.string().nonempty("Payment ID is required"),
@@ -334,9 +335,10 @@ paymentRouter.post("/create-checkout-session-cohort", protect, express.json({ li
 );
 
 //Course enrollement webhook
+
 paymentRouter.post(
   "/stripe/webhook/enrollment",
-   express.raw({ type: "application/json" }),
+  express.raw({ type: "application/json" }),
   async (req, res) => {
     const sig = req.headers["stripe-signature"];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET_COHORT;
@@ -348,7 +350,6 @@ paymentRouter.post(
     }
 
     let event: Stripe.Event;
-
     try {
       event = stripe.webhooks.constructEvent(req.body, sig!, endpointSecret);
     } catch (err: any) {
@@ -361,7 +362,6 @@ paymentRouter.post(
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
-
       const userId = session.metadata?.userId;
       const cohortId = session.metadata?.cohort_id;
 
@@ -371,10 +371,7 @@ paymentRouter.post(
          return
       }
 
-      console.log("✅ Payment Successful:");
-      console.log("🔹 userId:", userId);
-      console.log("🔹 cohortId:", cohortId);
-      console.log("🔹 sessionId:", session.id);
+      const sessionId = session.id;
 
       try {
         const alreadyEnrolled = await CohortEnrollment.findOne({
@@ -386,48 +383,79 @@ paymentRouter.post(
 
         if (alreadyEnrolled) {
           console.log("ℹ️ User already enrolled. Skipping duplicate.");
-        } else {
-          await CohortEnrollment.create({
-            user: userId,
-            cohort: cohortId,
-            isPaid: true,
-            paymentMethod: "stripe",
-            paymentId: session.id,
-            paymentAmount: session.amount_total,
-            paymentDate: new Date(),
-            paymentStatus: "paid",
-            paymentDetails: session,
-          });
-
-          await Cohort.findByIdAndUpdate(cohortId, {
-            $addToSet: { students: userId },
-          });
-
-          await User.findByIdAndUpdate(userId, {
-            $addToSet: { cohorts: cohortId },
-          });
-
-          await Student.findByIdAndUpdate(userId, {
-            $addToSet: { cohorts: cohortId, enrolledCourses: cohortId },
-          });
-
-          console.log("🎉 User enrolled successfully in cohort!");
+           res.status(200).send("Already enrolled");
+           return
         }
 
-         res.status(200).send("Webhook processed");
-         return
+        const sessionDb = await mongoose.startSession();
+        sessionDb.startTransaction();
+
+        try {
+          await CohortEnrollment.create(
+            [
+              {
+                user: userId,
+                cohort: cohortId,
+                isPaid: true,
+                paymentMethod: "stripe",
+                paymentId: sessionId,
+                paymentAmount: session?.amount_total && session.amount_total / 100,
+                paymentDate: new Date(),
+                paymentStatus: "paid",
+                paymentDetails: session,
+              },
+            ],
+            { session: sessionDb }
+          );
+
+          await Cohort.findByIdAndUpdate(
+            cohortId,
+            { $addToSet: { students: userId } },
+            { session: sessionDb }
+          );
+
+          await User.findByIdAndUpdate(
+            userId,
+            { $addToSet: { cohorts: cohortId } },
+            { session: sessionDb }
+          );
+
+          await Student.findByIdAndUpdate(
+            userId,
+            {
+              $addToSet: {
+                cohorts: cohortId,
+                enrolledCourses: cohortId,
+              },
+            },
+            { session: sessionDb }
+          );
+
+          await sessionDb.commitTransaction();
+          sessionDb.endSession();
+
+          console.log("🎉 User enrolled successfully in cohort:", userId);
+           res.status(200).send("Enrollment successful 🎉");
+           return
+        } catch (txErr: any) {
+          await sessionDb.abortTransaction();
+          sessionDb.endSession();
+          console.error("❌ Transaction failed:", txErr.message);
+           res.status(500).send("Enrollment transaction failed");
+           return
+        }
       } catch (dbError: any) {
         console.error("❌ DB Error during enrollment:", dbError.message);
          res.status(500).send("Error while enrolling user");
          return
       }
-    } else {
-      console.log("ℹ️ Unhandled event type:", event.type);
     }
 
-    res.status(200).send("Event received");
+     res.status(200).send("Event received");
+     return
   }
 );
+
 
 
 
