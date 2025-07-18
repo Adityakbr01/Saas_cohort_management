@@ -167,11 +167,15 @@ export const uploadPDF = async (
 ): Promise<UploadApiResponse> => {
   try {
     console.log("[DEBUG] Uploading PDF to Cloudinary:", file.originalname);
+
     return new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
           folder: "lms/docs",
           resource_type: "raw",
+          public_id: file.originalname.endsWith(".pdf")
+            ? file.originalname
+            : file.originalname, // remove .pdf if already present
         },
         (error, result) => {
           if (error || !result) {
@@ -186,6 +190,7 @@ export const uploadPDF = async (
           resolve(result);
         }
       );
+
       bufferToStream(file.buffer).pipe(stream);
     });
   } catch (error) {
@@ -193,6 +198,41 @@ export const uploadPDF = async (
     throw error;
   }
 };
+
+export const uploadDocFile = async (
+  file: Express.Multer.File
+): Promise<UploadApiResponse> => {
+  try {
+    console.log("[DEBUG] Uploading doc to Cloudinary:", file.originalname);
+    return new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: "lms/docs",
+          resource_type: "raw",
+          public_id: file.originalname, // You can add extension manually if needed
+          use_filename: true,
+          unique_filename: false,
+        },
+        (error, result) => {
+          if (error || !result) {
+            console.error("[DEBUG] Cloudinary doc upload error:", error);
+            return reject(
+              new Error(`Doc upload failed: ${error?.message || "Unknown error"}`)
+            );
+          }
+          console.log("[DEBUG] Doc uploaded successfully:", result.secure_url);
+          resolve(result);
+        }
+      );
+      bufferToStream(file.buffer).pipe(stream);
+    });
+  } catch (error) {
+    console.error("[DEBUG] uploadDocFile error:", error);
+    throw error;
+  }
+};
+
+
 
 // 5. Delete File (by public_id)
 export const deleteFile = async (

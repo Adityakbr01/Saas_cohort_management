@@ -27,6 +27,7 @@ import chapterRoutes from "@/routes/chapter.routes";
 import cohortRoutes from "@/routes/cohort.routes";
 import lessonRoutes from "@/routes/lessons.routes";
 import mentorRouter from "@/routes/mentorRoutes";
+// import enrollmentRoutes from "@/routes/enrollment.Routes";
 
 
 const app = express();
@@ -120,9 +121,12 @@ app.use("/api/v1/mentors", mentorRouter);
 
 //New Routes
 app.use("/api/v1/auth", authRoutes);
+// for mentor Or org admin
 app.use("/api/v1/cohorts", cohortRoutes)
 app.use("/api/v1/chapters", chapterRoutes);
 app.use("/api/v1/lessons", lessonRoutes);
+//Student Routes
+
 
 //---------------CRON JOB------------
 

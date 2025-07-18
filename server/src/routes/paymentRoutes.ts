@@ -1,25 +1,19 @@
 // routes/paymentRouter.js
+import { protect } from "@/middleware/authMiddleware";
 import dotenv from "dotenv";
-dotenv.config();
 import express from "express";
 import Stripe from "stripe";
 import { z } from "zod";
+dotenv.config();
 
-// import { processPayment, verifyPayment } from "@/controllers/paymentController";
-import { protect, restrictTo } from "@/middleware/authMiddleware";
-// import {
-//   createPayment,
-//   processPayment,
-//   ValidatePayment,
-//   verifyPayment,
-// } from "@/controllers/paymentController";
 import { ApiError } from "@/utils/apiError";
 
-import { validateRequest } from "@/middleware/validateRequest";
+import { Role } from "@/configs/roleConfig";
 import { SubscriptionModel } from "@/models/subscriptionModel";
 import User from "@/models/userModel";
-import { Role } from "@/configs/roleConfig";
-import mongoose from "mongoose";
+import { Cohort } from "@/models/cohort.model";
+import { CohortEnrollment } from "@/models/CohortEnrollment";
+import Student from "@/models/student.model";
 
 export const paymentSchema = z.object({
   razorpay_payment_id: z.string().nonempty("Payment ID is required"),
@@ -36,24 +30,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const paymentRouter = express.Router();
 
-// Payment routes
-
-//payment create order with razorpay
-// paymentRouter.post("/:subscriptionId/payment", protect, processPayment);
-
-// // Payment verification route
-// paymentRouter.post(
-//   "/verify",
-//   validateRequest(paymentSchema),
-//   protect,
-//   verifyPayment
-// );
-
-// paymentRouter.post("/create", createPayment);
-// paymentRouter.post("/validate", ValidatePayment);
 
 //Payment Route for stripe ---------------------------------------------------------------
 
+// Org subscription
 paymentRouter.post(
   "/create-checkout-session",
   protect,
@@ -132,8 +112,9 @@ paymentRouter.post(
   }
 );
 
-// Use raw body for webhook
 
+// Use raw body for webhook
+//Org subscription webhook
 paymentRouter.post(
   "/stripe/webhook",
   express.raw({ type: "application/json" }),
@@ -152,14 +133,14 @@ paymentRouter.post(
       event = stripe.webhooks.constructEvent(req.body, sig!, endpointSecret);
     } catch (err: any) {
       console.error("⚠️ Webhook verification failed:", err.message);
-       res.status(400).send(`Webhook Error: ${err.message}`);
-       return
+      res.status(400).send(`Webhook Error: ${err.message}`);
+      return
     }
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
 
-      
+
 
       console.log("✅ Payment Success");
       console.log("Email:", session.customer_email);
@@ -273,17 +254,131 @@ paymentRouter.post(
 
         console.log("Updated subscriptionMeta:", user.subscriptionMeta);
 
-         res.status(200).json({ received: true });
-         return
+        res.status(200).json({ received: true });
+        return
       } catch (error: any) {
         console.error("❌ Webhook handling failed:", error.message);
         throw new ApiError(500, "Subscription update failed");
       }
     }
 
-     res.status(200).send("Event received");
-     return
+    res.status(200).send("Event received");
+    return
   }
 );
+
+//--------------------------------------------------------------//
+
+//Course enrollement
+paymentRouter.post("/create-checkout-session-cohort", protect, express.json({ limit: "24kb" }), async (req, res) => {
+  try {
+    const { cohortId, currency = "INR", formData } = req.body;
+    const userId = req.user.id;
+
+    if (!cohortId) {
+      throw new ApiError(400, "Cohort ID is required.");
+    }
+
+    const cohort = await Cohort.findById(cohortId);
+    if (!cohort) {
+      throw new ApiError(404, "Cohort not found.");
+    }
+
+    if (!formData?.email || !formData?.billingAddress?.zipCode) {
+      throw new ApiError(400, "Incomplete billing information.");
+    }
+
+    const totalAmount = cohort.price;
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      customer_email: formData.email,
+      metadata: {
+        userName: `${formData.firstName} ${formData.lastName}`,
+        userId: userId,
+        phone: formData.phone || "N/A",
+        cohortName: cohort.title,
+        zipCode: formData.billingAddress.zipCode,
+        cohort_id: cohort.id,
+        cohort_name: cohort.title,
+        cohort_price: cohort.price.toString(),
+        cohort_description: cohort.description,
+      },
+      line_items: [
+        {
+          price_data: {
+            currency,
+            product_data: {
+              name: `${cohort.title}`,
+              description: cohort.description,
+            },
+            unit_amount: Math.round(totalAmount * 100),
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: "https://www.edulaunch.shop/?success=true",
+      cancel_url: "https://www.edulaunch.shop/?cancelled=true",
+    });
+
+    res.status(200).json({ id: session.id });
+  } catch (error: any) {
+    console.error("Stripe Error:", error.message || error);
+    res.status(error.statusCode || 500).json({
+      error: error.message || "Something went wrong. Please try again.",
+    });
+  }
+}
+);
+
+//Course enrollement webhook
+paymentRouter.post(
+  "/stripe/webhook/enrollment",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    const sig = req.headers["stripe-signature"];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET_COHORT;
+
+    let event: Stripe.Event;
+
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig!, endpointSecret!);
+    } catch (err: any) {
+      console.error("⚠️ Webhook Error:", err.message);
+      res.status(400).send(`Webhook Error: ${err.message}`);
+      return
+    }
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+
+      const userId = session.metadata?.userId;
+      const cohortId = session.metadata?.cohortId;
+
+
+
+      if (!userId || !cohortId) {
+        res.status(400).send("Metadata missing");
+        return
+      }
+
+      console.log("✅ Payment Successful for:", userId, cohortId);
+
+      const alreadyEnrolled = await CohortEnrollment.findOne({ user: userId, cohort: cohortId, isPaid: true, paymentMethod: "stripe" });
+      if (!alreadyEnrolled) {
+        await CohortEnrollment.create({ user: userId, cohort: cohortId, isPaid: true, paymentMethod: "stripe", paymentId: session.id, paymentAmount: session.amount_total, paymentDate: new Date(), paymentStatus: "paid", paymentDetails: session });
+        await Cohort.findByIdAndUpdate(cohortId, { $addToSet: { students: userId } });
+        await User.findByIdAndUpdate(userId, { $addToSet: { cohorts: cohortId } });
+        await Student.findByIdAndUpdate(userId, { $addToSet: { cohorts: cohortId,enrolledCourses: cohortId } });
+        console.log("Enrolled successfully");
+      }
+    }
+
+    res.status(200).send("Webhook received");
+  }
+);
+
+
 
 export default paymentRouter;

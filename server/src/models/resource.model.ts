@@ -1,22 +1,30 @@
-import mongoose, { Schema } from "mongoose";
+import { Types } from "mongoose";
+import { model, Schema, Document } from "mongoose";
 
-interface IResource extends Document {
+
+// ============================
+// ✅ Resource Model
+// ============================
+export interface IResource extends Document {
+  _id: Types.ObjectId;
+  lesson: Types.ObjectId;
   title: string;
-  type: "pdf" | "link" | "image" | "code";
+  type: "pdf" | "link" | "doc";
   url: string;
+  size?: string;
+  description?: string;
 }
 
 const resourceSchema = new Schema<IResource>(
   {
-    title: String,
-    type: {
-      type: String,
-      enum: ["pdf", "link", "image", "code"],
-      required: true,
-    },
+    title: { type: String, required: true },
+    type: { type: String, enum: ["pdf", "link", "doc"], required: true },
     url: { type: String, required: true },
+    size: { type: String },
+    description: { type: String },
+    lesson: { type: Schema.Types.ObjectId, ref: "Lesson", required: true },
   },
   { timestamps: true }
 );
 
-export const Resource = mongoose.model<IResource>("Resource", resourceSchema);
+export const LessonResource = model<IResource>("Resource", resourceSchema);

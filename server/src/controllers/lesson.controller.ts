@@ -1,9 +1,13 @@
 import { Chapter } from "@/models/chapter.model";
 import { Cohort } from "@/models/cohort.model";
 import { Lesson } from "@/models/lesson.model";
-import { uploadVideo } from "@/services/cloudinaryService";
+import { LessonCode } from "@/models/lessonCode.model";
+import { LessonResource } from "@/models/resource.model";
+import { uploadDocFile, uploadPDF, uploadVideo } from "@/services/cloudinaryService";
 import { ApiError } from "@/utils/apiError";
+import { formatFileSize } from "@/utils/formatFileSize";
 import getVideoDurationFromBuffer from "@/utils/getVideoDuration";
+import { logger } from "@/utils/logger";
 import { sendSuccess } from "@/utils/responseUtil";
 import { wrapAsync } from "@/utils/wrapAsync";
 import { Request, Response } from "express";
@@ -27,14 +31,14 @@ export const LessonController = {
     const chapterId = req.params.chapterId;
     if (!chapterId) throw new ApiError(400, "Chapter ID is required");
 
-   const chapter = await Chapter.findById(chapterId)
-  .populate<{ cohort: PopulatedCohort }>("cohort");
-   if (!chapter) throw new ApiError(404, "Chapter not found");
-if (!chapter.cohort) throw new ApiError(400, "Chapter is not linked with any cohort");
+    const chapter = await Chapter.findById(chapterId)
+      .populate<{ cohort: PopulatedCohort }>("cohort");
+    if (!chapter) throw new ApiError(404, "Chapter not found");
+    if (!chapter.cohort) throw new ApiError(400, "Chapter is not linked with any cohort");
 
-  if (chapter.cohort.mentor.toString() !== userId) {
-  throw new ApiError(403, "You are not authorized to add a lesson to this chapter");
-}
+    if (chapter.cohort.mentor.toString() !== userId) {
+      throw new ApiError(403, "You are not authorized to add a lesson to this chapter");
+    }
 
     const existingLesson = await Lesson.findOne({ chapter: chapterId, title: lessonData.title });
     if (existingLesson) throw new ApiError(409, "Lesson title already exists in this chapter");
@@ -194,6 +198,150 @@ if (!chapter.cohort) throw new ApiError(400, "Chapter is not linked with any coh
       console.error("Lesson deletion failed:", error);
       res.status(500).json({
         error: `Failed to delete lesson: ${error instanceof Error ? error.message : String(error)}`,
+      });
+    }
+  }),
+  uploadCode: wrapAsync(async (req: Request, res: Response) => {
+    const lessonId = req.params.lessonId;
+    const userId = req.user?.id;
+
+    const { language, code, description, isStarter, isSolution, version, title, runLink, level } = req.body;
+
+
+    if (!userId) throw new ApiError(401, "Unauthorized");
+
+    try {
+      const lesson = await Lesson.findById(lessonId);
+      if (!lesson) {
+        throw new ApiError(404, "Lesson not found");
+      }
+
+      const chapter = await Chapter.findById(lesson.chapter);
+      if (!chapter) {
+        throw new ApiError(404, "Chapter not found");
+      }
+
+      const cohort = await Cohort.findById(chapter.cohort);
+      if (!cohort) {
+        throw new ApiError(404, "Cohort not found");
+      }
+
+      if (!cohort.mentor) {
+        throw new ApiError(404, "Mentor not found");
+      }
+
+      if (cohort.mentor.toString() !== userId) {
+        throw new ApiError(403, "You are not authorized to upload code for this lesson");
+      }
+
+
+      // ✅ Create code example
+      const codeExample = await LessonCode.create({
+        lesson: lessonId,
+        language,
+        code,
+        description,
+        isStarter,
+        isSolution,
+        version,
+        title,
+        runLink,
+        level,
+      });
+
+      if (!codeExample) {
+        throw new ApiError(500, "Failed to create code example");
+      }
+
+      lesson?.codeExamples?.push(codeExample._id);
+      await lesson.save();
+
+      logger.info(`Code example created for lesson ${lessonId} by user ${userId}`, {
+        codeExampleId: codeExample._id,
+        lessonTitle: lesson.title,
+      });
+      sendSuccess(res, 201, "Code example created successfully", codeExample);
+    } catch (error) {
+      console.error("Code example creation failed:", error);
+      res.status(500).json({
+        error: `Failed to create code example: ${error instanceof Error ? error.message : String(error)}`,
+      });
+    }
+  }),
+  uploadResource: wrapAsync(async (req: Request, res: Response) => {
+    const lessonId = req.params.lessonId;
+    const userId = req.user?.id;
+    const { title, type, description } = req.body;
+
+    if (!userId) throw new ApiError(401, "Unauthorized");
+
+    try {
+      const lesson = await Lesson.findById(lessonId);
+      if (!lesson) {
+        throw new ApiError(404, "Lesson not found");
+      }
+
+      const chapter = await Chapter.findById(lesson.chapter);
+      if (!chapter) {
+        throw new ApiError(404, "Chapter not found");
+      }
+
+      const cohort = await Cohort.findById(chapter.cohort);
+      if (!cohort) {
+        throw new ApiError(404, "Cohort not found");
+      }
+
+      if (!cohort.mentor) {
+        throw new ApiError(404, "Mentor not found");
+      }
+
+      if (cohort.mentor.toString() !== userId) {
+        throw new ApiError(403, "You are not authorized to upload resources for this lesson");
+      }
+
+
+      //upload file to cloudinary
+  if ((type === "pdf" || type === "doc") && req.file) {
+  const cloudinaryResponse = await uploadDocFile(req.file);
+  req.body.url = cloudinaryResponse.secure_url;
+  req.body.size = formatFileSize(cloudinaryResponse.bytes);
+}
+
+      if(type === "link"){
+        req.body.size = "N/A";
+      }
+
+      // if(type==="doc"){
+      //   const cloudinaryResponse = await uploadPDF(req.file);
+      //   formattedSize = "N/A";
+      // }
+
+      // ✅ Create resource
+      const resource = await LessonResource.create({
+        title,
+        type,
+        url: req.body.url,
+        size: req.body.size,
+        description,
+        lesson: lessonId,
+      });
+
+      if (!resource) {
+        throw new ApiError(500, "Failed to create resource");
+      }
+
+      lesson?.resources?.push(resource._id);
+      await lesson.save();
+
+      logger.info(`Resource created for lesson ${lessonId} by user ${userId}`, {
+        resourceId: resource._id,
+        lessonTitle: lesson.title,
+      });
+      sendSuccess(res, 201, "Resource created successfully", resource);
+    } catch (error) {
+      console.error("Resource creation failed:", error);
+      res.status(500).json({
+        error: `Failed to create resource: ${error instanceof Error ? error.message : String(error)}`,
       });
     }
   }),

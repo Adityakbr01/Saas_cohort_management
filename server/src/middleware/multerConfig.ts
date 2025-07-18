@@ -19,6 +19,9 @@ const allowedTypes = [
   "image/svg+xml",
   "application/pdf",
   "application/json",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  
 ];
 
 
