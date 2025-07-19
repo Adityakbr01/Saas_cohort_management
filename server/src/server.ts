@@ -137,6 +137,19 @@ app.use("/api/v1/lessons", lessonRoutes);
 
 
 //---------------CRON JOB------------
+// ✅ Keep-alive / Cron Ping route
+app.get("/api/v1/ping", (_, res) => {
+  const now = new Date().toISOString();
+  console.log("🔄 [PING] Received at", now);
+
+  res.setHeader("Cache-Control", "no-store");
+  res.status(200).json({
+    success: true,
+    message: "Pong! Server is alive.",
+    timestamp: now,
+  });
+});
+
 
 // ✅ Error Handling
 app.use(notFound);

@@ -1,4 +1,5 @@
 import { startActivateUpcomingCohortsByDateJob } from "./activateUpcomingCohortsByDate";
+import { startPingBackendJob } from "./ActiveBAckend";
 import { startOfferExpirationJob } from "./offerExpirationJob";
 
 export const startAllCronJobs = () => {
@@ -6,6 +7,7 @@ export const startAllCronJobs = () => {
 
   startActivateUpcomingCohortsByDateJob();
   startOfferExpirationJob();
+  startPingBackendJob();
 
   console.log("[CRON] ✅ All cron jobs initialized successfully");
 };
