@@ -1,18 +1,17 @@
 import Footer from "@/components/footer";
-import HomeSkeleton from "@/components/HomeSkeleton";
 import Navigation from "@/components/Navigation";
-import { selectIsInitialized } from "@/store/features/slice/UserAuthSlice";
+// import { selectIsInitialized } from "@/store/features/slice/UserAuthSlice";
 import { Suspense, lazy } from "react";
-import { useSelector } from "react-redux";
+// import { useSelector } from "react-redux";
 
 // Lazy load heavy components
 const HeroSection = lazy(() => import("@/components/HeroSection"));
 const CourseGrid = lazy(() => import("@/components/CourseGrid"));
 
 function Home() {
-  const isInitialized = useSelector(selectIsInitialized);
+  // const isInitialized = useSelector(selectIsInitialized);
 
-  if (!isInitialized) return <HomeSkeleton />;
+  // if (!isInitialized) return <HomeSkeleton />;
 
   return (
     <div className="min-h-screen w-full bg-background">
