@@ -8,7 +8,7 @@ import { CodeDataSchema, createLessonSchema, updateLessonSchema } from "@/utils/
 const router = express.Router();
 // Create lesson under a chapterrouter.post
 router.post(
-    "/:chapterId", uploadMedia("video"),
+    "/:chapterId",uploadMedia("video"),
     protect, restrictTo(Role.organization, Role.mentor),
     validateRequest(createLessonSchema),
     LessonController.createLessonUnderChapter);
