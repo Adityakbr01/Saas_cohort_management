@@ -26,6 +26,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import { toast } from "sonner";
 import { FancyFileUploader } from "./FancyFileUploader";
 
+
 interface AddLectureFormProps {
   module: Chapter;
   refetch: () => void;

@@ -73,7 +73,66 @@ export const lessonApi = createApi({
       }),
       invalidatesTags: ["Chapter", "Lesson"],
     }),
+    uploadCode: builder.mutation({
+      query: ({ lessonId, code }) => ({
+        url: `/${lessonId}/uploadCode`,
+        method: "POST",
+        body: code,
+      }),
+      invalidatesTags: ["Chapter", "Lesson"],
+    }),
+    uploadResource: builder.mutation({
+      query: ({ lessonId, resource }) => ({
+        url: `/${lessonId}/uploadResource`,
+        method: "POST",
+        body: resource,
+      }),
+    }),
+    getLessonCodeExamples: builder.query({
+      query: (lessonId: string) => ({
+        url: `/${lessonId}/code-examples`,
+        method: "GET",
+      }),
+      providesTags: ["Lesson"],
+    }),
+    getLessonResources: builder.query({
+      query: (lessonId: string) => ({
+        url: `/${lessonId}/resources`,
+        method: "GET",
+      }),
+      providesTags: ["Lesson"],
+    }),
+    updateCodeExample: builder.mutation({
+      query: ({ codeId, updates }) => ({
+        url: `/code-example/${codeId}`,
+        method: "PUT",
+        body: updates,
+      }),
+      invalidatesTags: ["Lesson"],
+    }),
+    deleteCodeExample: builder.mutation({
+      query: (codeId: string) => ({
+        url: `/code-example/${codeId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Lesson"],
+    }),
+    updateResource: builder.mutation({
+      query: ({ resourceId, updates }) => ({
+        url: `/resource/${resourceId}`,
+        method: "PUT",
+        body: updates,
+      }),
+      invalidatesTags: ["Lesson"],
+    }),
+    deleteResource: builder.mutation({
+      query: (resourceId: string) => ({
+        url: `/resource/${resourceId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Lesson"],
+    }),
   }),
 });
 
-export const { useAddVideoLessonMutation,useUpdateLessonMutation, useDeleteLessonMutation } = lessonApi;
+export const { useAddVideoLessonMutation, useUpdateLessonMutation, useDeleteLessonMutation, useUploadCodeMutation, useUploadResourceMutation, useGetLessonCodeExamplesQuery, useGetLessonResourcesQuery, useUpdateCodeExampleMutation, useDeleteCodeExampleMutation, useUpdateResourceMutation, useDeleteResourceMutation } = lessonApi;

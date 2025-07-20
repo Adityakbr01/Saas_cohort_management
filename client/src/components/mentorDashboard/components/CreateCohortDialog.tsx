@@ -124,7 +124,7 @@ function CreateCohortDialog({
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Status</label>
-                <Select name="status" defaultValue="upcoming" required  onValueChange={(value) => setSelectedStatus(value)}>
+                <Select name="status" defaultValue="upcoming" required onValueChange={(value) => setSelectedStatus(value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
@@ -136,16 +136,16 @@ function CreateCohortDialog({
               </div>
 
               {selectedStatus === "upcoming" && (
-  <div className="space-y-2 col-span-2">
-    <label className="text-sm font-medium">Activate On</label>
-    <Input
-      name="activateOn"
-      type="datetime-local"
-      defaultValue={new Date().toISOString().slice(0, 16)}
-      required
-    />
-  </div>
-)}
+                <div className="space-y-2 col-span-2">
+                  <label className="text-sm font-medium">Activate On</label>
+                  <Input
+                    name="activateOn"
+                    type="datetime-local"
+                    defaultValue={new Date().toISOString().slice(0, 16)}
+                    required
+                  />
+                </div>
+              )}
 
 
               <div className="space-y-2">
@@ -280,7 +280,7 @@ function CreateCohortDialog({
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Discount</label>
-                <Input name="discount" type="number" placeholder="e.g., 20" required  max={100}/>
+                <Input name="discount" type="number" placeholder="e.g., 20" required max={100} />
               </div>
             </div>
             <DialogFooter>

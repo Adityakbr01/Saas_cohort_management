@@ -1,5 +1,5 @@
-import MentorDashboard from "@/components/mentorDashboard/components/MentorDashboard"
+import { Outlet } from "react-router-dom";
 
 export default function MentorPage() {
-  return <MentorDashboard />
+  return <Outlet />;
 }

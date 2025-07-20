@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -89,7 +89,14 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
     communications: [],
   }
 
-  const [activeTab, setActiveTab] = useState("overview")
+  const [activeTab, setActiveTab] = useState(() => {
+    // Use a unique key per cohort
+    return localStorage.getItem(`cohort-management-tab-${cohortId}`) || "overview";
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`cohort-management-tab-${cohortId}`, activeTab);
+  }, [activeTab, cohortId]);
   const [searchTerm, setSearchTerm] = useState("")
   const [studentFilter, setStudentFilter] = useState("all")
   const [isEditingCohort, setIsEditingCohort] = useState(false)

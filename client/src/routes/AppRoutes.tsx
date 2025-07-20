@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useParams, useNavigate } from "react-router-dom";
 
 import ProtectedRoute from "@/auth/ProtectedRoute";
 import PublicRoute from "@/auth/PublicRoute";
@@ -43,7 +43,10 @@ const UserProfilePage = lazy(() => import("@/components/superAdmin/pages/user-pr
 const OrgAdminDashboard = lazy(() => import("@/components/orgAdmin/DashboardLayout"));
 const CreateOrg = lazy(() => import("@/components/orgAdmin/pages/CreateOrg"));
 const MentorPage = lazy(() => import("@/components/mentorDashboard/MentorPage"));
-
+const MentorDashboardHome = lazy(() => import("@/components/mentorDashboard/components/MentorDashboard"));
+const LessonResourceManager = lazy(() => import("@/components/mentorDashboard/components/LessonResourceManager"));
+const CohortManagement = lazy(() => import("@/components/mentorDashboard/components/cohort-management"));
+const CurriculumBuilder = lazy(() => import("@/components/mentorDashboard/components/curriculum-builder"));
 const AppRoutes = () => {
   return (
     <Routes>
@@ -179,7 +182,38 @@ const AppRoutes = () => {
             </Suspense>
           </ProtectedRoute>
         }
-      />
+      >
+        <Route
+          index
+          element={
+            <Suspense fallback={<LoaderPage />}>
+              <MentorDashboardHome />
+            </Suspense>
+          }
+        />
+        <Route
+          path="cohort/:cohortId"
+          element={
+            <Suspense fallback={<LoaderPage />}>
+              <CohortManagementWrapper />
+            </Suspense>
+          }
+        />
+        <Route path="/dashboard/mentor/cohort" element={<Suspense fallback={<LoaderPage />}><CoursesPage /></Suspense>} />
+        <Route path="/dashboard/mentor/courses/:id" element={<Suspense fallback={<LoaderPage />}><CourseDetailPage /></Suspense>} />
+        <Route path="/dashboard/mentor/learn/:cohortId" element={<Suspense fallback={<LoaderPage />}><LearnCourse params={{ cohortId: "1" }} /></Suspense>} />
+        <Route path="/dashboard/mentor/profile" element={<Suspense fallback={<LoaderPage />}><ProfilePage /></Suspense>} />
+        <Route path="/dashboard/mentor/whiteboard" element={<Suspense fallback={<LoaderPage />}><Whiteboard /></Suspense>} />
+        <Route path="/dashboard/mentor/lesson/:lessonId/manage" element={<Suspense fallback={<LoaderPage />}><LessonResourceManager /></Suspense>} />
+        <Route
+          path="cohort/:cohortId/curriculum"
+          element={
+            <Suspense fallback={<LoaderPage />}>
+              <CurriculumBuilderWrapper />
+            </Suspense>
+          }
+        />
+      </Route>
 
       {/* Student */}
       <Route
@@ -215,11 +249,45 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Lesson Manager */}
+      <Route
+        path="/lesson/:lessonId/manage"
+        element={
+          <Suspense fallback={<LoaderPage />}>
+            <LessonResourceManager />
+          </Suspense>
+        }
+      />
+
       {/* Others */}
       <Route path="/unauthorized" element={<Suspense fallback={<LoaderPage />}><Unauthorized /></Suspense>} />
       <Route path="*" element={<Suspense fallback={<LoaderPage />}><NotFound /></Suspense>} />
     </Routes>
   );
 };
+
+function CohortManagementWrapper() {
+  const { cohortId } = useParams();
+  const navigate = useNavigate();
+  return (
+    <CohortManagement
+      cohortId={cohortId!}
+      onBack={() => navigate("/dashboard/mentor")}
+      onViewStudent={studentId => navigate(`/dashboard/mentor/student/${studentId}`)}
+      onEditCurriculum={() => navigate(`/dashboard/mentor/cohort/${cohortId}/curriculum`)}
+    />
+  );
+}
+
+function CurriculumBuilderWrapper() {
+  const { cohortId } = useParams();
+  const navigate = useNavigate();
+  return (
+    <CurriculumBuilder
+      cohortId={cohortId!}
+      onBack={() => navigate(`/dashboard/mentor/cohort/${cohortId}`)}
+    />
+  );
+}
 
 export default AppRoutes;
