@@ -232,8 +232,6 @@ export const uploadDocFile = async (
   }
 };
 
-
-
 // 5. Delete File (by public_id)
 export const deleteFile = async (
   publicId: string,

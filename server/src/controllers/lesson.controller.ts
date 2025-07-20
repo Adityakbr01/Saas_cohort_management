@@ -345,6 +345,101 @@ export const LessonController = {
       });
     }
   }),
+  getLessonCodeExamples: wrapAsync(async (req: Request, res: Response) => {
+    const lessonId = req.params.lessonId;
+    const userId = req.user?.id;
+    if (!userId) throw new ApiError(401, "Unauthorized");
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) throw new ApiError(404, "Lesson not found");
+    const chapter = await Chapter.findById(lesson.chapter);
+    if (!chapter) throw new ApiError(404, "Chapter not found");
+    const cohort = await Cohort.findById(chapter.cohort);
+    if (!cohort) throw new ApiError(404, "Cohort not found");
+    if (!cohort.mentor || cohort.mentor.toString() !== userId) throw new ApiError(403, "Not authorized");
+    const codeExamples = await LessonCode.find({ lesson: lessonId, isDeleted: false });
+    sendSuccess(res, 200, "Code examples fetched", codeExamples);
+  }),
+  getLessonResources: wrapAsync(async (req: Request, res: Response) => {
+    const lessonId = req.params.lessonId;
+    const userId = req.user?.id;
+    if (!userId) throw new ApiError(401, "Unauthorized");
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) throw new ApiError(404, "Lesson not found");
+    const chapter = await Chapter.findById(lesson.chapter);
+    if (!chapter) throw new ApiError(404, "Chapter not found");
+    const cohort = await Cohort.findById(chapter.cohort);
+    if (!cohort) throw new ApiError(404, "Cohort not found");
+    if (!cohort.mentor || cohort.mentor.toString() !== userId) throw new ApiError(403, "Not authorized");
+    const resources = await LessonResource.find({ lesson: lessonId });
+    sendSuccess(res, 200, "Resources fetched", resources);
+  }),
+  updateCodeExample: wrapAsync(async (req: Request, res: Response) => {
+    const codeId = req.params.codeId;
+    const userId = req.user?.id;
+    if (!userId) throw new ApiError(401, "Unauthorized");
+    const codeExample = await LessonCode.findById(codeId);
+    if (!codeExample || codeExample.isDeleted) throw new ApiError(404, "Code example not found");
+    const lesson = await Lesson.findById(codeExample.lesson);
+    if (!lesson) throw new ApiError(404, "Lesson not found");
+    const chapter = await Chapter.findById(lesson.chapter);
+    if (!chapter) throw new ApiError(404, "Chapter not found");
+    const cohort = await Cohort.findById(chapter.cohort);
+    if (!cohort) throw new ApiError(404, "Cohort not found");
+    if (!cohort.mentor || cohort.mentor.toString() !== userId) throw new ApiError(403, "Not authorized");
+    Object.assign(codeExample, req.body);
+    await codeExample.save();
+    sendSuccess(res, 200, "Code example updated", codeExample);
+  }),
+  deleteCodeExample: wrapAsync(async (req: Request, res: Response) => {
+    const codeId = req.params.codeId;
+    const userId = req.user?.id;
+    if (!userId) throw new ApiError(401, "Unauthorized");
+    const codeExample = await LessonCode.findById(codeId);
+    if (!codeExample || codeExample.isDeleted) throw new ApiError(404, "Code example not found");
+    const lesson = await Lesson.findById(codeExample.lesson);
+    if (!lesson) throw new ApiError(404, "Lesson not found");
+    const chapter = await Chapter.findById(lesson.chapter);
+    if (!chapter) throw new ApiError(404, "Chapter not found");
+    const cohort = await Cohort.findById(chapter.cohort);
+    if (!cohort) throw new ApiError(404, "Cohort not found");
+    if (!cohort.mentor || cohort.mentor.toString() !== userId) throw new ApiError(403, "Not authorized");
+    codeExample.isDeleted = true;
+    await codeExample.save();
+    sendSuccess(res, 200, "Code example deleted");
+  }),
+  updateResource: wrapAsync(async (req: Request, res: Response) => {
+    const resourceId = req.params.resourceId;
+    const userId = req.user?.id;
+    if (!userId) throw new ApiError(401, "Unauthorized");
+    const resource = await LessonResource.findById(resourceId);
+    if (!resource) throw new ApiError(404, "Resource not found");
+    const lesson = await Lesson.findById(resource.lesson);
+    if (!lesson) throw new ApiError(404, "Lesson not found");
+    const chapter = await Chapter.findById(lesson.chapter);
+    if (!chapter) throw new ApiError(404, "Chapter not found");
+    const cohort = await Cohort.findById(chapter.cohort);
+    if (!cohort) throw new ApiError(404, "Cohort not found");
+    if (!cohort.mentor || cohort.mentor.toString() !== userId) throw new ApiError(403, "Not authorized");
+    Object.assign(resource, req.body);
+    await resource.save();
+    sendSuccess(res, 200, "Resource updated", resource);
+  }),
+  deleteResource: wrapAsync(async (req: Request, res: Response) => {
+    const resourceId = req.params.resourceId;
+    const userId = req.user?.id;
+    if (!userId) throw new ApiError(401, "Unauthorized");
+    const resource = await LessonResource.findById(resourceId);
+    if (!resource) throw new ApiError(404, "Resource not found");
+    const lesson = await Lesson.findById(resource.lesson);
+    if (!lesson) throw new ApiError(404, "Lesson not found");
+    const chapter = await Chapter.findById(lesson.chapter);
+    if (!chapter) throw new ApiError(404, "Chapter not found");
+    const cohort = await Cohort.findById(chapter.cohort);
+    if (!cohort) throw new ApiError(404, "Cohort not found");
+    if (!cohort.mentor || cohort.mentor.toString() !== userId) throw new ApiError(403, "Not authorized");
+    await resource.deleteOne();
+    sendSuccess(res, 200, "Resource deleted");
+  }),
 };
 
 

@@ -43,6 +43,42 @@ router.post(
     restrictTo(Role.organization, Role.mentor),
     LessonController.uploadResource);
 
+router.get(
+  "/:lessonId/code-examples",
+  protect,
+  restrictTo(Role.organization, Role.mentor),
+  LessonController.getLessonCodeExamples
+);
+router.get(
+  "/:lessonId/resources",
+  protect,
+  restrictTo(Role.organization, Role.mentor),
+  LessonController.getLessonResources
+);
+router.put(
+  "/code-example/:codeId",
+  protect,
+  restrictTo(Role.organization, Role.mentor),
+  LessonController.updateCodeExample
+);
+router.delete(
+  "/code-example/:codeId",
+  protect,
+  restrictTo(Role.organization, Role.mentor),
+  LessonController.deleteCodeExample
+);
+router.put(
+  "/resource/:resourceId",
+  protect,
+  restrictTo(Role.organization, Role.mentor),
+  LessonController.updateResource
+);
+router.delete(
+  "/resource/:resourceId",
+  protect,
+  restrictTo(Role.organization, Role.mentor),
+  LessonController.deleteResource
+);
 // // Update lessonrouter.put(
 // "/chapter/:chapterId/:lessonId", protect,
 //     restrictTo(Role.organization, Role.mentor),

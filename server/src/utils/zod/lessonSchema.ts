@@ -39,11 +39,11 @@ export const CodeDataSchema = z.object({
     "python",
     "java",
     "cpp",
-    "ruby",
     "php",
-    "csharp",
     "go",
     "rust",
+    "html",
+    "css",
   ], {
     errorMap: () => ({ message: "Invalid programming language" }),
   }),
