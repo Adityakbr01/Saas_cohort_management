@@ -1,5 +1,3 @@
-"use client"
-
 import { useEffect, useState } from "react";
 import Confetti from "react-confetti";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
