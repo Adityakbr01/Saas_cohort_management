@@ -155,11 +155,11 @@ function EnrollmentCard({
             <Button
               className="w-full hover:scale-101 transition-transform focus:ring-2 focus:ring-primary"
               size="lg"
-              disabled={isUpcoming || isLoading || isEnrolled}
+              disabled={isUpcoming || isLoading}
               onClick={handleEnroll}
             >
               {isEnrolled
-                ? "✅ Already Enrolled"
+                ? "Continue Learning"
                 : isUpcoming
                   ? "🚀 Launching Soon"
                   : isLoading

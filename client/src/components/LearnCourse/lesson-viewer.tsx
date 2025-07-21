@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { Lesson } from "@/types/cohort"
 import { CheckCircle, Clock, FileText, Play } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import MediaPlayer from "../MediaPlayer"
 
 interface LessonViewerProps {
@@ -13,7 +13,24 @@ interface LessonViewerProps {
 }
 
 export default function LessonViewer({ lesson, onComplete }: LessonViewerProps) {
-  const [isCompleted, setIsCompleted] = useState(lesson.isCompleted || false)
+  const [isCompleted, setIsCompleted] = useState(lesson?.isCompleted || false)
+
+  console.log(lesson)
+
+  const HandleComplate = () => {
+
+    if (!isCompleted) {
+      console.log("Working Handler")
+      setIsCompleted(true);
+      onComplete();
+    }
+  }
+
+  useEffect(() => {
+    setIsCompleted(lesson?.isCompleted)
+  }, [lesson])
+
+  console.log(isCompleted)
 
   return (
     <Card className="">
@@ -44,12 +61,7 @@ export default function LessonViewer({ lesson, onComplete }: LessonViewerProps) 
         {lesson.type === "video" && lesson.videoUrl ? (
           <div className="mb-6 flex justify-center items-center w-full">
             <div className="w-full max-w-4xl aspect-video rounded-lg overflow-hidden shadow-lg border p-0 bg-black">
-              <MediaPlayer url={lesson.videoUrl} onEnded={() => {
-                if (!isCompleted) {
-                  setIsCompleted(true);
-                  onComplete();
-                }
-              }} />
+              <MediaPlayer url={lesson.videoUrl} onEnded={HandleComplate} />
             </div>
           </div>
         ) : (
@@ -75,10 +87,7 @@ export default function LessonViewer({ lesson, onComplete }: LessonViewerProps) 
         <div className="mt-6 flex items-center gap-3">
           {!isCompleted && (
             <Button
-              onClick={() => {
-                setIsCompleted(true)
-                onComplete()
-              }}
+              onClick={HandleComplate}
             >
               Mark as Complete
             </Button>

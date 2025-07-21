@@ -73,7 +73,12 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
   }, [mergedCohortData]);
 
   if (isLoading) return <CohortSkeleton />;
-  if (isError) return <div className="min-h-screen flex items-center justify-center text-red-500">{(error as any)?.message || "Failed to load cohort"}</div>;
+  if (isError) {
+    let errorMessage = "Failed to load cohort";
+    if (typeof error === "string") errorMessage = error;
+    else if (error && typeof error === "object" && "message" in error) errorMessage = (error as { message?: string }).message || errorMessage;
+    return <div className="min-h-screen flex items-center justify-center text-red-500">{errorMessage}</div>;
+  }
   if (!mergedCohortData) return null;
 
   const handleLessonSelect = (lesson: Lesson) => {
@@ -81,7 +86,9 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
   };
 
   const markLessonComplete = (lessonId: string, chapterId?: string, timeSpent?: number) => {
+    console.log(cohortId, chapterId, lessonId, timeSpent)
     markLessonCompleteMutation({ cohortId, chapterId, lessonId, timeSpent });
+    console.log("Perent Call")
   };
 
   const markChapterComplete = (chapterId: string) => {
@@ -149,7 +156,7 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
             bookmarked.push({
               id: lesson.id,
               title: lesson.title,
-              type: lesson.type as any, // If needed, cast to BookmarkedType
+              type: lesson.type as "video" | "reading" | "quiz" | "assignment",
               description: lesson.description,
               chapterTitle: chapter.title,
             });
@@ -183,7 +190,7 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
         <MainContent
           cohortData={mergedCohortData}
           selectedLesson={selectedLesson}
-          markLessonComplete={markLessonComplete}
+          onMarkLessonComplete={markLessonComplete}
           toggleBookmark={toggleBookmark}
         />
         <RightSidebar

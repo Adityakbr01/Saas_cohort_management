@@ -12,24 +12,29 @@ import AssignmentComponent from "./assignment-component";
 import LessonViewer from "./lesson-viewer";
 import QuizComponent from "./quiz-component";
 // import MediaPlayer from "../MediaPlayer"; // Remove this import
+
 interface MainContentProps {
   cohortData: CohortData;
   selectedLesson: Lesson | null;
-  markLessonComplete: (lessonId: string) => void;
+  onMarkLessonComplete: (lessonId: string) => void; // renamed
   toggleBookmark: (itemId: string, type: "lesson" | "chapter") => void;
 }
 
 const MainContent: React.FC<MainContentProps> = ({
   cohortData,
   selectedLesson,
-  markLessonComplete,
+  onMarkLessonComplete,
   toggleBookmark,
 }) => {
 
 
   const isQuiz = (lesson: Lesson): lesson is Lesson & { questions: Question[] } => {
-    return lesson.type === "quiz" && Array.isArray((lesson as any).questions)
+    return lesson.type === "quiz" && Array.isArray((lesson as { questions?: unknown }).questions);
   }
+  // const cohortId = cohortData.id;
+  // const lessonId = selectedLesson?.id;
+  // const chapter = cohortData.chapters.find(chap => chap.lessons.some(les => les.id === selectedLesson?.id));
+  // const chapterId = chapter ? chapter.id : undefined;
   return (
     <main className="flex-1 min-h-screen">
       {selectedLesson ? (
@@ -86,7 +91,7 @@ const MainContent: React.FC<MainContentProps> = ({
           </div>
           <div className="space-y-6">
             {selectedLesson.type === "video" && (
-              <LessonViewer lesson={selectedLesson} onComplete={() => markLessonComplete(selectedLesson.id)} />
+              <LessonViewer lesson={selectedLesson} onComplete={() => onMarkLessonComplete(selectedLesson.id)} />
             )}
             {selectedLesson.type === "reading" && (
               <Card>
@@ -100,7 +105,7 @@ const MainContent: React.FC<MainContentProps> = ({
                   </div>
                   <div className="mt-6 pt-4 border-t">
                     <Button
-                      onClick={() => markLessonComplete(selectedLesson.id)}
+                      onClick={() => onMarkLessonComplete(selectedLesson.id)}
                       disabled={selectedLesson.isCompleted}
                     >
                       {selectedLesson.isCompleted ? "Completed" : "Mark as Complete"}
@@ -110,13 +115,13 @@ const MainContent: React.FC<MainContentProps> = ({
               </Card>
             )}
             {isQuiz(selectedLesson) && (
-              <QuizComponent quiz={selectedLesson} onComplete={() => markLessonComplete(selectedLesson.id)} />
+              <QuizComponent quiz={selectedLesson} onComplete={() => onMarkLessonComplete(selectedLesson.id)} />
             )}
 
             {selectedLesson.type === "assignment" && (
               <AssignmentComponent
                 assignment={selectedLesson}
-                onComplete={() => markLessonComplete(selectedLesson.id)}
+                onComplete={() => onMarkLessonComplete(selectedLesson.id)}
               />
             )}
           </div>

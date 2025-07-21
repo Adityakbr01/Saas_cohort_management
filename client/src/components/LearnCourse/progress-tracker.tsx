@@ -1,12 +1,12 @@
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import type { ProgressData } from "@/types/cohort";
+import { motion } from "framer-motion";
+import { Award, BookOpen, Clock, FileText, Play, Target, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import Confetti from "react-confetti";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { Trophy, Target, Clock, BookOpen, FileText, Play, Award } from "lucide-react"
-import type { ProgressData } from "@/types/cohort"
-import { motion } from "framer-motion";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 interface ProgressTrackerProps {
@@ -38,14 +38,34 @@ export default function ProgressTracker({ progress }: ProgressTrackerProps) {
     setLongestStreak(maxStreak);
   }, [progress.streakDays]);
 
-  // Confetti for new milestone (e.g., every 5 streak days)
+
   const [showConfetti, setShowConfetti] = useState(false);
+
   useEffect(() => {
-    if (progress.streakDays && progress.streakDays.length > 0 && progress.streakDays.length % 5 === 0) {
+    let triggered = false;
+    // Milestone: every 5 streak days
+    if (
+      progress.streakDays &&
+      progress.streakDays.length > 0 &&
+      progress.streakDays.length % 5 === 0
+    ) {
       setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 3000);
+      triggered = true;
     }
-  }, [progress.streakDays]);
+    // Course complete: overall progress is 100%
+    if (progress.overall === 1) {
+      setShowConfetti(true);
+      triggered = true;
+    }
+    let timer: NodeJS.Timeout | undefined;
+    if (triggered) {
+      timer = setTimeout(() => setShowConfetti(false), 10000);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [progress.streakDays, progress.overall]);
+
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -82,7 +102,16 @@ export default function ProgressTracker({ progress }: ProgressTrackerProps) {
 
   return (
     <div className="space-y-4">
-      {showConfetti && <Confetti width={window.innerWidth} height={window.innerHeight} recycle={false} numberOfPieces={300} />}
+      {showConfetti && (
+  <Confetti
+    width={window.innerWidth}
+    height={window.innerHeight}
+    recycle={false}
+    numberOfPieces={700}
+    className="fixed top-0 left-0 w-full h-full pointer-events-none z-50"
+  />
+)}
+
       <div className="flex items-center gap-2 mb-4">
         <Target className="h-4 w-4 text-muted-foreground" />
         <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Your Progress</h3>

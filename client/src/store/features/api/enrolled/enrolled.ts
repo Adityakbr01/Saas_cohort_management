@@ -65,6 +65,7 @@ export const enrolledApi = createApi({
         }
         return response as CohortData;
       },
+      providesTags: ["EnrolledCourses"],
     }),
     markLessonComplete: builder.mutation<ProgressResponse, { cohortId: string; chapterId?: string; lessonId: string; timeSpent?: number }>({
       query: ({ cohortId, chapterId, lessonId, timeSpent }) => ({
@@ -72,6 +73,7 @@ export const enrolledApi = createApi({
         method: "POST",
         body: { cohortId, chapterId, lessonId, timeSpent },
       }),
+      invalidatesTags: ["EnrolledCourses"], // <-- Add this line
     }),
   }),
 });
