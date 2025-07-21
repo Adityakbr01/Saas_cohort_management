@@ -106,7 +106,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                         <div>
                           <p className="font-medium">{resource.title}</p>
                           <p className="text-xs text-muted-foreground">
-                            {resource.type.toUpperCase()}
+                            {resource?.type?.toUpperCase()}
                             {resource.size && ` • ${resource.size}`}
                           </p>
                         </div>

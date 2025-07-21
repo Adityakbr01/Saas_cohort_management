@@ -1,9 +1,24 @@
-import { useMemo } from "react"
+import { useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { Facebook, Twitter, Instagram, Linkedin, Youtube } from "lucide-react"
+import { CombinedThemeSwitcher } from "./Theme/combined-theme-switcher"
+import { useTheme } from "./Theme/theme-provider"
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
+  const { customColors } = useTheme()
+  const [animate, setAnimate] = useState(false)
+  const prevColors = useRef(customColors)
+
+  // Animate when colors change
+  if (
+    prevColors.current.primary !== customColors.primary ||
+    prevColors.current.secondary !== customColors.secondary
+  ) {
+    setAnimate(true)
+    prevColors.current = customColors
+    setTimeout(() => setAnimate(false), 800)
+  }
 
   const footerLinks = useMemo(() => ({
     "Quick Links": [
@@ -93,9 +108,16 @@ export default function Footer() {
           ))}
         </div>
 
+        {/* Theme Switcher - centered above copyright */}
+        <div className="flex justify-center mt-10 mb-6">
+          <div className={`transition-all duration-500 ${animate ? 'animate-pulse ring-2 ring-primary/40' : ''} rounded-xl`}> 
+            <CombinedThemeSwitcher />
+          </div>
+        </div>
+
         {/* Bottom Section */}
         <div
-          className="border-t mt-12 pt-8 flex flex-col md:flex-row justify-between items-center"
+          className="border-t pt-8 flex flex-col md:flex-row justify-between items-center"
           aria-label="Copyright and legal links"
         >
           <p className="text-muted-foreground text-sm">

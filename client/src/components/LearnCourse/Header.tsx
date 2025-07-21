@@ -61,8 +61,8 @@ const Header: React.FC<HeaderProps> = ({
               )}
             </Button>
             <div className="text-right">
-              <p className="text-sm font-medium">{cohortData ? `${cohortData.progress.overall}% Complete` : ""}</p>
-              {cohortData && <Progress value={cohortData.progress.overall} className="w-32" />}
+              <p className="text-sm font-medium">{cohortData ? `${Math.round((cohortData.progress.overall ?? 0) * 100)}% Complete` : ""}</p>
+              {cohortData && <Progress value={Math.round((cohortData.progress.overall ?? 0) * 100)} className="w-32" />}
             </div>
             {cohortData && (
               <Avatar>

@@ -35,6 +35,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     getUpcomingDueDates,
     getBookmarkedItems,
 }) => {
+
+    console.log(cohortData)
+
     return (
         <aside
             className={`${leftSidebarOpen ? "w-80" : "w-0"} transition-all duration-300 overflow-hidden border-r bg-card lg:w-80`}

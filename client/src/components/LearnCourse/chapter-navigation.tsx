@@ -141,8 +141,18 @@ export default function ChapterNavigation({
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-medium">{chapter.progress}%</div>
-                    <Progress value={chapter.progress} className="w-16 h-2" />
+                    {/* Calculate chapter progress as percent */}
+                    {chapter.lessons.length > 0 ? (
+                      <>
+                        <div className="text-sm font-medium">{Math.round((completedLessons / chapter.lessons.length) * 100)}%</div>
+                        <Progress value={Math.round((completedLessons / chapter.lessons.length) * 100)} className="w-16 h-2" />
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-sm font-medium">0%</div>
+                        <Progress value={0} className="w-16 h-2" />
+                      </>
+                    )}
                   </div>
                 </div>
               </Button>

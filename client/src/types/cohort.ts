@@ -25,13 +25,14 @@ export interface Lesson {
 }
 
 
-interface codeExamples {
+export interface codeExamples {
   id: string;
   title: string;
   language: string;
   code: string;
   description: string;
   instructions?: string;
+  level:string
 }
 
 

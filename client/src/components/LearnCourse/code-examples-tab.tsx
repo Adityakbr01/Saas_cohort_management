@@ -11,117 +11,18 @@ import { Badge } from "@/components/ui/badge"
 import { Copy, Check, Play, ExternalLink, Code2 } from "lucide-react"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism"
-
-interface CodeExample {
-  id: string
-  title: string
-  language: string
-  description: string
-  code: string
-  runnable: boolean
-  difficulty: "beginner" | "intermediate" | "advanced"
-}
+import type { codeExamples } from "@/types/cohort"
 
 interface CodeExamplesTabProps {
-  lesson: any
+  lesson: {
+    codeExamples?: codeExamples[]
+  }
 }
 
 export default function CodeExamplesTab({ lesson }: CodeExamplesTabProps) {
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
 
-  console.log(lesson)
-
-  const codeExamples: CodeExample[] = [
-    {
-      id: "example_1",
-      title: "Basic React Component",
-      language: "javascript",
-      description: "A simple functional component demonstrating props and state",
-      code: `import React, { useState } from 'react';
-
-function Counter({ initialValue = 0 }) {
-  const [count, setCount] = useState(initialValue);
-
-  return (
-    <div className=\"counter\">
-      <h2>Count: {count}</h2>
-      <button onClick={() => setCount(count + 1)}>Increment</button>
-      <button onClick={() => setCount(count - 1)}>Decrement</button>
-      <button onClick={() => setCount(0)}>Reset</button>
-    </div>
-  );
-}
-
-export default Counter;`,
-      runnable: true,
-      difficulty: "beginner",
-    },
-    {
-      id: "example_2",
-      title: "API Data Fetching",
-      language: "typescript",
-      description: "Using useEffect and fetch to load data from an API",
-      code: `import React, { useState, useEffect } from 'react';
-
-function UserList() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await fetch('/api/users');
-        if (!response.ok) throw new Error('Failed to fetch users');
-        const data = await response.json();
-        setUsers(data);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUsers();
-  }, []);
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
-
-  return (
-    <ul>
-      {users.map((user: any) => (
-        <li key={user.id}>{user.name} - {user.email}</li>
-      ))}
-    </ul>
-  );
-}
-
-export default UserList;`,
-      runnable: true,
-      difficulty: "intermediate",
-    },
-    {
-      id: "example_3",
-      title: "CSS Styling",
-      language: "css",
-      description: "Responsive card component styling",
-      code: `.card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem;
-  margin: 1rem 0;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}`,
-      runnable: false,
-      difficulty: "beginner",
-    },
-  ]
+  const codeExamples = lesson.codeExamples || []
 
   const copyToClipboard = async (code: string, id: string) => {
     try {
@@ -189,9 +90,11 @@ export default UserList;`,
                     <CardTitle className="text-sm">{example.title}</CardTitle>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={getDifficultyColor(example.difficulty)}>
-                      {example.difficulty}
-                    </Badge>
+                    {example.level && (
+                      <Badge variant="outline" className={getDifficultyColor(example.level)}>
+                        {example.level}
+                      </Badge>
+                    )}
                     <Badge variant="outline">{example.language}</Badge>
                   </div>
                 </div>
@@ -220,7 +123,7 @@ export default UserList;`,
                     )}
                   </Button>
 
-                  {example.runnable && (
+                  {example.language === "javascript" || example.language === "typescript" ? (
                     <>
                       <Button
                         variant="outline"
@@ -249,7 +152,7 @@ export default UserList;`,
                         <ExternalLink className="h-3 w-3" /> Download
                       </Button>
                     </>
-                  )}
+                  ) : null}
                 </div>
               </CardContent>
             </Card>

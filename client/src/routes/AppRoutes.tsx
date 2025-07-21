@@ -244,7 +244,17 @@ const AppRoutes = () => {
         path="/learn/:cohortId"
         element={
           <Suspense fallback={<LoaderPage />}>
-            <LearnCourse params={{ cohortId: "1" }} />
+            <LearnCourse />
+          </Suspense>
+        }
+      />
+
+      {/* Enrolled Courses */}
+      <Route
+        path="/enrolled"
+        element={
+          <Suspense fallback={<LoaderPage />}>
+            <LearnCourse />
           </Suspense>
         }
       />

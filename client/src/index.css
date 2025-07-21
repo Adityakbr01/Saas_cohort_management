@@ -221,6 +221,25 @@ body {
   }
 }
 
+/* Dynamic Custom Colors */
+:root {
+  --custom-primary: oklch(0.6171 0.1375 39.0427);
+  --custom-secondary: oklch(0.9245 0.0138 92.9892);
+}
+
+/* Override primary and secondary colors with custom values */
+:root {
+  --primary: var(--custom-primary);
+  --ring: var(--custom-primary);
+  --secondary: var(--custom-secondary);
+}
+
+.dark {
+  --primary: var(--custom-primary);
+  --ring: var(--custom-primary);
+  --secondary: var(--custom-secondary);
+}
+
 @layer base {
   :root {
     --chart-1: #f54900;

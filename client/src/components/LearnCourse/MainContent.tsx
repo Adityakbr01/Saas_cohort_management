@@ -4,13 +4,14 @@ import { Bookmark, BookmarkCheck, BookOpen, Calendar, CheckCircle, ChevronRight,
 
 
 
+import type { CohortData, Lesson, Question } from "@/types/cohort";
+import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { Badge } from "../ui/badge";
+import AssignmentComponent from "./assignment-component";
 import LessonViewer from "./lesson-viewer";
 import QuizComponent from "./quiz-component";
-import AssignmentComponent from "./assignment-component";
-import type { CohortData, Lesson, Question } from "@/types/cohort";
+// import MediaPlayer from "../MediaPlayer"; // Remove this import
 interface MainContentProps {
   cohortData: CohortData;
   selectedLesson: Lesson | null;

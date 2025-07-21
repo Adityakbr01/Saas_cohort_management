@@ -6,6 +6,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Loader2 } from "lucide-react";
 import { useMemo } from "react";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
 type Course = {
   price: string;
@@ -45,6 +46,7 @@ function EnrollmentCard({
 
   const user = useSelector(selectCurrentUser);
   const [createCheckoutSession, { isLoading }] = useCreate_checkout_session_cohortMutation();
+  const navigate = useNavigate();
 
   console.log(user)
 
@@ -68,6 +70,10 @@ function EnrollmentCard({
   );
 
   const handleEnroll = async () => {
+    if (isEnrolled) {
+      navigate(`/learn/${course.id}`);
+      return;
+    }
     try {
       const stripe = await stripePromise;
       if (!stripe) throw new Error("Stripe failed to initialize");

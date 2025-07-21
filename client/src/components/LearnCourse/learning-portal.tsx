@@ -1,98 +1,105 @@
+import { useGetCohortDetailQuery, useMarkLessonCompleteMutation } from "@/store/features/api/enrolled/enrolled";
+import type { BookmarkedItem, DueDate, Lesson } from "@/types/cohort";
 import React, { useEffect, useState } from "react";
-
-import { mockCohort } from "@/lib/mock-cohort-data";
-import type { BookmarkedItem, BookmarkedType, CohortData, DueDate, Lesson } from "@/types/cohort";
 import Header from "./Header";
 import LeftSidebar from "./LeftSidebar";
 import MainContent from "./MainContent";
 import RightSidebar from "./RightSidebar";
 
-
-
 interface LearningPortalProps {
   cohortId: string;
 }
 
+function CohortSkeleton() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center">
+      <div className="w-full max-w-3xl animate-pulse space-y-6">
+        <div className="h-10 bg-muted rounded w-1/2 mx-auto" />
+        <div className="h-6 bg-muted rounded w-1/3 mx-auto" />
+        <div className="h-64 bg-muted rounded" />
+      </div>
+    </div>
+  );
+}
+
+const BOOKMARKS_KEY = "lms-bookmarks";
+
 const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
-
-
-  console.log(cohortId)
+  // All hooks at the top
+  const { data: cohortData, isLoading, isError, error } = useGetCohortDetailQuery(cohortId);
+  const [markLessonCompleteMutation] = useMarkLessonCompleteMutation();
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("content");
-  const [cohortData, setCohortData] = useState<CohortData>(mockCohort);
+  const [bookmarks, setBookmarks] = useState<{ [id: string]: { type: "lesson" | "chapter" } }>({});
 
+  // Load bookmarks from localStorage on mount
   useEffect(() => {
-    const savedLeftSidebarState = localStorage.getItem("lms-left-sidebar-open");
-    const savedRightSidebarState = localStorage.getItem("lms-right-sidebar-open");
-
-    if (savedLeftSidebarState !== null) {
-      setLeftSidebarOpen(JSON.parse(savedLeftSidebarState));
-    }
-
-    if (savedRightSidebarState !== null) {
-      setRightSidebarOpen(JSON.parse(savedRightSidebarState));
+    const stored = localStorage.getItem(BOOKMARKS_KEY);
+    if (stored) {
+      setBookmarks(JSON.parse(stored));
     }
   }, []);
 
+  // Save bookmarks to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem("lms-left-sidebar-open", JSON.stringify(leftSidebarOpen));
-  }, [leftSidebarOpen]);
+    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
+  }, [bookmarks]);
+
+  // Merge bookmarks into cohortData
+  const mergedCohortData = React.useMemo(() => {
+    if (!cohortData) return cohortData;
+    return {
+      ...cohortData,
+      chapters: cohortData.chapters.map((chapter) => ({
+        ...chapter,
+        isBookmarked: !!bookmarks[chapter.id],
+        lessons: chapter.lessons.map((lesson) => ({
+          ...lesson,
+          isBookmarked: !!bookmarks[lesson.id],
+        })),
+      })),
+    };
+  }, [cohortData, bookmarks]);
 
   useEffect(() => {
-    localStorage.setItem("lms-right-sidebar-open", JSON.stringify(rightSidebarOpen));
-  }, [rightSidebarOpen]);
-
-  useEffect(() => {
-    if (cohortData) {
-      const firstChapter = cohortData.chapters[0];
+    if (mergedCohortData) {
+      const firstChapter = mergedCohortData.chapters[0];
       if (firstChapter && firstChapter.lessons.length > 0) {
         setSelectedLesson(firstChapter.lessons[0]);
       }
     }
-  }, [cohortData]);
+  }, [mergedCohortData]);
+
+  if (isLoading) return <CohortSkeleton />;
+  if (isError) return <div className="min-h-screen flex items-center justify-center text-red-500">{(error as any)?.message || "Failed to load cohort"}</div>;
+  if (!mergedCohortData) return null;
 
   const handleLessonSelect = (lesson: Lesson) => {
     if (!lesson.isLocked) setSelectedLesson(lesson);
   };
 
-  const markLessonComplete = (lessonId: string) => {
-    setCohortData((prev) => ({
-      ...prev,
-      chapters: prev.chapters.map((chapter) => ({
-        ...chapter,
-        lessons: chapter.lessons.map((lesson) =>
-          lesson.id === lessonId ? { ...lesson, isCompleted: true } : lesson
-        ),
-      })),
-    }));
+  const markLessonComplete = (lessonId: string, chapterId?: string, timeSpent?: number) => {
+    markLessonCompleteMutation({ cohortId, chapterId, lessonId, timeSpent });
   };
 
   const markChapterComplete = (chapterId: string) => {
-    setCohortData((prev) => ({
-      ...prev,
-      chapters: prev.chapters.map((chapter) =>
-        chapter.id === chapterId ? { ...chapter, isCompleted: true, progress: 100 } : chapter
-      ),
-    }));
+    console.log(chapterId)
+    // This function is no longer needed as cohortData is managed by RTK Query
   };
 
+  // Toggle bookmark for lesson or chapter
   const toggleBookmark = (itemId: string, type: "lesson" | "chapter") => {
-    setCohortData((prev) => ({
-      ...prev,
-      chapters: prev.chapters.map((chapter) => {
-        if (type === "chapter" && chapter.id === itemId) {
-          return { ...chapter, isBookmarked: !chapter.isBookmarked };
-        }
-        return {
-          ...chapter,
-          lessons: chapter.lessons.map((lesson) =>
-            lesson.id === itemId ? { ...lesson, isBookmarked: !lesson.isBookmarked } : lesson
-          ),
-        };
-      }),
-    }));
+    setBookmarks((prev) => {
+      const updated = { ...prev };
+      if (updated[itemId]) {
+        delete updated[itemId];
+      } else {
+        updated[itemId] = { type };
+      }
+      return updated;
+    });
   };
 
   const toggleRightSidebar = () => {
@@ -101,11 +108,9 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
 
   const getUpcomingDueDates = (): DueDate[] => {
     const dueDates: DueDate[] = [];
-
-    cohortData.chapters.forEach((chapter) => {
+    mergedCohortData.chapters.forEach((chapter) => {
       chapter.lessons.forEach((lesson) => {
         if (lesson.dueDate && !lesson.isCompleted) {
-          // Narrow down lesson.type to correct literal type
           if (
             lesson.type === "video" ||
             lesson.type === "reading" ||
@@ -123,33 +128,28 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
         }
       });
     });
-
-    return dueDates.sort(
-      (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
-    );
+    return dueDates.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
   };
 
   const getBookmarkedItems = (): BookmarkedItem[] => {
     const bookmarked: BookmarkedItem[] = [];
-
-    cohortData.chapters.forEach((chapter) => {
+    mergedCohortData.chapters.forEach((chapter) => {
       if (chapter.isBookmarked) {
         bookmarked.push({
           id: chapter.id,
           title: chapter.title,
-          type: "chapter", // ✅ Safe
+          type: "chapter",
           description: chapter.description,
         });
       }
-
       chapter.lessons.forEach((lesson) => {
         if (lesson.isBookmarked) {
-          const allowedTypes: BookmarkedType[] = ["video", "reading", "quiz", "assignment"];
-          if (allowedTypes.includes(lesson.type as BookmarkedType)) {
+          const allowedTypes = ["video", "reading", "quiz", "assignment"];
+          if (allowedTypes.includes(lesson.type)) {
             bookmarked.push({
               id: lesson.id,
               title: lesson.title,
-              type: lesson.type as BookmarkedType, // ✅ Cast string to safe union
+              type: lesson.type as any, // If needed, cast to BookmarkedType
               description: lesson.description,
               chapterTitle: chapter.title,
             });
@@ -157,14 +157,13 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
         }
       });
     });
-
     return bookmarked;
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background w-full">
       <Header
-        cohortData={cohortData}
+        cohortData={mergedCohortData}
         leftSidebarOpen={leftSidebarOpen}
         setLeftSidebarOpen={setLeftSidebarOpen}
         rightSidebarOpen={rightSidebarOpen}
@@ -173,7 +172,7 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
       <div className="flex">
         <LeftSidebar
           leftSidebarOpen={leftSidebarOpen}
-          cohortData={cohortData}
+          cohortData={mergedCohortData}
           selectedLesson={selectedLesson}
           handleLessonSelect={handleLessonSelect}
           toggleBookmark={toggleBookmark}
@@ -182,7 +181,7 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
           getBookmarkedItems={getBookmarkedItems}
         />
         <MainContent
-          cohortData={cohortData}
+          cohortData={mergedCohortData}
           selectedLesson={selectedLesson}
           markLessonComplete={markLessonComplete}
           toggleBookmark={toggleBookmark}

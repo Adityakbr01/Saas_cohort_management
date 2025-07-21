@@ -9,8 +9,8 @@ import {mentorApi} from "./features/api/mentor/mentorApi";
 import {cohortsApi} from "./features/api/cohorts/cohorts.api";
 import {chapterApi} from "./features/api/chapters/chapter";
 import {lessonApi} from "./features/api/lessons/lesson"
-
 import authReducer from "@/store/features/slice/UserAuthSlice"; // ✅ correct path lagayein
+import {enrolledApi} from "@/store/features/api/enrolled/enrolled"
 
 export const store = configureStore({
   reducer: {
@@ -24,10 +24,11 @@ export const store = configureStore({
     [cohortsApi.reducerPath]:cohortsApi.reducer,  
     [chapterApi.reducerPath]:chapterApi.reducer,
     [lessonApi.reducerPath]:lessonApi.reducer,
+    [enrolledApi.reducerPath]:enrolledApi.reducer,
 
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(authApi.middleware, subscriptionApi.middleware,plansApi.middleware,paymentApi.middleware,orgApi.middleware,mentorApi.middleware,cohortsApi.middleware,chapterApi.middleware,lessonApi.middleware),
+    getDefaultMiddleware().concat(authApi.middleware, subscriptionApi.middleware,plansApi.middleware,paymentApi.middleware,orgApi.middleware,mentorApi.middleware,cohortsApi.middleware,chapterApi.middleware,lessonApi.middleware,enrolledApi.middleware),
   devTools: process.env.NODE_ENV !== "production",
 });
 
