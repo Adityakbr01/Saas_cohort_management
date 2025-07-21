@@ -288,6 +288,11 @@ const CohortManagement: React.FC = () => {
                 <MentorProfileView
                     mentorId={selectedMentorId}
                     onClose={handleCloseMentorProfile}
+                    onViewCohort={(cohortId) => {
+                        setSelectedCohortId(cohortId);
+                        setSelectedMentorId(null);
+                        console.log("Viewing cohort:", cohortId);
+                    }}
                 />
             ) : (
                 <div className="space-y-6">
@@ -506,8 +511,8 @@ const CohortManagement: React.FC = () => {
                                             <div>
                                                 <span className="text-muted-foreground">Students:</span>
                                                 <span className="ml-1 font-medium">
-                          {cohort.studentsCount}/{cohort.maxCapacity}
-                        </span>
+                                                    {cohort.studentsCount}/{cohort.maxCapacity}
+                                                </span>
                                             </div>
                                             <div>
                                                 <span className="text-muted-foreground">Mentor:</span>

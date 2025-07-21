@@ -1,6 +1,7 @@
 import mongoose, { Schema, Types, Document, Model } from "mongoose";
 
 interface IChapter extends Document {
+    _id: Types.ObjectId;
   title: string;
   totalLessons: number;
   totalDuration: number;
@@ -53,5 +54,7 @@ chapterSchema.statics.getNextPosition = async function (cohortId: Types.ObjectId
   const last = await this.findOne({ cohort: cohortId }).sort("-position").select("position").lean();
   return last ? last.position + 1 : 1;
 };
+
+
 
 export const Chapter = mongoose.model<IChapter, IChapterModel>("Chapter", chapterSchema);

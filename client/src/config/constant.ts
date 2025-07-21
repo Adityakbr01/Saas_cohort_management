@@ -1,5 +1,5 @@
-export const Backend_URL  = "http://localhost:3000/api/v1";
-export const Frontend_URL = "http://localhost:5173";
+export const Backend_URL  = import.meta.env.VITE_API_URL;
+export const Frontend_URL = window.location.origin; 
 
 
 export const  Role = {

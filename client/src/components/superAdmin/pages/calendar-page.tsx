@@ -1,7 +1,6 @@
-"use client"
 
 import { CalendarPanel } from "@/components/calendar-panel"
 
-export function CalendarPage() {
+export default function CalendarPage() {
   return <CalendarPanel />
 }

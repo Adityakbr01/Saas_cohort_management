@@ -1,16 +1,8 @@
 import { Backend_URL } from "@/config/constant";
+import type { Organization } from "@/types";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-export interface Organization {
-  _id: string;
-  name: string;
-  slug: string;
-  logo?: string;
-  ownerId: string;
-  Members: string[];
-  createdAt: string;
-  updatedAt: string;
-}
+
 
 export interface MyOrgResponse {
   success: boolean;

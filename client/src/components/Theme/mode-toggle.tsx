@@ -1,37 +1,33 @@
-import { Moon, Sun } from "lucide-react"
+// components/Theme/ModeToggle.tsx
 
-import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useTheme } from "@/components/Theme/theme-provider"
+import { useTheme } from "@/components/Theme/theme-provider";
+import { useEffect, useState } from "react";
+import "./uiverse-switch.css"; // 👈 Make sure this path is correct
 
 export function ModeToggle() {
-    const { setTheme } = useTheme()
+  const { theme, setTheme } = useTheme();
+  const [checked, setChecked] = useState(theme === "dark");
 
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                    <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-                    <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-                    <span className="sr-only">Toggle theme</span>
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setTheme("light")}>
-                    Light
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("dark")}>
-                    Dark
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("system")}>
-                    System
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
-    )
+  useEffect(() => {
+    setChecked(theme === "dark");
+  }, [theme]);
+
+  const handleToggle = () => {
+    const newTheme = checked ? "light" : "dark";
+    setTheme(newTheme);
+    setChecked(!checked);
+  };
+
+  return (
+    <label htmlFor="theme-switch" className="switch">
+      <input
+        id="theme-switch"
+        type="checkbox"
+        checked={checked}
+        onChange={handleToggle}
+      />
+      <span className="slider"></span>
+      <span className="decoration"></span>
+    </label>
+  );
 }

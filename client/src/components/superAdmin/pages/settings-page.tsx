@@ -1,7 +1,6 @@
-"use client"
 
 import { SettingsPanel } from "@/components/settings-panel"
 
-export function SettingsPage() {
+export default function SettingsPage() {
   return <SettingsPanel />
 }

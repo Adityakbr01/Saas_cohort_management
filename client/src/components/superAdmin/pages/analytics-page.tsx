@@ -34,7 +34,7 @@ const chartConfig = {
   },
 }
 
-export function AnalyticsPage() {
+export default function AnalyticsPage() {
   const totalEarnings = monthlyEarnings.reduce((sum, month) => sum + month.earnings, 0)
   const avgGrowth = monthlyEarnings.reduce((sum, month) => sum + month.growth, 0) / monthlyEarnings.length
   const currentSubscriptions = monthlyEarnings[monthlyEarnings.length - 1].subscriptions

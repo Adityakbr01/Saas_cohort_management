@@ -101,7 +101,7 @@ baseUserSchema.methods.generateAuthToken = function (): string {
     tokenVersion: this.tokenVersion,
   };
   return jwt.sign(payload, process.env.JWT_SECRET as string, {
-    expiresIn: "12h",
+    expiresIn: "15min", // 15 min
   });
 };
 

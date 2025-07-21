@@ -18,6 +18,10 @@ export const fallbackPlans: SubscriptionPlans = {
         { name: "Email support only", included: true },
       ],
       _id: "123",
+      yearlyPrice: 0,
+      originalPrice: 0,
+      tax: 0,
+      discount: 0,
     },
     pro: {
       name: "Pro",
@@ -34,6 +38,10 @@ export const fallbackPlans: SubscriptionPlans = {
         { name: "Email + chat support", included: true },
       ],
       _id: "123",
+      yearlyPrice: 0,
+      originalPrice: 0,
+      tax: 0,
+      discount: 0,
     },
     business: {
       name: "Business",
@@ -50,6 +58,10 @@ export const fallbackPlans: SubscriptionPlans = {
         { name: "Priority 24/7 support", included: true },
       ],
       _id: "123",
+      yearlyPrice: 0,
+      originalPrice: 0,
+      tax: 0,
+      discount: 0,
     },
   },
   yearly: {
@@ -68,6 +80,10 @@ export const fallbackPlans: SubscriptionPlans = {
         { name: "Email support only", included: true },
       ],
       _id: "123",
+      yearlyPrice: 0,
+      originalPrice: 0,
+      tax: 0,
+      discount: 0,
     },
     pro: {
       name: "Pro",
@@ -85,6 +101,9 @@ export const fallbackPlans: SubscriptionPlans = {
         { name: "Email + chat support", included: true },
       ],
       _id: "123",
+      yearlyPrice: 0,
+      tax: 0,
+      discount: 0,
     },
     business: {
       name: "Business",
@@ -102,6 +121,10 @@ export const fallbackPlans: SubscriptionPlans = {
         { name: "Priority 24/7 support", included: true },
       ],
       _id: "123",
+      yearlyPrice: 0,
+
+      tax: 0,
+      discount: 0,
     },
   },
 };

@@ -1,13 +1,8 @@
-import { Cohort } from "@/models/cohort.model";
-import { Chapter } from "@/models/chapter.model";
-import { wrapAsync } from "@/utils/wrapAsync";
-import { sendSuccess } from "@/utils/responseUtil";
-import { ApiError } from "@/utils/apiError";
 import { CohortService } from "@/services/cohort.service";
-import { Role } from "@/configs/roleConfig";
+import { ApiError } from "@/utils/apiError";
+import { sendSuccess } from "@/utils/responseUtil";
+import { wrapAsync } from "@/utils/wrapAsync";
 import { createCohortSchema } from "@/utils/zod/cohort";
-import { uploadImage, uploadVideo } from "@/services/cloudinaryService";
-import { authService } from "@/services/auth.service";
 
 export const CohortController = {
   createCohort: wrapAsync(async (req, res) => {
@@ -15,6 +10,8 @@ export const CohortController = {
     if (!userId) throw new ApiError(401, "Unauthorized");
 
     const raw = req.body;
+
+    console.log(req.body)
 
     // ✅ Convert/parse values
     const payload = {
@@ -28,6 +25,11 @@ export const CohortController = {
           : [],
       chapters:
         typeof raw.chapters === "string" ? JSON.parse(raw.chapters) : [],
+      duration: Number(raw.duration),
+      price: Number(raw.price),
+      originalPrice: Number(raw.originalPrice),
+      discount: Number(raw.discount),
+      activateOn: raw.activateOn ? new Date(raw.activateOn) : undefined, // ✅ NEW FIELD
     };
 
     // ✅ Validate data
@@ -38,24 +40,23 @@ export const CohortController = {
     const thumbnail = files.find((file) => file.fieldname === "Thumbnail");
     const demoVideo = files.find((file) => file.fieldname === "demoVideo");
 
-    // // ✅ Create cohort
-    // const newCohort = await Cohort.create({
-    //   ...validated,
-    //   createdBy: userId,
-    //   Thumbnail: thumbnailUrl,
-    //   demoVideo: demoVideoUrl,
-    //   chapters: chapterIds,
-    // });
 
     const newCohort = await CohortService.createCohort({
       ...validated,
       createdBy: userId,
-      thumbnail,
-      demoVideo,
+      thumbnail: thumbnail,
+      demoVideo: demoVideo,
       chapters: validated.chapters,
+      duration: validated.duration,
+      price: validated.price,
+      originalPrice: validated.originalPrice,
+      discount: validated.discount,
+      limitedTimeOffer: validated.limitedTimeOffer,
+      mentor: validated.mentor,
+      activateOn: validated.activateOn,
     });
 
-    sendSuccess(res, 201, "Cohort created successfully");
+    sendSuccess(res, 201, "Cohort created successfully", newCohort);
   }),
   getAllCohorts: wrapAsync(async (req, res) => {
     const page = parseInt(req.query.page as string) || 1;
@@ -97,6 +98,7 @@ export const CohortController = {
   updateCohort: wrapAsync(async (req, res) => {
     const userId = req.user?.id;
     const userRole = req.user?.role;
+
     if (!userId) throw new ApiError(401, "Unauthorized");
     const cohortId = req.params.id;
     const updated = await CohortService.updateCohort(
@@ -116,4 +118,41 @@ export const CohortController = {
 
     sendSuccess(res, 200, "Cohort and its chapters soft-deleted", cohort);
   }),
+  rateCohort: wrapAsync(async (req, res) => {
+    const cohortId = req.params.id;
+    const userId = req.user.id;
+    const rating = req.body.rating; // ✅ recived rating from body like { rating: 5 }
+    if (!rating) throw new ApiError(400, "Rating is required");
+    if (rating < 1 || rating > 5) throw new ApiError(400, "Rating must be between 1 and 5");
+    if (typeof rating !== "number") throw new ApiError(400, "Rating must be a number");
+    if (rating % 1 !== 0) throw new ApiError(400, "Rating must be an integer");
+
+    const rated = await CohortService.rateCohort(cohortId, userId, rating); // ✅ Call the rateCohort function with the cohortId, userId, and rating.
+
+    sendSuccess(res, 200, "Cohort rated", rated);
+  }),
+  unrateCohort: wrapAsync(async (req, res) => {
+    const cohortId = req.params.id;
+    const userId = req.user.id;
+    if (!userId) throw new ApiError(401, "Unauthorized");
+    if (!cohortId) throw new ApiError(400, "Cohort ID is required");
+    if (typeof cohortId !== "string") throw new ApiError(400, "Cohort ID must be a string");
+
+    const unrated = await CohortService.unrateCohort(cohortId, userId);
+
+    sendSuccess(res, 200, "Cohort unrated", unrated);
+  }),
+
+  getRatingSummary: wrapAsync(async (req, res) => {
+    const cohortId = req.params.id;
+    const userId = req.user.id;
+    if (!userId) throw new ApiError(401, "Unauthorized");
+    if (!cohortId) throw new ApiError(400, "Cohort ID is required");
+    if (typeof cohortId !== "string") throw new ApiError(400, "Cohort ID must be a string");
+
+    const summary = await CohortService.getRatingSummary(cohortId);
+
+    sendSuccess(res, 200, "Rating summary", summary);
+  }),
+
 };

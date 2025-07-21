@@ -1,31 +1,17 @@
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCreateCohortMutation, useGetmentorCohortQuery } from "@/store/features/api/cohorts/cohorts.api";
 import { useGetmyorgQuery } from "@/store/features/api/mentor/mentorApi";
+import { selectCurrentUser } from "@/store/features/slice/UserAuthSlice";
 import type { APIErrorResponse } from "@/types";
-import {
-  Plus,
-  Search
-} from "lucide-react";
-import { useState } from "react";
+import { Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import Analytics from "./Analytics";
-import CohortManagement from "./cohort-management";
-import CommunicationCenter from "./communication-center";
 import CreateCohortDialog from "./CreateCohortDialog";
-import CurriculumBuilder from "./curriculum-builder";
-import MentorStudentProfile from "./mentor-student-profile";
 import MentorHeader from "./MentorHeader";
 import PerformanceOverview from "./PerformanceOverview";
 import QuickStats from "./QuickStats";
@@ -35,19 +21,7 @@ import { StudentsTable } from "./StudentsTable";
 import Tools from "./Tools";
 import UpcomingEvents from "./UpcomingEvents";
 
-// Mock data (unchanged from previous)
-const mentorData = {
-  id: "mentor_1",
-  name: "Dr. Sarah Johnson",
-  email: "sarah.johnson@edulaunch.com",
-  avatar: "/placeholder.svg?height=80&width=80",
-  specialization: "Data Science",
-  totalStudents: 45,
-  activeCohorts: 3,
-  completedCohorts: 8,
-  averageRating: 4.9,
-  responseTime: "< 2 hours",
-};
+
 const dashboardStats = {
   totalStudents: 45,
   activeStudents: 42,
@@ -124,35 +98,21 @@ const performanceData = [
   { month: "Jun", engagement: 91, completion: 92, satisfaction: 4.9 },
 ];
 
+
 // Main MentorDashboard Component
-export default function MentorDashboard() {
+export default function MentorDashboardHome() {
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [demoVideoFile, setDemoVideoFile] = useState<File | null>(null);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [selectedCohort, setSelectedCohort] = useState<string | null>(null);
-  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState("dashboard");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem("mentor-dashboard-tab") || "overview");
+  useEffect(() => {
+    localStorage.setItem("mentor-dashboard-tab", activeTab);
+  }, [activeTab]);
   const { data: orgData } = useGetmyorgQuery();
   const [createCohort, { isLoading: isCreatingCohort }] = useCreateCohortMutation();
   const { data } = useGetmentorCohortQuery(undefined);
   const myCohorts = data?.data?.cohorts || [];
-
-  const handleViewCohort = (cohortId: string) => {
-    setSelectedCohort(cohortId);
-    setCurrentView("cohort");
-  };
-
-  const handleViewStudent = (studentId: string) => {
-    setSelectedStudent(studentId);
-    setCurrentView("student");
-  };
-
-  const handleBackToDashboard = () => {
-    setCurrentView("dashboard");
-    setSelectedCohort(null);
-    setSelectedStudent(null);
-  };
+  const user = useSelector(selectCurrentUser);
+  const navigate = useNavigate();
 
   const handleCreateCohort = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -187,6 +147,21 @@ export default function MentorDashboard() {
         : [],
       certificateAvailable: formData.get("certificateAvailable") === "true",
       chapters: [],
+      duration: formData.get("duration")
+        ? Number(formData.get("duration"))
+        : 0,
+      price: formData.get("price")
+        ? Number(formData.get("price"))
+        : 0,
+      originalPrice: formData.get("originalPrice")
+        ? Number(formData.get("originalPrice"))
+        : 0,
+      discount: formData.get("discount")
+        ? Number(formData.get("discount"))
+        : 0,
+      activateOn: formData.get("activateOn")
+        ? new Date(formData.get("activateOn") as string).toISOString()
+        : undefined, // ✅ NEW FIELD
     };
 
     const requiredFields: (keyof typeof cohortData)[] = [
@@ -203,6 +178,7 @@ export default function MentorDashboard() {
       "difficulty",
       "language",
       "schedule",
+      "activateOn",
     ];
 
     const missingFields = requiredFields.filter(
@@ -241,13 +217,15 @@ export default function MentorDashboard() {
     }
 
     const apiFormData = new FormData();
-    Object.entries(cohortData).forEach(([key, value]) => {
-      if (["tags", "prerequisites", "chapters"].includes(key)) {
-        apiFormData.append(key, JSON.stringify(value));
-      } else {
-        apiFormData.append(key, value.toString());
-      }
-    });
+
+Object.entries(cohortData).forEach(([key, value]) => {
+  if (["tags", "prerequisites", "chapters"].includes(key)) {
+    apiFormData.append(key, JSON.stringify(value ?? []));
+  } else if (value !== undefined && value !== null) {
+    apiFormData.append(key, value.toString());
+  }
+});
+
 
     if (thumbnailFile) {
       apiFormData.append("Thumbnail", thumbnailFile);
@@ -263,10 +241,10 @@ export default function MentorDashboard() {
       toast.success("Cohort created successfully!", {
         id: toastId,
       });
-      window.location.reload(); 
+      window.location.reload();
       setThumbnailFile(null);
       setDemoVideoFile(null);
-      setIsDialogOpen(false);
+      // setIsDialogOpen(false); // This state is removed
     } catch (err) {
       const error = err as APIErrorResponse;
       console.error("API Error:", error);
@@ -277,44 +255,18 @@ export default function MentorDashboard() {
     }
   };
 
-  if (currentView === "cohort" && selectedCohort) {
-    return (
-      <CohortManagement
-        cohortId={selectedCohort}
-        onBack={handleBackToDashboard}
-        onViewStudent={handleViewStudent}
-        onEditCurriculum={() => setCurrentView("curriculum")}
-      />
-    );
-  }
 
-  if (currentView === "student" && selectedStudent) {
-    return (
-      <MentorStudentProfile
-        studentId={selectedStudent}
-        onBack={() => {
-          if (selectedCohort) {
-            setCurrentView("cohort");
-          } else {
-            handleBackToDashboard();
-          }
-        }}
-      />
-    );
-  }
+  // The view switching logic is removed, so these functions are no longer needed.
+  // const handleViewCohort = (cohortId: string) => { ... };
+  // const handleViewStudent = (studentId: string) => { ... };
+  // const handleBackToDashboard = () => { ... };
+  // const persistCohortView = (cohortId: string, view: string) => { ... };
 
-  if (currentView === "curriculum") {
-    return <CurriculumBuilder cohortId={selectedCohort || ""} onBack={() => setCurrentView("cohort")} />;
-  }
-
-  if (currentView === "communication") {
-    return <CommunicationCenter onBack={handleBackToDashboard} />;
-  }
 
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        <MentorHeader mentorData={mentorData} onMessagesClick={() => setCurrentView("communication")} />
+        <MentorHeader mentorData={user!} onMessagesClick={() => navigate("/dashboard/mentor/communication")} />
         <QuickStats stats={dashboardStats} />
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">
@@ -335,8 +287,8 @@ export default function MentorDashboard() {
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">My Cohorts</h3>
               <CreateCohortDialog
-                isOpen={isDialogOpen}
-                onOpenChange={setIsDialogOpen}
+                isOpen={false} // isDialogOpen state is removed
+                onOpenChange={() => {}} // isDialogOpen state is removed
                 orgData={orgData || []}
                 onCreateCohort={handleCreateCohort}
                 isCreatingCohort={isCreatingCohort}
@@ -348,8 +300,8 @@ export default function MentorDashboard() {
             </div>
             <StudentManagement
               cohorts={myCohorts}
-              onViewCohort={handleViewCohort}
-              onViewStudent={handleViewStudent}
+              onViewCohort={cohortId => navigate(`/dashboard/mentor/cohort/${cohortId}`)}
+              onViewStudent={studentId => navigate(`/dashboard/mentor/student/${studentId}`)}
             />
           </TabsContent>
           <TabsContent value="students" className="space-y-6">
@@ -371,73 +323,18 @@ export default function MentorDashboard() {
                     <SelectItem value="completed">Completed</SelectItem>
                   </SelectContent>
                 </Select>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Student
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Add New Student</DialogTitle>
-                      <DialogDescription>Create a new student profile and assign to a cohort.</DialogDescription>
-                    </DialogHeader>
-                    <div className="grid grid-cols-2 gap-4 py-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Full Name</label>
-                        <Input placeholder="Enter student name" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Email</label>
-                        <Input type="email" placeholder="student@email.com" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Assign to Cohort</label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select cohort" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {myCohorts.map(cohort => (
-                              <SelectItem key={cohort._id} value={cohort._id}>
-                                {cohort.title}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Learning Track</label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select track" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="beginner">Beginner</SelectItem>
-                            <SelectItem value="intermediate">Intermediate</SelectItem>
-                            <SelectItem value="advanced">Advanced</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button variant="outline">Cancel</Button>
-                      <Button>Add Student</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
               </div>
             </div>
-            <StudentsTable onViewStudent={handleViewStudent} />
+            <StudentsTable onViewStudent={studentId => navigate(`/dashboard/mentor/student/${studentId}`)} />
           </TabsContent>
           <TabsContent value="analytics" className="space-y-6">
             <Analytics performanceData={performanceData} />
           </TabsContent>
           <TabsContent value="tools" className="space-y-6">
             <Tools
-              onCurriculumClick={() => setCurrentView("curriculum")}
-              onCommunicationClick={() => setCurrentView("communication")}
+              onCurriculumClick={() => navigate(`/dashboard/mentor/
+                /${myCohorts[0]?._id || ""}/curriculum`)}
+              onCommunicationClick={() => navigate(`/dashboard/mentor/communication`)}
             />
           </TabsContent>
         </Tabs>

@@ -1,7 +1,6 @@
-"use client"
 
 import  {UserManagement} from "@/components/user-management"
 
-export function UserManagementPage() {
+export default function UserManagementPage() {
   return <UserManagement />
 }

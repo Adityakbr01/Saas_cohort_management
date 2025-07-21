@@ -75,7 +75,7 @@ const orgAdmins = [
   },
 ]
 
-export function OrgAdminsPage() {
+export default function OrgAdminsPage() {
   const [admins, setAdmins] = useState(orgAdmins)
   const [searchTerm, setSearchTerm] = useState("")
 

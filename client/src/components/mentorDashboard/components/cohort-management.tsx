@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -53,10 +53,24 @@ interface CohortManagementProps {
   onEditCurriculum: () => void
 }
 
+interface Student {
+  _id: string
+  name: string
+  email: string
+  status: string
+  progress: number
+  lastActive: string
+  avatar: string
+  assignments: { completed: number; total: number }
+  grade: string
+  attendanceRate: number
+}
+
 export default function CohortManagement({ cohortId, onBack, onViewStudent, onEditCurriculum }: CohortManagementProps) {
   const { data, isLoading, error } = useGetCohortByIdQuery(cohortId, {
     skip: !cohortId,
   })
+
 
   const cohortData = data?.data || {
     _id: "",
@@ -66,7 +80,7 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
     endDate: "",
     status: "upcoming",
     maxCapacity: 0,
-    students: [],
+    students: [] as Student[],
     progress: 0,
     completionRate: 0,
     schedule: "",
@@ -75,12 +89,19 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
     communications: [],
   }
 
-  const [activeTab, setActiveTab] = useState("overview")
+  const [activeTab, setActiveTab] = useState(() => {
+    // Use a unique key per cohort
+    return localStorage.getItem(`cohort-management-tab-${cohortId}`) || "overview";
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`cohort-management-tab-${cohortId}`, activeTab);
+  }, [activeTab, cohortId]);
   const [searchTerm, setSearchTerm] = useState("")
   const [studentFilter, setStudentFilter] = useState("all")
   const [isEditingCohort, setIsEditingCohort] = useState(false)
 
-  const filteredStudents = cohortData.students.filter((student) => {
+  const filteredStudents = cohortData.students.filter((student:Student) => {
     const matchesSearch =
       student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -186,7 +207,7 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-600">
-                {cohortData.students.filter((s) => s.status === "at-risk").length}
+                {cohortData.students.filter((s:Student) => s.status === "at-risk").length}
               </div>
               <p className="text-xs text-muted-foreground">Need attention</p>
             </CardContent>
@@ -372,8 +393,8 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredStudents.map((student) => (
-                        <TableRow key={student.id}>
+                      {filteredStudents.map((student:Student) => (
+                        <TableRow key={student._id}>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar>
@@ -429,7 +450,7 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => onViewStudent(student.id)}>
+                                <DropdownMenuItem onClick={() => onViewStudent(student._id)}>
                                   <Eye className="mr-2 h-4 w-4" />
                                   View Profile
                                 </DropdownMenuItem>
@@ -516,7 +537,7 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
                   <p className="text-center text-muted-foreground">No assignments available.</p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    { cohortData?.assignments && cohortData?.assignments.map((assignment) => (
+                    { cohortData?.assignments && cohortData?.assignments.map((assignment:{id:string;title:string;status:string;dueDate:string;submissions:number;averageScore:number;}) => (
                       <Card key={assignment.id}>
                         <CardHeader>
                           <div className="flex justify-between items-start">
@@ -622,7 +643,7 @@ export default function CohortManagement({ cohortId, onBack, onViewStudent, onEd
                   <p className="text-center text-muted-foreground">No communications available.</p>
                 ) : (
                   <div className="space-y-4">
-                    {cohortData?.communications?.map((comm) => (
+                    {cohortData?.communications?.map((comm:{id:string;type:string;subject:string;date:string;author:string;recipients:string;content:string;}) => (
                       <div key={comm.id} className="border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">

@@ -292,6 +292,8 @@ export default function StudentProfileView({ studentId, cohortId, onClose }: Stu
   const [newNote, setNewNote] = useState("")
   const [noteType, setNoteType] = useState("general")
 
+  console.log(cohortId)
+
   const student = studentDetails[studentId as keyof typeof studentDetails]
 
   if (!student) {

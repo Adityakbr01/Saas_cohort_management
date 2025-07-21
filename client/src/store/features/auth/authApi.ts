@@ -1,6 +1,7 @@
 import { Backend_URL } from "@/config/constant";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { setUser } from "../slice/UserAuthSlice";
+import { logout as localLogout } from "@/utils/authUtils";
 
 export interface AuthResponse {
   token: string;
@@ -222,6 +223,7 @@ export const authApi = createApi({
           const { data } = await queryFulfilled;
           dispatch(setUser(data.data)); // 👈 Set user in Redux store
         } catch (error) {
+          localLogout();
           console.error("Failed to get profile:", error);
         }
       },

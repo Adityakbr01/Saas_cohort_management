@@ -1,7 +1,6 @@
-"use client"
 
 import { PermissionsPanel } from "@/components/permissions-panel"
 
-export function PermissionsPage() {
+export default function PermissionsPage() {
   return <PermissionsPanel />
 }

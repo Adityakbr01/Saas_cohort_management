@@ -1,0 +1,94 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - mern-network
+
+  app:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./server/.env
+    volumes:
+      - ./server:/app:cached
+      - /app/node_modules
+      - /tmp:/tmp
+    command: ["npm", "run", "dev"]
+    networks:
+      - mern-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  video-worker:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./server/.env
+    volumes:
+      - ./server:/app
+      - /tmp:/tmp
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1024m
+      restart_policy:
+        condition: on-failure
+    command: ["tsx", "src/jobs/workers/video.worker.ts"]
+    networks:
+      - mern-network
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    depends_on:
+      app:
+        condition: service_healthy
+    env_file:
+      - ./client/.env
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./client:/app:cached
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  mern-network:
+    driver: bridge
+
+volumes:
+  redis_data:

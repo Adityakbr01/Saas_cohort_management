@@ -61,6 +61,7 @@ export interface IMentor extends IBaseUser {
     priority: "low" | "medium" | "high";
   }[];
   profileImageUrl: string;
+  courses?: Types.ObjectId[];
 }
 
 interface IMentorModel extends Model<IMentor> {
@@ -122,6 +123,7 @@ const mentorSchema = new Schema<IMentor>(
     ],
     notes: [noteSchema],
     profileImageUrl: { type: String, default: "" },
+    courses: [{ type: Schema.Types.ObjectId, ref: "Course" }],
   },
   { timestamps: true }
 );

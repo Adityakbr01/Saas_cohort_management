@@ -15,6 +15,8 @@ import { getCookieConfig } from "@/configs/cookieConfig";
 import jwt from "jsonwebtoken";
 import fileModel from "@/models/file.model";
 import { deleteFile, uploadImage } from "./cloudinaryService";
+import { Role } from "@/configs/roleConfig";
+import isSuperAdmin from "@/utils/isSuperAdmin";
 
 export const authService = {
   async register({
@@ -169,6 +171,8 @@ export const authService = {
             role,
             name,
             adminPrivileges,
+            isMasterAdmin: false,
+            isVerifiedByAdmin: false,
           });
           break;
         default:
@@ -181,6 +185,9 @@ export const authService = {
       user.otp = otpData.otp;
       user.otpExpiry = otpData.expiry;
       await user.save();
+      console.log(`Sending OTP email to ${user.email}`);
+      await sendOTPEmail(user.email, otpData.otp, user.name);
+      console.log(`OTP email sent successfully to ${user.email}`);
     } catch (error: any) {
       if (error.code === 11000) {
         throw new ApiError(400, `Email ${email} is already registered`);
@@ -301,12 +308,14 @@ export const authService = {
 
     if (!user.isVerified) {
       throw new ApiError(401, "Account is not verified");
-      return;
+    }
+
+    if (isSuperAdmin(user) && !user.isVerifiedByAdmin) {
+      throw new ApiError(401, "Invalid role");
     }
 
     if (user.suspended.isSuspended) {
       throw new ApiError(401, "Account is suspended Contact support");
-      return;
     }
 
     // Update last login time
@@ -337,7 +346,7 @@ export const authService = {
     //remove cached user
     safeCache.del(user._id.toString());
 
-    return { accessToken, refreshToken, user };
+    return { accessToken,refreshToken, user };
   },
   async getProfile(userId: string, role: string) {
     if (!userId || !role) {
@@ -452,7 +461,6 @@ export const authService = {
           break;
         default:
           throw new ApiError(400, "Invalid user role");
-          return;
       }
 
       if (!user) {
@@ -499,12 +507,11 @@ export const authService = {
         break;
       default:
         throw new ApiError(400, "Invalid role");
-        return;
     }
 
     if (!user) {
       throw new ApiError(404, "User not found");
-      return;
+
     }
 
     try {
@@ -648,7 +655,7 @@ export const authService = {
     user.password = password;
     await user.save();
   },
-   async updateProfile({
+  async updateProfile({
     userId,
     userRole,
     body,

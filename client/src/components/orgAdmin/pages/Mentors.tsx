@@ -93,6 +93,7 @@ const MentorManagement: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [filterSpecialization, setFilterSpecialization] = useState<string>("all");
     const [selectedMentorId, setSelectedMentorId] = useState<string | null>(null);
+    const [selectedCohortId, setSelectedCohortId] = useState<string | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [newMentor, setNewMentor] = useState({
         name: "",
@@ -112,10 +113,12 @@ const MentorManagement: React.FC = () => {
 
     const handleViewMentor = (mentorId: string) => {
         setSelectedMentorId(mentorId);
+        setSelectedCohortId(null); // Clear cohort selection
     };
 
     const handleCloseMentorProfile = () => {
         setSelectedMentorId(null);
+        setSelectedCohortId(null); // Clear cohort selection
     };
 
     const handleAddMentor = () => {
@@ -143,12 +146,19 @@ const MentorManagement: React.FC = () => {
         // Add logic for removing a mentor
     };
 
+    console.log(selectedCohortId)
+
     return (
         <>
             {selectedMentorId ? (
                 <MentorProfileView
                     mentorId={selectedMentorId}
                     onClose={handleCloseMentorProfile}
+                    onViewCohort={(cohortId) => {
+                        setSelectedCohortId(cohortId);
+                        setSelectedMentorId(null);
+                        console.log("Viewing cohort:", cohortId);
+                    }}
                 />
             ) : (
                 <div className="space-y-6">

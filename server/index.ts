@@ -2,16 +2,18 @@ import dotenv from "dotenv";
 import http from "http";
 import cluster from "cluster";
 import os from "os";
-import app from "@/server"; // Your Express app
+import app from "@/server"; 
 import connectDB from "@/configs/db";
 import { logger } from "./src/utils/logger";
+import { startAllCronJobs } from "@/jobs/Cron";
 
 
 // Load environment variables from .env
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
-const numCPUs = os.cpus().length;
+// Todod add with our vps becouse render has limited of cpu and ram --> os.cpus().length;
+const numCPUs = 1
 
 if (cluster.isPrimary) {
   logger.info(`Primary process ${process.pid} is running`);
@@ -56,6 +58,7 @@ if (cluster.isPrimary) {
       process.exit(1);
     }
   };
-
+startAllCronJobs();
   startServer();
 }
+

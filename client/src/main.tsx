@@ -10,7 +10,7 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme" >
       <Provider store={store}>
         <SidebarProvider>
           <App /> 

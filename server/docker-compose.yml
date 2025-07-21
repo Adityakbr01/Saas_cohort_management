@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      MONGO_URI: ${MONGO_URI}
+      BUNNY_CDN_HOST: ${BUNNY_CDN_HOST}
+      BUNNY_API_KEY: ${BUNNY_API_KEY}
+    volumes:
+      - /tmp:/tmp
+    command: ["tsx", "index.ts"]
+
+  video-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      MONGO_URI: ${MONGO_URI}
+      BUNNY_CDN_HOST: ${BUNNY_CDN_HOST}
+      BUNNY_API_KEY: ${BUNNY_API_KEY}
+    volumes:
+      - /tmp:/tmp
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1024m
+      restart_policy:
+        condition: on-failure
+    command: ["tsx", "src/jobs/workers/video.worker.ts"]
+
+volumes:
+  redis_data:

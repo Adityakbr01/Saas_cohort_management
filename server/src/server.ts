@@ -1,12 +1,12 @@
-import express from "express";
+import cookieParser from "cookie-parser";
 import cors from "cors";
+import express from "express";
+import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import morgan from "morgan";
-import cookieParser from "cookie-parser";
-import { rateLimit } from "express-rate-limit";
-import compression from "compression";
 import swaggerUi from "swagger-ui-express";
-import swaggerDocument from "../docs/swagger.json";
+// import swaggerDocument from "../docs/swagger.json";
+
 
 
 
@@ -14,19 +14,21 @@ import { env_config } from "./configs/env";
 
 
 //middlewares
-import notFound from "@/middleware/notFound";
 import errorHandler from "@/middleware/errorHandler";
-import { swaggerSpec } from "./configs/swagger";
+import notFound from "@/middleware/notFound";
 
 // import userRouter from "@/routes/userRoutes";
 import orgRouter from "@/routes/orgRoutes";
 import subscriptionRouter from "@/routes/subscriptionRoute";
-// import paymentRouter from "./routes/paymentRoutes";
+import paymentRouter from "./routes/paymentRoutes";
 // import studentRouter from "@/routes/studentRouter";
-import mentorRouter from "@/routes/mentorRoutes";
 import authRoutes from "@/routes/auth.routes";
-import cohortRoutes from "@/routes/cohort.routes";
 import chapterRoutes from "@/routes/chapter.routes";
+import cohortRoutes from "@/routes/cohort.routes";
+import lessonRoutes from "@/routes/lessons.routes";
+import mentorRouter from "@/routes/mentorRoutes";
+import enrollmentRoutes from "./routes/enrollment.Routes";
+import progressRoutes from "@/routes/progress.routes";
 
 
 const app = express();
@@ -53,16 +55,29 @@ const limiter = rateLimit({
 app.use(limiter);
 
 
+const allowedOrigins = [
+  process.env.CORS_ORIGIN,    // "http://www.edulaunch.shop"
+  process.env.CORS_ORIGIN2?.replace(/\/$/, ""), // Remove trailing slash if exists
+].filter(Boolean); // remove undefined/null
+
+
 
 
 app.use(
   cors({
-    origin:env_config.CORS_ORIGIN || process.env.CORS_ORIGIN || "*",
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     maxAge: 86400,
   })
 );
+
 
 
 app.use(cookieParser());
@@ -72,7 +87,15 @@ app.use(cookieParser());
 
 // app.use("/api/v1/payments",paymentRouter)
 
-app.use(express.json({ limit: "24kb" }));
+// Skip JSON parser for Stripe webhook
+app.use((req, res, next) => {
+  if (req.originalUrl === "/api/v1/payments/stripe/webhook/enrollment" ||  req.originalUrl === "/api/v1/payments/stripe/webhook") {
+    next(); // skip parsing
+  } else {
+    express.json({ limit: "24kb" })(req, res, next);
+  }
+});
+
 app.use(express.urlencoded({ extended: true, limit: "24kb" }));
 
 
@@ -88,7 +111,7 @@ app.use((_, res, next) => {
 });
 
 // ✅ API Docs
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // ✅ Health Check
 app.get("/", (_, res) => {
@@ -99,17 +122,37 @@ app.get("/", (_, res) => {
 
 // app.use("/api/v1/users", userRouter);
 app.use("/api/v1/subscription", subscriptionRouter);
-// app.use("/api/v1/payments",paymentRouter)
+app.use("/api/v1/payments", paymentRouter)
 app.use("/api/v1/org", orgRouter);
+app.use("/api/v1/enrollment", enrollmentRoutes);
 
 // app.use("/api/v1/students", studentRouter);
 app.use("/api/v1/mentors", mentorRouter);
 
 //New Routes
 app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/cohorts",cohortRoutes)
+// for mentor Or org admin
+app.use("/api/v1/cohorts", cohortRoutes)
 app.use("/api/v1/chapters", chapterRoutes);
+app.use("/api/v1/lessons", lessonRoutes);
+app.use("/api/v1/progress", progressRoutes);
 
+//Student Routes
+
+
+//---------------CRON JOB------------
+// ✅ Keep-alive / Cron Ping route
+app.get("/api/v1/ping", (_, res) => {
+  const now = new Date().toISOString();
+  console.log("🔄 [PING] Received at", now);
+
+  res.setHeader("Cache-Control", "no-store");
+  res.status(200).json({
+    success: true,
+    message: "Pong! Server is alive.",
+    timestamp: now,
+  });
+});
 
 
 // ✅ Error Handling

@@ -30,7 +30,7 @@ const SubscriptionPage: React.FC = () => {
     : fallbackPlans;
 
 
-    console.log(plansData?.data)
+    console.log(plansData?.data,selectedPlan)
 
   // Memoize currentPlans to ensure proper recomputation
   const currentPlans = useMemo(

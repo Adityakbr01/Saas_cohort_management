@@ -1,5 +1,5 @@
 import { authApi } from "@/store/features/auth/authApi";
-import { setUser, logout } from "@/store/features/slice/UserAuthSlice";
+import { setUser, logout, setInitialized } from "@/store/features/slice/UserAuthSlice"; // 👈 add setInitialized
 import { useAppDispatch } from "@/store/hook";
 import { useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
@@ -17,24 +17,18 @@ const AppInitializer = () => {
         const storedUser = localStorage.getItem("user");
         let accessToken = localStorage.getItem("accessToken");
 
-        // 🔁 Try Refresh if no accessToken
         if (!accessToken) {
           console.log("[DEBUG] No accessToken found, trying refresh...");
           accessToken = await tryRefreshToken();
-          if (accessToken) {
-            console.log("[DEBUG] Refresh successful");
-          }
         }
 
-        // ❌ If still no accessToken after refresh
         if (!accessToken) {
           console.log("[DEBUG] Refresh failed, logging out");
-          localStorage.clear();
           dispatch(logout());
+          dispatch(setInitialized(true)); // ✅ INIT STATE SET
           return;
         }
 
-        // ✅ Decode and validate token
         try {
           const decoded: DecodedToken = jwtDecode(accessToken);
           const isExpired = decoded.exp * 1000 < Date.now();
@@ -42,61 +36,51 @@ const AppInitializer = () => {
             console.log("[DEBUG] Token expired, trying refresh...");
             accessToken = await tryRefreshToken();
             if (!accessToken) {
-              localStorage.clear();
               dispatch(logout());
+              dispatch(setInitialized(true)); // ✅ INIT STATE SET
               return;
             }
           }
         } catch (decodeErr) {
-          console.log("[DEBUG] Invalid token, trying refresh...", decodeErr);
+          console.error("[DEBUG] Failed to decode token", decodeErr);
+          console.log("[DEBUG] Invalid token, trying refresh...");
           accessToken = await tryRefreshToken();
           if (!accessToken) {
-            localStorage.clear();
             dispatch(logout());
+            dispatch(setInitialized(true)); // ✅ INIT STATE SET
             return;
           }
         }
 
-        // ✅ Load user
         try {
           if (!storedUser) {
-            console.log(
-              "[DEBUG] No stored user found, fetching from server..."
-            );
             const serverUser = await dispatch(
               authApi.endpoints.getProfile.initiate(undefined)
             ).unwrap();
+            dispatch(setUser(serverUser.data));
+            localStorage.setItem("user", JSON.stringify(serverUser.data));
+          } else {
+            const parsedUser = JSON.parse(storedUser);
+            dispatch(setUser(parsedUser));
 
-            if (serverUser?.data) {
-              dispatch(setUser(serverUser.data));
-              localStorage.setItem("user", JSON.stringify(serverUser.data));
-              return;
-            }
-
-            throw new Error("No user data from server");
-          }
-
-          const parsedUser = JSON.parse(storedUser);
-          dispatch(setUser(parsedUser));
-
-          // Optionally verify latest profile
-          const serverUser = await dispatch(
-            authApi.endpoints.getProfile.initiate(undefined)
-          ).unwrap();
-
-          if (serverUser?.data) {
+            // Optionally verify server user
+            const serverUser = await dispatch(
+              authApi.endpoints.getProfile.initiate(undefined)
+            ).unwrap();
             dispatch(setUser(serverUser.data));
             localStorage.setItem("user", JSON.stringify(serverUser.data));
           }
+
+          dispatch(setInitialized(true)); // ✅ Success path
         } catch (userErr) {
           console.log("[DEBUG] Failed to load user", userErr);
-          localStorage.clear();
           dispatch(logout());
+          dispatch(setInitialized(true)); // ✅ Even on user error
         }
       } catch (err) {
         console.error("[DEBUG] Critical error", err);
-        localStorage.clear();
         dispatch(logout());
+        dispatch(setInitialized(true)); // ✅ Always finalize
       }
     };
 
@@ -108,7 +92,6 @@ const AppInitializer = () => {
 
         if (response?.data?.accessToken) {
           localStorage.setItem("accessToken", response.data.accessToken);
-          console.log("[DEBUG] Access token refreshed");
           return response.data.accessToken;
         }
       } catch (err) {

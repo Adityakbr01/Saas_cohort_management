@@ -216,7 +216,7 @@ const studentSchema = new Schema<IStudent>(
         },
       ],
     },
-    enrolledCourses: [{ type: Schema.Types.ObjectId, ref: "Course" }],
+    enrolledCourses: [{ type: Schema.Types.ObjectId, ref: "Cohort" }],
     certificates: [
       {
         title: { type: String, required: true },

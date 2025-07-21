@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Dialog,
   DialogContent,
@@ -11,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -21,6 +22,60 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Edit } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+
+// ✅ Schema
+const cohortSchema = z
+  .object({
+    title: z.string().min(1, "Title is required"),
+    shortDescription: z.string(),
+    description: z.string(),
+    startDate: z.string().min(1, "Start date is required"),
+    endDate: z.string().min(1, "End date is required"),
+    maxCapacity: z.coerce.number(),
+    category: z.string(),
+    difficulty: z.string(),
+    schedule: z.string().optional(),
+    location: z.string(),
+    language: z.string(),
+    certificateAvailable: z.boolean(),
+    tags: z.string(),
+    prerequisites: z.string(),
+    status: z.string(),
+    duration: z.string(),
+    price: z.coerce.number(),
+    originalPrice: z.coerce.number(),
+    discount: z.coerce.number(),
+    isPrivate: z.boolean(),
+    activateOn: z.string().nullable().optional(),
+    limitedTimeOffer: z.object({
+      isActive: z.boolean(),
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+    }),
+  })
+  .superRefine((data, ctx) => {
+    if (data.limitedTimeOffer.isActive && data.discount <= 0) {
+      ctx.addIssue({
+        path: ["discount"],
+        message: "Discount must be greater than 0 when limited time offer is active",
+        code: z.ZodIssueCode.custom,
+      });
+    }
+
+    if (data.status === "upcoming" && !data.activateOn) {
+      ctx.addIssue({
+        path: ["activateOn"],
+        message: "Activate On date is required for upcoming cohorts",
+        code: z.ZodIssueCode.custom,
+      });
+    }
+  });
+
+type CohortFormData = z.infer<typeof cohortSchema>;
 
 export function UpdateCohortDialog({
   cohort,
@@ -31,38 +86,44 @@ export function UpdateCohortDialog({
 }) {
   const [open, setOpen] = useState(false);
 
-  const [formData, setFormData] = useState({
-    title: cohort.title || "",
-    shortDescription: cohort.shortDescription || "",
-    description: cohort.description || "",
-    startDate: cohort.startDate?.slice(0, 10) || "",
-    endDate: cohort.endDate?.slice(0, 10) || "",
-    maxCapacity: cohort.maxCapacity || 0,
-    category: cohort.category || "",
-    difficulty: cohort.difficulty || "",
-    schedule: cohort.schedule || "",
-    location: cohort.location || "",
-    language: cohort.language || "",
-    certificateAvailable: cohort.certificateAvailable || false,
-    tags: cohort.tags?.join(", ") || "",
-    prerequisites: cohort.prerequisites?.join(", ") || "",
-    status: cohort.status || "upcoming",
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<CohortFormData>({
+    resolver: zodResolver(cohortSchema),
+    defaultValues: {
+      ...cohort,
+      activateOn: cohort.activateOn ?? "",
+      tags: cohort.tags?.join(", ") || "",
+      prerequisites: cohort.prerequisites?.join(", ") || "",
+    },
   });
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  const isLimitedOffer = watch("limitedTimeOffer.isActive");
+  const status = watch("status");
 
-  const handleSubmit = () => {
-    const updatedData = {
-      ...formData,
-      tags: formData.tags.split(",").map((t:string) => t.trim()),
-      prerequisites: formData.prerequisites.split(",").map((p:string) => p.trim()),
+  const toUTCString = (datetime: string | undefined | null) =>
+    datetime ? new Date(datetime).toISOString() : undefined;
+
+  const onSubmit = (data: CohortFormData) => {
+    const finalData = {
+      ...data,
+      tags: data.tags.split(",").map((t) => t.trim()),
+      prerequisites: data.prerequisites.split(",").map((p) => p.trim()),
+      activateOn:
+        data.status === "upcoming" ? toUTCString(data.activateOn) : undefined,
+      limitedTimeOffer: {
+        ...data.limitedTimeOffer,
+        startDate: toUTCString(data.limitedTimeOffer.startDate),
+        endDate: toUTCString(data.limitedTimeOffer.endDate),
+      },
     };
-    onUpdate(updatedData);
+
+    console.log("🚀 Final UTC Data:", finalData);
+    onUpdate(finalData);
     setOpen(false);
   };
 
@@ -74,75 +135,79 @@ export function UpdateCohortDialog({
           Edit
         </Button>
       </DialogTrigger>
+
       <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Update Cohort</DialogTitle>
           <DialogDescription>Edit cohort details below.</DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form
+          onSubmit={handleSubmit(onSubmit, (e) =>
+            console.error("❌ Form Validation Errors:", e)
+          )}
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
           <div>
             <Label>Title</Label>
-            <Input name="title" value={formData.title} onChange={handleChange} />
+            <Input {...register("title")} />
+            {errors.title && <p className="text-red-500 text-sm">{errors.title.message}</p>}
           </div>
 
           <div>
             <Label>Short Description</Label>
-            <Input name="shortDescription" value={formData.shortDescription} onChange={handleChange} />
+            <Input {...register("shortDescription")} />
           </div>
 
           <div className="md:col-span-2">
             <Label>Description</Label>
-            <Textarea name="description" value={formData.description} onChange={handleChange} />
+            <Textarea {...register("description")} />
           </div>
 
           <div>
             <Label>Start Date</Label>
-            <Input type="date" name="startDate" value={formData.startDate} onChange={handleChange} />
+            <Input type="date" {...register("startDate")} />
+            {errors.startDate && <p className="text-red-500 text-sm">{errors.startDate.message}</p>}
           </div>
 
           <div>
             <Label>End Date</Label>
-            <Input type="date" name="endDate" value={formData.endDate} onChange={handleChange} />
+            <Input type="date" {...register("endDate")} />
+            {errors.endDate && <p className="text-red-500 text-sm">{errors.endDate.message}</p>}
           </div>
 
-          {/* Category Dropdown */}
+          <div>
+            <Label>Max Capacity</Label>
+            <Input type="number" {...register("maxCapacity")} />
+          </div>
+
           <div>
             <Label>Category</Label>
             <Select
-              value={formData.category}
-              onValueChange={(value) =>
-                setFormData((prev) => ({ ...prev, category: value }))
-              }
+              onValueChange={(val) => setValue("category", val)}
+              value={watch("category")}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select category" />
+                <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
-                {[
-                  "Web Development", "Mobile Development", "Data Science", "Machine Learning",
-                  "UI/UX Design", "Cybersecurity", "Cloud Computing", "DevOps",
-                  "Blockchain", "Mathematics", "Physics", "Chemistry", "Biology",
-                  "English", "Commerce", "Product Management", "Startup Mentorship",
-                  "Career Counseling", "Soft Skills", "Public Speaking", "Mental Health", "Other"
-                ].map((item) => (
-                  <SelectItem key={item} value={item}>{item}</SelectItem>
+                {["Web Development", "Mobile Development", "Data Science"].map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Difficulty Dropdown */}
           <div>
             <Label>Difficulty</Label>
             <Select
-              value={formData.difficulty}
-              onValueChange={(value) =>
-                setFormData((prev) => ({ ...prev, difficulty: value }))
-              }
+              onValueChange={(val) => setValue("difficulty", val)}
+              value={watch("difficulty")}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select difficulty" />
+                <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Beginner">Beginner</SelectItem>
@@ -152,39 +217,30 @@ export function UpdateCohortDialog({
             </Select>
           </div>
 
-          {/* Language Dropdown */}
           <div>
             <Label>Language</Label>
             <Select
-              value={formData.language}
-              onValueChange={(value) =>
-                setFormData((prev) => ({ ...prev, language: value }))
-              }
+              onValueChange={(val) => setValue("language", val)}
+              value={watch("language")}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select language" />
+                <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="English">English</SelectItem>
-                <SelectItem value="Spanish">Spanish</SelectItem>
-                <SelectItem value="French">French</SelectItem>
                 <SelectItem value="Hindi">Hindi</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Location Dropdown */}
           <div>
             <Label>Location</Label>
             <Select
-              value={formData.location}
-              onValueChange={(value) =>
-                setFormData((prev) => ({ ...prev, location: value }))
-              }
+              onValueChange={(val) => setValue("location", val)}
+              value={watch("location")}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select location" />
+                <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Online">Online</SelectItem>
@@ -193,58 +249,94 @@ export function UpdateCohortDialog({
             </Select>
           </div>
 
-          <div className="md:col-span-2">
-            <Label>Schedule</Label>
-            <Input name="schedule" value={formData.schedule} onChange={handleChange} />
-          </div>
-
-          <div>
-            <Label>Max Capacity</Label>
-            <Input type="number" name="maxCapacity" value={formData.maxCapacity} onChange={handleChange} />
-          </div>
-
-          <div>
-            <Label>Status</Label>
-            <Select
-              value={formData.status}
-              onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="upcoming">Upcoming</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {status === "upcoming" && (
+            <div className="md:col-span-2">
+              <Label>Activate On</Label>
+              <Input type="datetime-local" {...register("activateOn")} />
+              {errors.activateOn && (
+                <p className="text-red-500 text-sm">{errors.activateOn.message}</p>
+              )}
+            </div>
+          )}
 
           <div>
             <Label>Tags</Label>
-            <Input name="tags" value={formData.tags} onChange={handleChange} placeholder="mern, javascript, ..." />
+            <Input {...register("tags")} />
           </div>
 
           <div>
             <Label>Prerequisites</Label>
-            <Input name="prerequisites" value={formData.prerequisites} onChange={handleChange} placeholder="HTML, CSS, ..." />
+            <Input {...register("prerequisites")} />
+          </div>
+
+          <div>
+            <Label>Duration</Label>
+            <Input {...register("duration")} />
+          </div>
+
+          <div>
+            <Label>Price</Label>
+            <Input type="number" {...register("price")} />
+          </div>
+
+          <div>
+            <Label>Original Price</Label>
+            <Input type="number" {...register("originalPrice")} />
+          </div>
+
+          <div>
+            <Label>Discount</Label>
+            <Input type="number" {...register("discount")} />
+            {errors.discount && (
+              <p className="text-red-500 text-sm">{errors.discount.message}</p>
+            )}
+          </div>
+
+          {/* Limited Time Offer */}
+          <div className="md:col-span-2">
+            <Label>Limited Time Offer</Label>
+            <div className="flex gap-2 items-center">
+              <Switch
+                checked={isLimitedOffer}
+                onCheckedChange={(val) =>
+                  setValue("limitedTimeOffer.isActive", val)
+                }
+              />
+              <Input
+                type="datetime-local"
+                {...register("limitedTimeOffer.startDate")}
+                disabled={!isLimitedOffer}
+              />
+              <Input
+                type="datetime-local"
+                {...register("limitedTimeOffer.endDate")}
+                disabled={!isLimitedOffer}
+              />
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <Label htmlFor="certificateAvailable">Certificate Available</Label>
+            <Label>Certificate</Label>
             <Switch
-              id="certificateAvailable"
-              checked={formData.certificateAvailable}
-              onCheckedChange={(checked) =>
-                setFormData((prev) => ({ ...prev, certificateAvailable: checked }))
+              checked={watch("certificateAvailable")}
+              onCheckedChange={(val) =>
+                setValue("certificateAvailable", val)
               }
             />
           </div>
-        </div>
 
-        <DialogFooter>
-          <Button onClick={handleSubmit}>Update</Button>
-        </DialogFooter>
+          <div className="flex items-center gap-2">
+            <Label>Private</Label>
+            <Switch
+              checked={watch("isPrivate")}
+              onCheckedChange={(val) => setValue("isPrivate", val)}
+            />
+          </div>
+
+          <DialogFooter className="md:col-span-2 mt-4">
+            <Button type="submit">Update</Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

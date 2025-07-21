@@ -9,7 +9,7 @@ export interface Plan {
   name: string;
    price: number; // monthlyPrice
   yearlyPrice: number;
-  originalPrice?: number;
+  originalPrice: number;
   description: string;
   icon: LucideIcon;
   color: string;
@@ -52,7 +52,7 @@ export interface FAQ {
 export interface CheckoutPlan {
   name: string;
   price: number;
-  originalPrice?: number;
+  originalPrice: number;
   description: string;
   billing: "monthly" | "yearly";
   planId: string;

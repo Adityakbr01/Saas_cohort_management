@@ -7,24 +7,36 @@ const storage = multer.memoryStorage();
 const allowedTypes = [
   "image/jpeg",
   "image/png",
-  "video/mp4",
+  "image/jpg",
+  "video/mp4", 
+  "video/webm",
+   "image/webp",
   "video/mpeg",
   "audio/mpeg",
   "audio/mp3",
+  "audio/wav",
+  "audio/ogg",
+  "image/svg+xml",
   "application/pdf",
+  "application/json",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  
 ];
+
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Invalid file type"), false);
+    console.log("Invalid file type:", file.mimetype);
+    cb(new multer.MulterError("LIMIT_UNEXPECTED_FILE", file.fieldname)); 
   }
 };
 
 const baseUpload = multer({
   storage,
-  limits: { fileSize: 100 * 1024 * 1024 },
+  limits: { fileSize: 95 * 1024 * 1024 },
   fileFilter,
 });
 

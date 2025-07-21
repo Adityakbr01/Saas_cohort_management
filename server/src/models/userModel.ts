@@ -1,7 +1,6 @@
-import mongoose, { Document, Schema, Model, Types } from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { boolean } from "zod";
+import mongoose, { Document, Model, Schema, Types } from "mongoose";
 
 // RefreshToken Interface
 interface RefreshToken {

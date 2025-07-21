@@ -2,13 +2,17 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { selectCurrentUser } from "@/store/features/slice/UserAuthSlice";
+import type { Organization } from "@/types";
 import { Loader2, Plus } from "lucide-react";
+import { useState } from "react";
+import { useSelector } from "react-redux";
 
 // CreateCohortDialog Component
 interface CreateCohortDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  orgData: any[];
+  orgData: Organization[];
   onCreateCohort: (event: React.FormEvent<HTMLFormElement>) => Promise<void>;
   isCreatingCohort: boolean;
   thumbnailFile: File | null;
@@ -17,19 +21,22 @@ interface CreateCohortDialogProps {
   setDemoVideoFile: (file: File | null) => void;
 }
 
+
+
 function CreateCohortDialog({
   isOpen,
   onOpenChange,
   orgData,
   onCreateCohort,
   isCreatingCohort,
-  thumbnailFile,
   setThumbnailFile,
-  demoVideoFile,
   setDemoVideoFile,
 }: CreateCohortDialogProps) {
-  
-  
+  const [selectedStatus, setSelectedStatus] = useState("upcoming");
+
+  const user = useSelector(selectCurrentUser);
+
+
   const handleDialogClose = (form: HTMLFormElement | null) => {
     onOpenChange(false);
     if (form) {
@@ -47,6 +54,7 @@ function CreateCohortDialog({
       });
     }
   };
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -83,7 +91,7 @@ function CreateCohortDialog({
                 <Input
                   name="mentor"
                   placeholder="Enter mentor ID"
-                  defaultValue="686225d0975afe617d28b617"
+                  defaultValue={user?.role === "mentor" ? user._id : ""}
                   required
                 />
               </div>
@@ -104,7 +112,7 @@ function CreateCohortDialog({
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Start Date</label>
-                <Input name="startDate" type="date" required />
+                <Input name="startDate" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">End Date</label>
@@ -116,17 +124,30 @@ function CreateCohortDialog({
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Status</label>
-                <Select name="status" defaultValue="upcoming" required>
+                <Select name="status" defaultValue="upcoming" required onValueChange={(value) => setSelectedStatus(value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="upcoming">Upcoming</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              {selectedStatus === "upcoming" && (
+                <div className="space-y-2 col-span-2">
+                  <label className="text-sm font-medium">Activate On</label>
+                  <Input
+                    name="activateOn"
+                    type="datetime-local"
+                    defaultValue={new Date().toISOString().slice(0, 16)}
+                    required
+                  />
+                </div>
+              )}
+
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">Category</label>
                 <Select name="category" required>
@@ -195,9 +216,11 @@ function CreateCohortDialog({
                 <Input
                   name="schedule"
                   placeholder="e.g., Monday, Wednesday, Friday — 7:00 PM to 9:00 PM"
+                  defaultValue="Monday, Wednesday, Friday — 7:00 PM to 9:00 PM"
                   required
                 />
               </div>
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">Location</label>
                 <Select name="location" defaultValue="Online" required>
@@ -242,6 +265,22 @@ function CreateCohortDialog({
                     <SelectItem value="false">No</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Duration</label>
+                <Input name="duration" type="number" placeholder="e.g., 12 weeks" required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Price</label>
+                <Input name="price" type="number" placeholder="e.g., 100" required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Original Price</label>
+                <Input name="originalPrice" type="number" placeholder="e.g., 150" required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Discount</label>
+                <Input name="discount" type="number" placeholder="e.g., 20" required max={100} />
               </div>
             </div>
             <DialogFooter>

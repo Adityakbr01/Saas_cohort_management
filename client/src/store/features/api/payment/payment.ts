@@ -60,7 +60,7 @@ export const paymentApi = createApi({
       query: (body) => ({
         url: "/create",
         method: "POST",
-        body: { planId: "68493bd66024452a916d7fd1" },
+        body: body,
       }),
     }),
     validatePayment: builder.mutation({
@@ -76,6 +76,13 @@ export const paymentApi = createApi({
         method: "POST",
         body,
       })
+    }),
+    create_checkout_session_cohort:builder.mutation({
+      query:(body)=>({
+        url:"/create-checkout-session-cohort",
+        method: "POST",
+        body,
+      })
     })
   }),
 });
@@ -85,5 +92,6 @@ export const {
   useVerifyPaymentMutation,
   useCreatePaymentMutation,
   useValidatePaymentMutation,
-  useCreate_checkout_sessionMutation
+  useCreate_checkout_sessionMutation,
+  useCreate_checkout_session_cohortMutation
 } = paymentApi;

@@ -21,6 +21,7 @@ import {
   Clock,
   BadgeCheck,
   XCircle,
+  Trash2,
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -31,8 +32,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUpdateCohortMutation } from "@/store/features/api/cohorts/cohorts.api";
+import { useDeleteCohortMutation, useUpdateCohortMutation } from "@/store/features/api/cohorts/cohorts.api";
 import { UpdateCohortDialog } from "./UpdateCohortDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 // Cohort interface based on API response
 interface Cohort {
   _id: string;
@@ -131,8 +133,10 @@ function StudentManagement({ cohorts, onViewCohort, onViewStudent }: StudentMana
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [cohortFilter, setCohortFilter] = useState("all");
+  const [cohortToDelete, setCohortToDelete] = useState<{ id: string, title: string } | null>(null);
 
   const [updateCohort] = useUpdateCohortMutation()
+  const [deleteCohort] = useDeleteCohortMutation()
 
   const filteredStudents = allStudentsData.filter((student) => {
     const matchesSearch =
@@ -148,6 +152,16 @@ function StudentManagement({ cohorts, onViewCohort, onViewStudent }: StudentMana
     const matchesStatus = statusFilter === "all" || cohort.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const handleDeleteCohort = async (cohortId: string) => {
+    try {
+      await deleteCohort(cohortId).unwrap();
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to delete cohort:", err);
+    }
+  };
+
 
 
   return (
@@ -305,6 +319,15 @@ function StudentManagement({ cohorts, onViewCohort, onViewStudent }: StudentMana
                       cohort={cohort}
                       onUpdate={(updatedData) => updateCohort({ id: cohort._id, data: updatedData })}
                     />
+
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setCohortToDelete({ id: cohort._id, title: cohort.title })}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -502,6 +525,22 @@ function StudentManagement({ cohorts, onViewCohort, onViewStudent }: StudentMana
           </CardContent>
         </Card>
       </div>
+
+      {/* Cohort Delete Confirmation Dialog */}
+      <Dialog open={!!cohortToDelete} onOpenChange={open => !open && setCohortToDelete(null)}>
+        <DialogContent className="max-w-sm w-full">
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+          </DialogHeader>
+          <div>Are you sure you want to delete the cohort <span className="font-semibold">{cohortToDelete?.title}</span>?</div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCohortToDelete(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => { if (cohortToDelete) { handleDeleteCohort(cohortToDelete.id); setCohortToDelete(null); } }}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

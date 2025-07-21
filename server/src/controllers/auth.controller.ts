@@ -82,7 +82,6 @@ export const AuthController = {
       refreshToken,
     });
   }),
-
   verifyEmail: wrapAsync(async (req: Request, res: Response) => {
     const { email, otp, role }: VerifyEmailBody = req.body;
 
@@ -125,14 +124,7 @@ export const AuthController = {
 
     const { accessToken, refreshToken, user } = loginResult;
 
-    res.cookie("accessToken", accessToken, getCookieConfig());
-    res.cookie(
-      "refreshToken",
-      refreshToken,
-      getCookieConfig(30 * 24 * 60 * 60 * 1000)
-    );
-
-    res.cookie("accessToken", accessToken, getCookieConfig()); // 12 hours
+    res.cookie("accessToken", accessToken, getCookieConfig());// 15min
     res.cookie(
       "refreshToken",
       refreshToken,
@@ -151,7 +143,6 @@ export const AuthController = {
           isVerified: user.isVerified,
         },
         accessToken,
-        refreshToken,
       },
     });
   }),
@@ -161,11 +152,7 @@ export const AuthController = {
 
     const user = await authService.getProfile(userId, role);
 
-    res.status(200).json({
-      status: "success",
-      data: user,
-    });
-    sendSuccess(res, 200, "success", { data: user });
+    sendSuccess(res, 200, "User profile fetched", user);
   }),
   logout: wrapAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -184,19 +171,13 @@ export const AuthController = {
   refreshToken: wrapAsync(async (req: Request, res: Response) => {
     const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
-    console.log(refreshToken);
-
     if (!refreshToken) {
       throw new ApiError(401, "Unauthorized");
     }
 
     const accessToken = await authService.refreshToken(refreshToken);
-
     res.cookie("accessToken", accessToken, getCookieConfig());
-    res.status(200).json({
-      status: "success",
-      data: { accessToken },
-    });
+    sendSuccess(res, 200, "Access token refreshed", { accessToken });
   }),
   forgotPassword: wrapAsync(async (req: Request, res: Response) => {
     const { email, role }: { email: string; role: string } = req.body;
@@ -268,12 +249,12 @@ export const AuthController = {
 
     sendSuccess(res, 200, "Password reset successfully");
   }),
-   updateProfile: wrapAsync(async (req: Request, res: Response) => {
+  updateProfile: wrapAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id;
     const userRole = req.user?.role;
     if (!userId || !userRole) {
-       sendError(res, 400, "User ID and role are required");
-       return
+      sendError(res, 400, "User ID and role are required");
+      return
     }
     const result = await authService.updateProfile({
       userId,
@@ -281,7 +262,7 @@ export const AuthController = {
       body: req.body,
       file: req.file,
     });
-     sendSuccess(res, 200, "Profile updated successfully", result);
-     return
+    sendSuccess(res, 200, "Profile updated successfully", result);
+    return
   }),
 };
