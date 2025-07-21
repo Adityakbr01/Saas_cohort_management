@@ -27,7 +27,8 @@ import chapterRoutes from "@/routes/chapter.routes";
 import cohortRoutes from "@/routes/cohort.routes";
 import lessonRoutes from "@/routes/lessons.routes";
 import mentorRouter from "@/routes/mentorRoutes";
-// import enrollmentRoutes from "@/routes/enrollment.Routes";
+import enrollmentRoutes from "./routes/enrollment.Routes";
+import progressRoutes from "@/routes/progress.routes";
 
 
 const app = express();
@@ -123,6 +124,7 @@ app.get("/", (_, res) => {
 app.use("/api/v1/subscription", subscriptionRouter);
 app.use("/api/v1/payments", paymentRouter)
 app.use("/api/v1/org", orgRouter);
+app.use("/api/v1/enrollment", enrollmentRoutes);
 
 // app.use("/api/v1/students", studentRouter);
 app.use("/api/v1/mentors", mentorRouter);
@@ -133,6 +135,8 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/cohorts", cohortRoutes)
 app.use("/api/v1/chapters", chapterRoutes);
 app.use("/api/v1/lessons", lessonRoutes);
+app.use("/api/v1/progress", progressRoutes);
+
 //Student Routes
 
 

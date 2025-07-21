@@ -16,7 +16,7 @@
     }
   
   },
-  "include": ["src","index.ts"],
+  "include": ["src","index.ts", "scripts"],
   "exclude": ["node_modules", "dist"],
   "tsc-alias": {
     "resolveFullPaths": true, // Ensures full paths are resolved, including extensions

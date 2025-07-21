@@ -6,9 +6,16 @@ const userCohortProgressSchema = new mongoose.Schema(
     cohort: { type: mongoose.Schema.Types.ObjectId, ref: "Cohort", required: true },
 
     // Basic Progress
-    completedLessons: [{ type: mongoose.Schema.Types.ObjectId, ref: "Lesson" }],
+    completedLessons: [
+      {
+        lessonId: { type: mongoose.Schema.Types.ObjectId, ref: "Lesson" },
+        completedAt: { type: Date, default: Date.now },
+        timeSpent: { type: Number, default: 0 }, // seconds
+      },
+    ],
     totalLessons: { type: Number, default: 0 }, // Set at enrollment
     timeSpentMinutes: { type: Number, default: 0 },
+    timeSpentSeconds: { type: Number, default: 0 },
     xp: { type: Number, default: 0 },
 
     // Progress % by content type
@@ -29,6 +36,7 @@ const userCohortProgressSchema = new mongoose.Schema(
 
     // Timestamps
     lastUpdated: { type: Date, default: Date.now },
+    lastCompletedAt: { type: Date },
   },
   { timestamps: true }
 );

@@ -32,7 +32,7 @@ const lessonCodeSchema = new Schema<ILessonCode>(  {
   { timestamps: true });
 // Create compound index for lesson and versionlessonCodeSchema.index({ lesson: 1, version: 1 });
 
-export const LessonCode = model<ILessonCode>("LessonCode", lessonCodeSchema);
+export const LessonCode = model<ILessonCode>("CodeExample", lessonCodeSchema);
 
 
 
