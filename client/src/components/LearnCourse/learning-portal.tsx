@@ -5,6 +5,7 @@ import Header from "./Header";
 import LeftSidebar from "./LeftSidebar";
 import MainContent from "./MainContent";
 import RightSidebar from "./RightSidebar";
+import { cn } from "@/lib/utils";
 
 interface LearningPortalProps {
   cohortId: string;
@@ -29,8 +30,16 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
   const { data: cohortData, isLoading, isError, error } = useGetCohortDetailQuery(cohortId);
   const [markLessonCompleteMutation] = useMarkLessonCompleteMutation();
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
-  const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
-  const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
+const [leftSidebarOpen, setLeftSidebarOpen] = useState(() => {
+  const saved = localStorage.getItem("leftSidebarOpen");
+  return saved === null ? true : saved === "true"; // default: true
+});
+
+const [rightSidebarOpen, setRightSidebarOpen] = useState(() => {
+  const saved = localStorage.getItem("rightSidebarOpen");
+  return saved === "true";
+});
+
   const [activeTab, setActiveTab] = useState("content");
   const [bookmarks, setBookmarks] = useState<{ [id: string]: { type: "lesson" | "chapter" } }>({});
 
@@ -41,6 +50,14 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
       setBookmarks(JSON.parse(stored));
     }
   }, []);
+
+    useEffect(() => {
+  localStorage.setItem("rightSidebarOpen", rightSidebarOpen.toString());
+}, [rightSidebarOpen]);
+
+useEffect(() => {
+  localStorage.setItem("leftSidebarOpen", leftSidebarOpen.toString());
+}, [leftSidebarOpen]);
 
   // Save bookmarks to localStorage whenever they change
   useEffect(() => {
@@ -109,9 +126,15 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
     });
   };
 
-  const toggleRightSidebar = () => {
-    setRightSidebarOpen(!rightSidebarOpen);
-  };
+
+const toggleRightSidebar = () => {
+  setRightSidebarOpen(prev => !prev);
+};
+
+const toggleLeftSidebar = () => {
+  setLeftSidebarOpen(prev => !prev);
+};
+
 
   const getUpcomingDueDates = (): DueDate[] => {
     const dueDates: DueDate[] = [];
@@ -168,16 +191,28 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
   };
 
   return (
-    <div className="min-h-screen bg-background w-full">
-      <Header
-        cohortData={mergedCohortData}
-        leftSidebarOpen={leftSidebarOpen}
-        setLeftSidebarOpen={setLeftSidebarOpen}
-        rightSidebarOpen={rightSidebarOpen}
-        toggleRightSidebar={toggleRightSidebar}
-      />
-      <div className="flex">
+  <div className="min-h-screen bg-background w-full flex flex-col">
+    <Header
+      cohortData={mergedCohortData}
+      leftSidebarOpen={leftSidebarOpen}
+      setLeftSidebarOpen={setLeftSidebarOpen}
+      rightSidebarOpen={rightSidebarOpen}
+      toggleRightSidebar={toggleRightSidebar}
+    />
+
+    <div className="flex flex-1 overflow-hidden relative">
+      {/* Left Sidebar (Drawer on Mobile) */}
+      <div
+        className={cn(
+          "transition-all duration-300 z-40 bg-card border-r absolute lg:static",
+          leftSidebarOpen
+            ? "w-4/5 sm:w-64 lg:w-80"
+            : "w-0 overflow-hidden",
+          "h-full"
+        )}
+      >
         <LeftSidebar
+          toggleLeftSidebar={toggleLeftSidebar}
           leftSidebarOpen={leftSidebarOpen}
           cohortData={mergedCohortData}
           selectedLesson={selectedLesson}
@@ -187,12 +222,28 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
           getUpcomingDueDates={getUpcomingDueDates}
           getBookmarkedItems={getBookmarkedItems}
         />
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto">
         <MainContent
           cohortData={mergedCohortData}
           selectedLesson={selectedLesson}
           onMarkLessonComplete={markLessonComplete}
           toggleBookmark={toggleBookmark}
         />
+      </div>
+
+      {/* Right Sidebar (Drawer on Mobile) */}
+      <div
+        className={cn(
+          "transition-all duration-300 z-40 bg-card border-l absolute lg:static",
+          rightSidebarOpen
+            ? "w-4/5 sm:w-64 lg:w-96 right-0"
+            : "w-0 overflow-hidden",
+          "h-full"
+        )}
+      >
         <RightSidebar
           rightSidebarOpen={rightSidebarOpen}
           toggleRightSidebar={toggleRightSidebar}
@@ -202,7 +253,9 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
         />
       </div>
     </div>
-  );
+  </div>
+);
+
 };
 
 export default LearningPortal;

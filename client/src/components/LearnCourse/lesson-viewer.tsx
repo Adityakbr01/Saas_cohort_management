@@ -6,6 +6,7 @@ import type { Lesson } from "@/types/cohort"
 import { CheckCircle, Clock, FileText, Play } from "lucide-react"
 import { useEffect, useState } from "react"
 import MediaPlayer from "../MediaPlayer"
+import { formatDuration } from "@/utils/formatDuration"
 
 interface LessonViewerProps {
   lesson: Lesson
@@ -36,6 +37,9 @@ export default function LessonViewer({ lesson, onComplete }: LessonViewerProps) 
     <Card className="">
       <CardHeader>
         <div className="flex items-center justify-between">
+
+{/* Todo You can also disable this but in my case i like it */}
+
           <div>
             <CardTitle className="flex items-center gap-2">
               <Play className="h-5 w-5 text-blue-500" />
@@ -52,7 +56,7 @@ export default function LessonViewer({ lesson, onComplete }: LessonViewerProps) 
             )}
             <Badge variant="outline">
               <Clock className="h-3 w-3 mr-1" />
-              {lesson.duration}
+              {formatDuration(Number(lesson.duration))}
             </Badge>
           </div>
         </div>

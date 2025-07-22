@@ -1,21 +1,22 @@
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { cn } from "@/lib/utils"
+import { formatDuration } from "@/utils/formatDuration"
 import {
-  ChevronDown,
-  ChevronRight,
-  Play,
-  FileText,
-  BookOpen,
-  CheckCircle,
-  Lock,
-  Clock,
   Award,
   Bookmark,
   BookmarkCheck,
+  BookOpen,
+  CheckCircle,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  FileText,
+  Lock,
+  Play,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useState } from "react"
 
 interface Chapter {
   id: string
@@ -39,6 +40,7 @@ interface Lesson {
   description: string
   score?: number
   dueDate?: string
+  shortDescription: string
 }
 
 interface ChapterNavigationProps {
@@ -218,7 +220,7 @@ export default function ChapterNavigation({
                                 </Badge>
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                   <Clock className="h-3 w-3" />
-                                  {lesson.duration}
+                                  {formatDuration(Number(lesson.duration))}
                                 </span>
                               </div>
                               {lesson.score && (

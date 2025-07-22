@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui
 import AssignmentComponent from "./assignment-component";
 import LessonViewer from "./lesson-viewer";
 import QuizComponent from "./quiz-component";
-// import MediaPlayer from "../MediaPlayer"; // Remove this import
+import { formatDuration } from "@/utils/formatDuration";
 
 interface MainContentProps {
   cohortData: CohortData;
@@ -31,10 +31,7 @@ const MainContent: React.FC<MainContentProps> = ({
   const isQuiz = (lesson: Lesson): lesson is Lesson & { questions: Question[] } => {
     return lesson.type === "quiz" && Array.isArray((lesson as { questions?: unknown }).questions);
   }
-  // const cohortId = cohortData.id;
-  // const lessonId = selectedLesson?.id;
-  // const chapter = cohortData.chapters.find(chap => chap.lessons.some(les => les.id === selectedLesson?.id));
-  // const chapterId = chapter ? chapter.id : undefined;
+
   return (
     <main className="flex-1 min-h-screen">
       {selectedLesson ? (
@@ -78,7 +75,7 @@ const MainContent: React.FC<MainContentProps> = ({
                 )}
                 <Badge variant="outline">
                   <Clock className="h-3 w-3 mr-1" />
-                  {selectedLesson.duration}
+                  {formatDuration(Number(selectedLesson.duration))}
                 </Badge>
                 {selectedLesson.dueDate && (
                   <Badge variant="outline" className="text-orange-600">
