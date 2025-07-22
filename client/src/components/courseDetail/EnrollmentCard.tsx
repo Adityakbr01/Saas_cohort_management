@@ -4,9 +4,10 @@ import { useCreate_checkout_session_cohortMutation } from "@/store/features/api/
 import { selectCurrentUser } from "@/store/features/slice/UserAuthSlice";
 import { loadStripe } from "@stripe/stripe-js";
 import { Loader2 } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { toast } from 'sonner';
 
 type Course = {
   price: string;
@@ -43,14 +44,16 @@ function EnrollmentCard({
   toggleBookmark: () => void;
   refetch: () => void;
 }) {
-
   const user = useSelector(selectCurrentUser);
   const [createCheckoutSession, { isLoading }] = useCreate_checkout_session_cohortMutation();
   const navigate = useNavigate();
 
-  console.log(user)
-
-
+  // Add authentication check based on accessToken in localStorage
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  useEffect(() => {
+    const accessToken = localStorage.getItem("accessToken");
+    setIsAuthenticated(!!accessToken);
+  }, []);
 
   const formData = useMemo(
     () => ({
@@ -70,6 +73,13 @@ function EnrollmentCard({
   );
 
   const handleEnroll = async () => {
+    // If not authenticated, redirect to login and show toast
+    if (!isAuthenticated) {
+      toast.error("Please login first. You need to be logged in to enroll in a course.");
+      navigate("/login");
+      return;
+    }
+
     if (isEnrolled) {
       navigate(`/learn/${course.id}`);
       return;
@@ -91,20 +101,23 @@ function EnrollmentCard({
           description: course.description,
         },
       }).unwrap();
-      console.log(response)
+      console.log(response);
 
       if (response?.id) {
         const result = await stripe.redirectToCheckout({ sessionId: response.id });
         if (result.error) {
+          toast.error(result.error.message || "Enrollment Error");
           throw new Error(result.error.message);
         }
       } else {
+        toast.error("Failed to create checkout session.");
         throw new Error("Failed to create checkout session.");
       }
       refetch();
-    } catch (err) {
-      console.log(err)
+    } catch (err: any) {
+      console.log(err);
       console.error("❌ Stripe Checkout Error:", err);
+      toast.error(err?.message || "Something went wrong during enrollment.");
       alert("Something went wrong during enrollment.");
     }
   };
