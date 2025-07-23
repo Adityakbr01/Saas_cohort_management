@@ -4,7 +4,7 @@ import { useCreate_checkout_session_cohortMutation } from "@/store/features/api/
 import { selectCurrentUser } from "@/store/features/slice/UserAuthSlice";
 import { loadStripe } from "@stripe/stripe-js";
 import { Loader2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toast } from 'sonner';
@@ -48,12 +48,7 @@ function EnrollmentCard({
   const [createCheckoutSession, { isLoading }] = useCreate_checkout_session_cohortMutation();
   const navigate = useNavigate();
 
-  // Add authentication check based on accessToken in localStorage
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  useEffect(() => {
-    const accessToken = localStorage.getItem("accessToken");
-    setIsAuthenticated(!!accessToken);
-  }, []);
+
 
   const formData = useMemo(
     () => ({
@@ -74,7 +69,7 @@ function EnrollmentCard({
 
   const handleEnroll = async () => {
     // If not authenticated, redirect to login and show toast
-    if (!isAuthenticated) {
+    if (!user) {
       toast.error("Please login first. You need to be logged in to enroll in a course.");
       navigate("/login");
       return;
