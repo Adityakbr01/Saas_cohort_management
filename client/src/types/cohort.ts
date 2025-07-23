@@ -2,6 +2,7 @@ export interface Lesson {
   id: string;
   title: string;
   description: string;
+  shortDescription: string;
   type: "video" | "reading" | "quiz" | "assignment";
   duration: string;
   isCompleted: boolean;
