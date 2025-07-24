@@ -33,7 +33,7 @@ export interface codeExamples {
   code: string;
   description: string;
   instructions?: string;
-  level:string
+  level: string
 }
 
 
@@ -52,9 +52,23 @@ export interface CohortData {
   title: string;
   description: string;
   progress: ProgressData;
-  instructor: { id:string; name: string; avatar?: string ,bio:string};
+  instructor: { id: string; name: string; avatar?: string, bio: string };
   chapters: Chapter[];
-      id: string;
+  id: string;
+  students: number;
+  rating: number;
+  startDate: string;
+  endDate: string;
+  status: string;
+  organization: string;
+  mentor: string;
+  createdBy: string;
+  schedule: string;
+  location: string;
+  completionRate: number;
+  language: string;
+  tags: string[];
+  prerequisites: string[];
 
 }
 
