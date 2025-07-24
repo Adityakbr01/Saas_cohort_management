@@ -1,56 +1,36 @@
 import React from "react";
 
-import { Download, PanelRight, PanelRightClose, Clock, BookOpen } from "lucide-react";
-import { Button } from "../ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import CommentSystem from "./comment-system";
-import CodeExamplesTab from "./code-examples-tab";
 import type { Lesson } from "@/types/cohort";
 import { formatDuration } from "@/utils/formatDuration";
+import { BookOpen, Clock, Code, Download } from "lucide-react";
+import { Button } from "../ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import CodeExamplesTab from "./code-examples-tab";
+import CommentSystem from "./comment-system";
 
 
 interface RightSidebarProps {
-  rightSidebarOpen: boolean;
-  toggleRightSidebar: () => void;
+
   selectedLesson: Lesson | null;
   activeTab: string;
   setActiveTab: (tab: string) => void;
 }
 
 const RightSidebar: React.FC<RightSidebarProps> = ({
-  rightSidebarOpen,
-  toggleRightSidebar,
   selectedLesson,
   activeTab,
   setActiveTab,
 }) => {
 
-  
-  console.log(rightSidebarOpen)
 
   return (
-    <aside
-      className={`fixed md:static inset-y-0 left-0 z-30 transition-all duration-300 overflow-y-auto border-r bg-card
-        ${rightSidebarOpen ? "w-full sm:w-80" : "w-0 md:w-6"} md:border-r md:min-h-screen`}
+    <div
+      className={`flex flex-col h-full scrollbar-hidden overflow-auto`}
     >
-      {rightSidebarOpen && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={toggleRightSidebar}
-          className="absolute -left-10 top-4 z-10 bg-background border shadow-md hover:shadow-lg transition-shadow"
-          title="Hide course content panel"
-        >
-          <PanelRight className="h-4 w-4" />
-        </Button>
-      )}
       <div className="p-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">Course Content</h3>
-          <Button variant="ghost" size="sm" onClick={toggleRightSidebar} title="Hide course content panel">
-            <PanelRightClose className="h-4 w-4" />
-          </Button>
+          <h3 className="font-semibold flex items-center gap-1.5"> <Code /> Lesson Resources</h3>
         </div>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-4">
@@ -135,7 +115,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           </TabsContent>
         </Tabs>
       </div>
-    </aside>
+    </div>
   );
 };
 
