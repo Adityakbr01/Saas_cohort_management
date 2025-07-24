@@ -102,7 +102,7 @@ export default function ChapterNavigation({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 scrollbar-hidden">
       <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-4">Course Content</h3>
 
       {chapters.map((chapter) => {
@@ -111,7 +111,7 @@ export default function ChapterNavigation({
         const fullyCompleted = isChapterFullyCompleted(chapter)
 
         return (
-          <div key={chapter.id} className="border rounded-lg overflow-hidden">
+          <div key={chapter.id} className="border rounded-lg overflow-hidden scrollbar-hidden">
             {/* Chapter Header */}
             <div className="flex items-center">
               <Button
@@ -188,7 +188,7 @@ export default function ChapterNavigation({
 
             {/* Chapter Content */}
             {isExpanded && (
-              <div className="border-t bg-muted/20">
+              <div className="border-t bg-muted/20 scrollbar-hidden">
                 <div className="p-2 space-y-1">
                   {chapter.lessons.map((lesson, index) => (
                     <div key={lesson.id} className="flex items-center">
