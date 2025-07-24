@@ -1,44 +1,49 @@
 import { useGetCohortDetailQuery, useMarkLessonCompleteMutation } from "@/store/features/api/enrolled/enrolled";
 import type { BookmarkedItem, DueDate, Lesson } from "@/types/cohort";
+import { BookOpen, Code, Menu } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import Header from "./Header";
+import { Button } from "../ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
 import LeftSidebar from "./LeftSidebar";
 import MainContent from "./MainContent";
 import RightSidebar from "./RightSidebar";
-import { cn } from "@/lib/utils";
+import { MainDashboardSkeleton } from "./enhanced-skeleton-loader";
+import { NotificationBell } from "./enhanced-ui-components";
 
 interface LearningPortalProps {
   cohortId: string;
 }
 
-function CohortSkeleton() {
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
-      <div className="w-full max-w-3xl animate-pulse space-y-6">
-        <div className="h-10 bg-muted rounded w-1/2 mx-auto" />
-        <div className="h-6 bg-muted rounded w-1/3 mx-auto" />
-        <div className="h-64 bg-muted rounded" />
-      </div>
-    </div>
-  );
-}
-
 const BOOKMARKS_KEY = "lms-bookmarks";
 
 const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
+
+
+  const [isMobile, setIsMobile] = useState(false)
+  const [isTablet, setIsTablet] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [rightPanelOpen, setRightPanelOpen] = useState(false)
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth
+      setIsMobile(width < 768)
+      setIsTablet(width >= 768 && width < 1024)
+    }
+
+    checkScreenSize()
+    window.addEventListener("resize", checkScreenSize)
+
+    return () => {
+      window.removeEventListener("resize", checkScreenSize)
+    }
+  }, [])
+
   // All hooks at the top
   const { data: cohortData, isLoading, isError, error } = useGetCohortDetailQuery(cohortId);
   const [markLessonCompleteMutation] = useMarkLessonCompleteMutation();
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
-const [leftSidebarOpen, setLeftSidebarOpen] = useState(() => {
-  const saved = localStorage.getItem("leftSidebarOpen");
-  return saved === null ? true : saved === "true"; // default: true
-});
 
-const [rightSidebarOpen, setRightSidebarOpen] = useState(() => {
-  const saved = localStorage.getItem("rightSidebarOpen");
-  return saved === "true";
-});
 
   const [activeTab, setActiveTab] = useState("content");
   const [bookmarks, setBookmarks] = useState<{ [id: string]: { type: "lesson" | "chapter" } }>({});
@@ -50,14 +55,6 @@ const [rightSidebarOpen, setRightSidebarOpen] = useState(() => {
       setBookmarks(JSON.parse(stored));
     }
   }, []);
-
-    useEffect(() => {
-  localStorage.setItem("rightSidebarOpen", rightSidebarOpen.toString());
-}, [rightSidebarOpen]);
-
-useEffect(() => {
-  localStorage.setItem("leftSidebarOpen", leftSidebarOpen.toString());
-}, [leftSidebarOpen]);
 
   // Save bookmarks to localStorage whenever they change
   useEffect(() => {
@@ -76,6 +73,9 @@ useEffect(() => {
           ...lesson,
           isBookmarked: !!bookmarks[lesson.id],
         })),
+        students: cohortData.students,
+        rating: cohortData.rating,
+
       })),
     };
   }, [cohortData, bookmarks]);
@@ -89,7 +89,9 @@ useEffect(() => {
     }
   }, [mergedCohortData]);
 
-  if (isLoading) return <CohortSkeleton />;
+  if (isLoading) return <div className="w-full">
+    <MainDashboardSkeleton />
+  </div>;
   if (isError) {
     let errorMessage = "Failed to load cohort";
     if (typeof error === "string") errorMessage = error;
@@ -100,6 +102,8 @@ useEffect(() => {
 
   const handleLessonSelect = (lesson: Lesson) => {
     if (!lesson.isLocked) setSelectedLesson(lesson);
+    setSidebarOpen(false)
+
   };
 
   const markLessonComplete = (lessonId: string, chapterId?: string, timeSpent?: number) => {
@@ -127,13 +131,6 @@ useEffect(() => {
   };
 
 
-const toggleRightSidebar = () => {
-  setRightSidebarOpen(prev => !prev);
-};
-
-const toggleLeftSidebar = () => {
-  setLeftSidebarOpen(prev => !prev);
-};
 
 
   const getUpcomingDueDates = (): DueDate[] => {
@@ -190,72 +187,160 @@ const toggleLeftSidebar = () => {
     return bookmarked;
   };
 
+
+
+
   return (
-  <div className="min-h-screen bg-background w-full flex flex-col">
-    <Header
+    <div className="flex flex-1 overflow-hidden relative">
+      {/* <Header
       cohortData={mergedCohortData}
       leftSidebarOpen={leftSidebarOpen}
       setLeftSidebarOpen={setLeftSidebarOpen}
       rightSidebarOpen={rightSidebarOpen}
       toggleRightSidebar={toggleRightSidebar}
-    />
+    /> */}
 
-    <div className="flex flex-1 overflow-hidden relative">
-      {/* Left Sidebar (Drawer on Mobile) */}
-      <div
-        className={cn(
-          "transition-all duration-300 z-40 bg-card border-r absolute lg:static",
-          leftSidebarOpen
-            ? "w-4/5 sm:w-64 lg:w-80"
-            : "w-0 overflow-hidden",
-          "h-full"
+      {/* Desktop Left Panel */}
+      {!isMobile && (
+        <div className="w-80 border-r bg-card/30 flex md:flex">
+          <LeftSidebar
+            cohortData={mergedCohortData}
+            selectedLesson={selectedLesson}
+            handleLessonSelect={handleLessonSelect}
+            toggleBookmark={toggleBookmark}
+            markChapterComplete={markChapterComplete}
+            getUpcomingDueDates={getUpcomingDueDates}
+            getBookmarkedItems={getBookmarkedItems}
+          />
+        </div>
+      )}
+
+      {/* Mobile Left Panel */}
+      {isMobile && (
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <SheetContent side="left" className="w-80 p-0">
+            <LeftSidebar
+              cohortData={mergedCohortData}
+              selectedLesson={selectedLesson}
+              handleLessonSelect={handleLessonSelect}
+              toggleBookmark={toggleBookmark}
+              markChapterComplete={markChapterComplete}
+              getUpcomingDueDates={getUpcomingDueDates}
+              getBookmarkedItems={getBookmarkedItems}
+            />
+          </SheetContent>
+        </Sheet>
+      )}
+
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col w-full overflow-x-hidden">
+        {/* Mobile Header */}
+        {isMobile && (
+          <div className="flex items-center justify-between p-4 border-b bg-card/50">
+            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+            </Sheet>
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              <span className="font-semibold">EduPlatform</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <NotificationBell count={12} onClick={() => { }} />
+              <Sheet open={rightPanelOpen} onOpenChange={setRightPanelOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Code className="h-4 w-4" />
+                  
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-full sm:w-80 p-0">
+                  <SheetHeader className="p-4 border-b">
+                    <SheetTitle className="flex items-center gap-2">
+                      <Code className="h-5 w-5" />
+                      Resources
+                    </SheetTitle>
+                  </SheetHeader>
+                  <RightSidebar
+                    selectedLesson={selectedLesson}
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                  />
+                </SheetContent>
+              </Sheet>
+            </div>
+          </div>
         )}
-      >
-        <LeftSidebar
-          toggleLeftSidebar={toggleLeftSidebar}
-          leftSidebarOpen={leftSidebarOpen}
-          cohortData={mergedCohortData}
-          selectedLesson={selectedLesson}
-          handleLessonSelect={handleLessonSelect}
-          toggleBookmark={toggleBookmark}
-          markChapterComplete={markChapterComplete}
-          getUpcomingDueDates={getUpcomingDueDates}
-          getBookmarkedItems={getBookmarkedItems}
-        />
-      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
-        <MainContent
-          cohortData={mergedCohortData}
-          selectedLesson={selectedLesson}
-          onMarkLessonComplete={markLessonComplete}
-          toggleBookmark={toggleBookmark}
-        />
-      </div>
-
-      {/* Right Sidebar (Drawer on Mobile) */}
-      <div
-        className={cn(
-          "transition-all duration-300 z-40 bg-card border-l absolute lg:static",
-          rightSidebarOpen
-            ? "w-4/5 sm:w-64 lg:w-96 right-0"
-            : "w-0 overflow-hidden",
-          "h-full"
+        {/* Tablet Header - Show resources button */}
+        {isTablet && (
+          <div className="flex items-center justify-between p-4 border-b bg-card/50 lg:hidden">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              <span className="font-semibold">EduPlatform</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <NotificationBell count={12} onClick={() => { }} />
+              <Sheet open={rightPanelOpen} onOpenChange={setRightPanelOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Code className="h-4 w-4 mr-2" />
+                    Resources
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-full sm:w-80 p-0">
+                  <SheetHeader className="p-4 border-b">
+                    <SheetTitle className="flex items-center gap-2">
+                      <Code className="h-5 w-5" />
+                      Resources
+                    </SheetTitle>
+                  </SheetHeader>
+                  <RightSidebar
+                    selectedLesson={selectedLesson}
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                  />
+                </SheetContent>
+              </Sheet>
+            </div>
+          </div>
         )}
-      >
-        <RightSidebar
-          rightSidebarOpen={rightSidebarOpen}
-          toggleRightSidebar={toggleRightSidebar}
-          selectedLesson={selectedLesson}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-        />
+
+        {/* Enhanced Video Player */}
+
+        {/* Enhanced Lesson Info & Controls */}
+        <div className="">
+          <MainContent
+            cohortData={mergedCohortData}
+            selectedLesson={selectedLesson}
+            onMarkLessonComplete={markLessonComplete}
+            toggleBookmark={toggleBookmark}
+          />
+
+
+        </div>
       </div>
+
+      {/* Desktop Right Panel - Fixed visibility for md and lg screens */}
+      {!isMobile && !isTablet && (
+        <div className="w-96 border-l bg-card/30 flex">
+          <RightSidebar
+            selectedLesson={selectedLesson}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
+        </div>
+      )}
     </div>
-  </div>
-);
 
+
+
+
+  );
 };
 
 export default LearningPortal;
