@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -163,7 +164,14 @@ function Login() {
 
   return (
     <div className="min-h-screen w-full flex flex-col justify-between bg-background">
-      <header className="p-4 flex justify-end">
+      <header className="p-4 flex justify-between items-center">
+        {/* Back to Home Button */}
+        <Button variant="ghost" size="sm" asChild>
+            <Link to="/">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Home
+            </Link>
+          </Button>
         <ModeToggle />
       </header>
       <main className="flex-1 flex items-center justify-center px-4">

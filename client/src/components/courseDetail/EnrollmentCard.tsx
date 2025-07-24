@@ -48,8 +48,6 @@ function EnrollmentCard({
   const [createCheckoutSession, { isLoading }] = useCreate_checkout_session_cohortMutation();
   const navigate = useNavigate();
 
-
-
   const formData = useMemo(
     () => ({
       email: user?.email,
