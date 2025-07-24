@@ -1,20 +1,25 @@
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 import type { Lesson } from "@/types/cohort"
-import { CheckCircle, Clock, FileText, Play } from "lucide-react"
+import { formatDuration } from "@/utils/formatDuration"
+import { Bookmark, CheckCircle2, Clock4, Download, MessageSquare, MoreHorizontal, Settings2, Share2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import MediaPlayer from "../MediaPlayer"
-import { formatDuration } from "@/utils/formatDuration"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip"
 
 interface LessonViewerProps {
   lesson: Lesson
   onComplete: () => void
+  toggleBookmark: (itemId: string, type: "lesson" | "chapter") => void
+  selectedLesson: Lesson
 }
 
-export default function LessonViewer({ lesson, onComplete }: LessonViewerProps) {
+export default function LessonViewer({ lesson, onComplete, toggleBookmark, selectedLesson }: LessonViewerProps) {
   const [isCompleted, setIsCompleted] = useState(lesson?.isCompleted || false)
+
 
   console.log(lesson)
 
@@ -34,33 +39,7 @@ export default function LessonViewer({ lesson, onComplete }: LessonViewerProps) 
   console.log(isCompleted)
 
   return (
-    <Card className="">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-
-{/* Todo You can also disable this but in my case i like it */}
-
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Play className="h-5 w-5 text-blue-500" />
-              {lesson.title}
-            </CardTitle>
-            <CardDescription>{lesson.description}</CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            {isCompleted && (
-              <Badge variant="default" className="bg-green-500">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Completed
-              </Badge>
-            )}
-            <Badge variant="outline">
-              <Clock className="h-3 w-3 mr-1" />
-              {formatDuration(Number(lesson.duration))}
-            </Badge>
-          </div>
-        </div>
-      </CardHeader>
+    <Card className="shadow-none border-none border-b w-full ">
       <CardContent>
         {lesson.type === "video" && lesson.videoUrl ? (
           <div className="mb-6 flex justify-center items-center w-full">
@@ -73,32 +52,110 @@ export default function LessonViewer({ lesson, onComplete }: LessonViewerProps) 
             <span className="text-muted-foreground">No video available for this lesson.</span>
           </div>
         )}
+  {/* Lesson Info */}
+<div className="space-y-3 mb-4">
+  <h2 className="text-2xl font-semibold">{selectedLesson.title}</h2>
 
-        {/* Transcript Section */}
-        {lesson.transcript && (
-          <div className="mt-6">
-            <div className="flex items-center gap-2 mb-3">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <h4 className="font-medium">Transcript</h4>
-            </div>
-            <div className="bg-muted/50 rounded-lg p-4 max-h-40 overflow-y-auto text-sm">
-              <p className="text-muted-foreground whitespace-pre-line">{lesson.transcript}</p>
-            </div>
+  <p className="text-base text-muted-foreground leading-relaxed">
+    {selectedLesson.description || selectedLesson.shortDescription}
+  </p>
+
+  <div className="text-sm text-gray-500 flex items-center gap-1.5">
+    <Clock4 className="w-4 h-4" />
+    <span>{formatDuration(Number(selectedLesson.duration))}</span>
+  </div>
+</div>
+
+        <TooltipProvider>
+          <div className={cn("flex flex-wrap gap-2")}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={onComplete}
+                  className={cn(
+                    "flex-1 md:flex-none transition-all duration-200",
+                    isCompleted ? "bg-green-600 cursor-not-allowed hover:bg-green-700 text-white shadow-lg" : "bg-primary hover:bg-primary/90",
+                  )}
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  {isCompleted ? "Completed" : "Mark Complete"}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{isCompleted ? "Mark as incomplete" : "Mark as complete"}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => toggleBookmark(selectedLesson.id, "lesson")}
+                  className={cn(
+                    "flex-1 md:flex-none bg-transparent transition-all duration-200",
+                    selectedLesson.isBookmarked && "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100",
+                  )}
+                >
+                  <Bookmark className={cn("h-4 w-4 mr-2", selectedLesson.isBookmarked && "fill-current")} />
+                  {selectedLesson.isBookmarked ? "Saved" : "Save"}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{selectedLesson.isBookmarked ? "Remove bookmark" : "Bookmark lesson"}</p>
+              </TooltipContent>
+            </Tooltip>
+
+
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" onClick={() => { }} className="flex-1 md:flex-none bg-transparent">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Download lesson materials</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="md:hidden bg-transparent">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => { }}>
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Discuss
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  Settings
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" onClick={() => { }} className="hidden md:flex bg-transparent">
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Share this lesson</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
-        )}
+        </TooltipProvider>
 
-        {/* Action Buttons */}
-        <div className="mt-6 flex items-center gap-3">
-          {!isCompleted && (
-            <Button
-              onClick={HandleComplate}
-            >
-              Mark as Complete
-            </Button>
-          )}
-          <Button variant="outline">Download Video</Button>
-          <Button variant="outline">View Notes</Button>
-        </div>
       </CardContent>
     </Card>
   )
