@@ -4,6 +4,7 @@ import { CohortEnrollment } from "../models/CohortEnrollment";
 import { Cohort } from "../models/cohort.model";
 import { sendSuccess } from "@/utils/responseUtil";
 import UserCohortProgress from "../models/userCohortProgress";
+import Student from "@/models/student.model";
 
 export const enrollUserToCohort = async (req: Request, res: Response) => {
   try {
@@ -229,6 +230,20 @@ export const getCohortDetail = async (req: Request, res: Response) => {
       instructor,
       progress: progressData,
       chapters,
+      students: cohort.students.length,
+      startDate: cohort.startDate,
+      endDate: cohort.endDate,
+      status: cohort.status,
+      organization: cohort.organization,
+      mentor: cohort.mentor,
+      createdBy: cohort.createdBy,
+      schedule: cohort.schedule,
+      location: cohort.location,
+      completionRate: cohort.completionRate,
+      language: cohort.language,
+      tags: cohort.tags,
+      prerequisites: cohort.prerequisites,
+
     };
      sendSuccess(res, 200, "Cohort detail fetched", cohortData);
      return
