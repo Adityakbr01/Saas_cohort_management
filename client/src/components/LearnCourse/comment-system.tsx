@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { MessageSquare, ThumbsUp, ThumbsDown, Reply, Pin, Send } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { MessageSquare, Pin, Reply, Send, ThumbsDown, ThumbsUp } from "lucide-react"
+import { useState } from "react"
 
 interface Comment {
   id: string
@@ -257,7 +257,7 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
   const regularComments = sortedComments.filter((c) => !c.isPinned)
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 overflow-auto">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
