@@ -15,7 +15,6 @@ const SubscriptionPage = lazy(() => import("@/components/Subscription/Subscripti
 const CoursesPage = lazy(() => import("@/pages/Courses"));
 const CourseDetailPage = lazy(() => import("@/pages/CourseDetailPage"));
 const LearnCourse = lazy(() => import("@/pages/LearnCourse"));
-
 const Login = lazy(() => import("@/pages/Auth/Login"));
 const Register = lazy(() => import("@/pages/Auth/Register2"));
 const ForgotPassword = lazy(() => import("@/pages/Auth/ForgotPassword"));
