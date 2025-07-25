@@ -65,6 +65,7 @@ export const cohortsApi = createApi({
         url: `/${courseId}`,
         method: "GET",
       }),
+       providesTags: ["Cohort"],
     }),
     deleteCohort: builder.mutation({
       query: (cohortId: string) => ({
@@ -73,7 +74,29 @@ export const cohortsApi = createApi({
       }),
       invalidatesTags: ["myOrgCohorts"],
     }),
+    rateCohort: builder.mutation({
+      query: ({ id, rating, review }) => ({
+        url: `/${id}/rate`,
+        method: "POST",
+        body: { rating, review },
+      }),
+      invalidatesTags: ["Cohort"],
+    }),
+    unrateCohort: builder.mutation({
+      query: (id: string) => ({
+        url: `/${id}/rate`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Cohort"],
+    }),
+    getRatingSummary: builder.query({
+      query: (id: string) => ({
+        url: `/${id}/rating-summary`,
+        method: "GET",
+      }),
+      providesTags: ["Cohort"],
+    }),
   }),
 });
 
-export const { useMyOrgCohortsQuery, useCreateCohortMutation,useGetCohortByIdQuery,useGetmentorCohortQuery,useUpdateCohortMutation,useGetCohortsQuery,useGetCohortByCourseIdQuery,useDeleteCohortMutation } = cohortsApi;
+export const { useMyOrgCohortsQuery, useCreateCohortMutation,useGetCohortByIdQuery,useGetmentorCohortQuery,useUpdateCohortMutation,useGetCohortsQuery,useGetCohortByCourseIdQuery,useDeleteCohortMutation,useRateCohortMutation,useUnrateCohortMutation,useGetRatingSummaryQuery } = cohortsApi;

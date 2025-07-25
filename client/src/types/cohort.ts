@@ -23,6 +23,23 @@ export interface Lesson {
     size?: string;
     description?: string;
   }>;
+  lastWatchedTime:number
+  // ⬅️ NEW FIELD: last watched time in seconds
+  progress?: number;         // ✅ Optional for UI progress indication
+  estimatedTime?: string;    // ✅ Optional for reading/assignment
+  level?: string;            // ✅ Optional for difficulty level
+  chapterId?: string;        // ✅ Optional for chapter association
+  createdAt?: string;        // ✅ Optional for creation date
+  score?: number;         // ✅ Optional for quiz score
+  maxScore?: number;      // ✅ Optional for quiz max score
+  feedback?: string;       // ✅ Optional for assignment feedback
+  attachments?: Array<{
+    id: string;
+    title: string;
+    url: string;
+    type: string; // e.g., "pdf", "docx", "image"
+    size?: string; // Optional file size
+  }>;
 }
 
 

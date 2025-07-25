@@ -75,7 +75,20 @@ export const enrolledApi = createApi({
       }),
       invalidatesTags: ["EnrolledCourses"], // <-- Add this line
     }),
+    // ✅ NEW: Update Lesson Duration / Last Watched Time
+    updateLessonDuration: builder.mutation<
+      { success: boolean },
+      { cohortId: string; lessonId: string; timeWatched: number }
+    >({
+      query: ({ cohortId, lessonId, timeWatched }) => ({
+        url: `/progress/lesson/duration`,
+        method: "POST",
+        body: { cohortId, lessonId, timeWatched },
+      }),
+      // Optional: Tag for refetching progress if needed
+      invalidatesTags: ["EnrolledCourses"],
+    }),
   }),
 });
 
-export const { useGetEnrolledCoursesQuery, useGetCohortDetailQuery,useMarkLessonCompleteMutation } = enrolledApi;
+export const { useGetEnrolledCoursesQuery, useGetCohortDetailQuery, useMarkLessonCompleteMutation, useUpdateLessonDurationMutation } = enrolledApi;

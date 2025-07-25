@@ -1,10 +1,16 @@
-// File: CourseTabs.tsx
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Download, Globe, GraduationCap, Play, Star } from "lucide-react";
-import { memo } from "react";
+import { useRateCohortMutation } from "@/store/features/api/cohorts/cohorts.api";
+import { selectCurrentUser } from "@/store/features/slice/UserAuthSlice";
+import { BookOpen, CheckCircleIcon, Download, Globe, GraduationCap, Play, Star } from "lucide-react";
+import { memo, useState } from "react";
+import { useSelector } from "react-redux";
+import { toast } from "sonner";
+import { Badge } from "../ui/badge";
 
 type Course = {
   longDescription: string;
@@ -12,15 +18,62 @@ type Course = {
   instructor: { name: string; bio: string; avatar: string; rating: number; students: number; courses: number };
   rating: number;
   reviewCount: number;
-  reviews: { id: number; name: string; avatar: string; rating: number; date: string; comment: string }[];
+  reviews: { id: number; name: string; avatar: string; rating: number; date: string; comment: string; userId: string, userName: string, updatedAt: string, userRole: string }[];
   ratingsDistribution?: Record<string, number>;
   certificate: boolean;
   downloadable: boolean;
+  id: string;
+
 };
 
 type RatingsPercentage = { rating: number; percentage: string; count: number };
 
 function CourseTabs({ course, totalLessons, totalDuration, ratingsPercentages }: { course: Course; totalLessons: number; totalDuration: string; ratingsPercentages: RatingsPercentage[] }) {
+  const user = useSelector(selectCurrentUser);
+  const [rateCohort] = useRateCohortMutation();
+  const [newRating, setNewRating] = useState(0);
+  const [newReview, setNewReview] = useState("");
+  const [hoveredRating, setHoveredRating] = useState(0);
+
+  // Check if user has already reviewed
+  const hasReviewed = user && course.reviews.some(review => review?.userId?.toString() === user._id.toString());
+
+  console.log("Ratings Percentages:", course?.reviews);
+
+  const handleRateCohort = async () => {
+    try {
+      if (!course.id) {
+        toast.error("Course ID is missing");
+        return;
+      }
+      if (!newRating) {
+        toast.error("Please select a rating");
+        return;
+      }
+      await rateCohort({ id: course.id, rating: newRating, review: newReview }).unwrap();
+      toast.success("Review submitted successfully");
+      setNewRating(0);
+      setNewReview("");
+    } catch (error) {
+      toast.error("Failed to submit review");
+    }
+  };
+
+
+  function getBadgeVariant(userRole: string): "default" | "secondary" | "destructive" | "outline" {
+    switch (userRole) {
+      case "student":
+        return "default"; // standard
+      case "mentor":
+        return "secondary"; // grayish
+      case "organization":
+        return "destructive"; // red-like
+      default:
+        return "outline";
+    }
+  }
+
+
   return (
     <Tabs defaultValue="overview" className="w-full" aria-label="Course information tabs">
       <TabsList className="grid w-full grid-cols-4">
@@ -158,6 +211,41 @@ function CourseTabs({ course, totalLessons, totalDuration, ratingsPercentages }:
 
       <TabsContent value="reviews" id="reviews-panel" className="mt-6">
         <div className="space-y-6">
+          {user && !hasReviewed && (
+            <Card aria-label="Submit a review">
+              <CardHeader>
+                <CardTitle>Write a Review</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2" aria-label="Select rating">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-8 w-8 cursor-pointer transition-colors ${star <= (hoveredRating || newRating)
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-muted-foreground"
+                          }`}
+                        onClick={() => setNewRating(star)}
+                        onMouseEnter={() => setHoveredRating(star)}
+                        onMouseLeave={() => setHoveredRating(0)}
+                      />
+                    ))}
+                  </div>
+                  <Input
+                    placeholder="Write your review here..."
+                    value={newReview}
+                    onChange={(e) => setNewReview(e.target.value)}
+                    className="min-h-[100px] resize-y"
+                    aria-label="Review text input"
+                  />
+                  <Button onClick={handleRateCohort} disabled={!newRating} aria-label="Submit review">
+                    Submit Review
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <Card aria-label="Student reviews summary">
             <CardHeader>
               <CardTitle>Student Reviews</CardTitle>
@@ -191,43 +279,74 @@ function CourseTabs({ course, totalLessons, totalDuration, ratingsPercentages }:
           </Card>
           <div className="space-y-4" aria-label="Individual student reviews">
             {course.reviews.length > 0 ? (
-              course.reviews.map((review) => (
-                <article key={review.id} aria-label={`Review by ${review.name}`}>
-                  <Card>
+              course.reviews.map((review, index) => (
+                <article key={review.id || index} aria-label={`Review by ${review.userName}`}>
+                  <Card key={review.id || index} >
                     <CardContent className="pt-6">
                       <div className="flex items-start gap-4">
+                        {/* Avatar */}
                         <Avatar>
                           <AvatarImage
                             src={review.avatar}
                             srcSet={`${review.avatar}?w=80 80w, ${review.avatar}?w=160 160w`}
                             sizes="(max-width: 640px) 80px, 160px"
-                            alt={`${review.name}'s profile picture`}
+                            alt={`${review.userName}'s profile picture`}
                             loading="lazy"
                             decoding="async"
                           />
                           <AvatarFallback>
-                            {review.name
-                              .split(" ")
+                            {review?.userName
+                              ?.split(" ")
                               .map((n) => n[0])
-                              .join("")}
+                              .join("")
+                              .toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
+
+                        {/* Review Content */}
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-medium">{review.name}</h4>
-                            <div className="flex items-center gap-1" aria-label={`Rating: ${review.rating} stars`}>
-                              {[...Array(review.rating)].map((_, i) => (
-                                <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                              ))}
-                            </div>
-                            <span className="text-sm text-muted-foreground">{review.date}</span>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-medium text-base">{review.userName}</h4>
+
+                            {/* Verified Badge for mentor or organization */}
+                            {(review.userRole === "mentor" || review.userRole === "organization") && (
+                              <CheckCircleIcon className="w-4 h-4 text-green-500" />
+                            )}
                           </div>
-                          <p className="text-muted-foreground">{review.comment}</p>
+
+                          {/* Role Badge + "You" Badge */}
+                          <div className="flex gap-2 mb-2 flex-wrap">
+                            <Badge variant={getBadgeVariant(review.userRole)}>
+                              {review.userRole}
+                            </Badge>
+
+                            {hasReviewed && (
+                              <Badge variant="outline" className="border-green-500 text-green-500">
+                                You
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Rating Stars */}
+                          <div className="flex items-center gap-1 mb-2" aria-label={`Rating: ${review.rating} stars`}>
+                            {[...Array(review.rating)].map((_, i) => (
+                              <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                            ))}
+                          </div>
+
+                          {/* Review Date */}
+                          <span className="text-xs text-muted-foreground block mb-2">
+                            {review.updatedAt ? new Date(review.updatedAt).toLocaleString('en-IN') : ''}
+                          </span>
+
+                          {/* Comment */}
+                          <p className="text-muted-foreground text-sm">{review.comment}</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 </article>
+
               ))
             ) : (
               <p className="text-muted-foreground text-center" aria-label="No reviews available">

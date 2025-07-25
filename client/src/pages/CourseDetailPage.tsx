@@ -53,6 +53,10 @@ type Course = {
     rating: number;
     date: string;
     comment: string;
+    userRole: string;
+    userId: string;
+    updatedAt: string;
+    userName: string;
   }[];
   limitedTimeOffer: {
     isActive: boolean;
@@ -102,6 +106,7 @@ export default function CourseDetailPage() {
     localStorage.setItem("bookmarkedCourses", JSON.stringify(updatedBookmarks));
   };
 
+
   // Memoize course data
   const course: Course = useMemo(() => {
     if (!cohort?.data) return {} as Course;
@@ -139,7 +144,7 @@ export default function CourseDetailPage() {
         duration: (chapter.lessons?.reduce((acc: number, lesson: Lesson) => acc + (lesson.duration || 0), 0) || 0),
         topics: chapter.lessons?.map((lesson: Lesson) => lesson.title || "Untitled Lesson") || [],
       })),
-      reviews: [],
+      reviews: cohort.data.ratings || [],
       limitedTimeOffer: cohort.data.limitedTimeOffer || { isActive: false, startDate: "", endDate: "" },
       ratingsDistribution: cohort.data.ratingsDistribution || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
       downloadable: cohort.data.isDownloadable || false,

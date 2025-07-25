@@ -54,6 +54,7 @@
     "date-fn": "^0.0.2",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.3",
+    "hls.js": "^1.6.7",
     "input-otp": "^1.4.2",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.511.0",

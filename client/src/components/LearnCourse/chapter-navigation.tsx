@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
+import type { Lesson } from "@/types/cohort"
 import { formatDuration } from "@/utils/formatDuration"
 import {
   Award,
@@ -29,19 +30,7 @@ interface Chapter {
   lessons: Lesson[]
 }
 
-interface Lesson {
-  id: string
-  title: string
-  type: "video" | "quiz" | "assignment" | "reading"
-  duration: string
-  isCompleted: boolean
-  isLocked: boolean
-  isBookmarked: boolean
-  description: string
-  score?: number
-  dueDate?: string
-  shortDescription: string
-}
+
 
 interface ChapterNavigationProps {
   chapters: Chapter[];

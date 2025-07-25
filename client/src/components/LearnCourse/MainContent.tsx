@@ -16,14 +16,18 @@ interface MainContentProps {
   selectedLesson: Lesson | null;
   onMarkLessonComplete: (lessonId: string) => void; // renamed
   toggleBookmark: (itemId: string, type: "lesson" | "chapter") => void;
+  cohortId:string|undefined
 }
 
 const MainContent: React.FC<MainContentProps> = ({
   selectedLesson,
   onMarkLessonComplete,
   toggleBookmark,
+  cohortData,
+  cohortId
 }) => {
 
+  console.log(cohortData)
 
   const isQuiz = (lesson: Lesson): lesson is Lesson & { questions: Question[] } => {
     return lesson.type === "quiz" && Array.isArray((lesson as { questions?: unknown }).questions);
@@ -35,7 +39,7 @@ const MainContent: React.FC<MainContentProps> = ({
         <div className="">
           <div className="space-y-6">
             {selectedLesson.type === "video" && (
-              <LessonViewer lesson={selectedLesson} onComplete={() => onMarkLessonComplete(selectedLesson.id)} toggleBookmark={toggleBookmark} selectedLesson={selectedLesson} />
+              <LessonViewer cohortId={cohortId ||""} lesson={selectedLesson} onComplete={() => onMarkLessonComplete(selectedLesson.id)} toggleBookmark={toggleBookmark} selectedLesson={selectedLesson} />
             )}
             {selectedLesson.type === "reading" && (
               <Card>
