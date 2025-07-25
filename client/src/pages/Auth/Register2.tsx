@@ -28,6 +28,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import AES from "crypto-js/aes";
 import encUtf8 from "crypto-js/enc-utf8";
 import OTPForm from "./VerifyOtp";
+import { ArrowLeft } from "lucide-react";
 
 // Unified schema that handles all roles
 const initiateSchema = z.object({
@@ -282,10 +283,16 @@ export default function Register() {
 
   return (
     <div className="min-h-screen w-full flex flex-col justify-between bg-background">
-      <header className="p-4 flex justify-end">
+      <header className="p-4 flex justify-between items-center">
+        {/* Back to Home Button */}
+        <Button variant="ghost" size="sm" asChild>
+            <Link to="/">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Home
+            </Link>
+          </Button>
         <ModeToggle />
       </header>
-
       <main className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-lg space-y-8 bg-card p-8 rounded-xl shadow-2xl border">
           <h2 className="text-center text-3xl font-bold text-foreground">Create an account</h2>
@@ -424,7 +431,7 @@ export default function Register() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone {initiateForm.watch("role") === "mentor" ? "(Required)" : "(Optional)"}</FormLabel>
+                      <FormLabel>Phone {initiateForm.watch("role") === "mentor" ? "(Required)" : "(Required)"}</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g., +1234567890" {...field} value={field.value || ""} />
                       </FormControl>
