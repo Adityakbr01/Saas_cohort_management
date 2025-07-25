@@ -11,6 +11,7 @@ const userCohortProgressSchema = new mongoose.Schema(
         lessonId: { type: mongoose.Schema.Types.ObjectId, ref: "Lesson" },
         completedAt: { type: Date, default: Date.now },
         timeSpent: { type: Number, default: 0 }, // seconds
+        lastWatchedTime: { type: Number, default: 0 }, // ⬅️ NEW FIELD: save last watched second
       },
     ],
     totalLessons: { type: Number, default: 0 }, // Set at enrollment

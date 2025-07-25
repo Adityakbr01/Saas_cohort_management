@@ -5,6 +5,7 @@ import { Cohort } from "../models/cohort.model";
 import { sendSuccess } from "@/utils/responseUtil";
 import UserCohortProgress from "../models/userCohortProgress";
 import Student from "@/models/student.model";
+import userCohortProgress from "../models/userCohortProgress";
 
 export const enrollUserToCohort = async (req: Request, res: Response) => {
   try {
@@ -12,8 +13,8 @@ export const enrollUserToCohort = async (req: Request, res: Response) => {
 
     const existing = await CohortEnrollment.findOne({ user: userId, cohort: cohortId });
     if (existing) {
-       res.status(400).json({ message: "User already enrolled in this cohort." });
-       return
+      res.status(400).json({ message: "User already enrolled in this cohort." });
+      return
     }
 
     const enrollment = await CohortEnrollment.create({
@@ -21,8 +22,8 @@ export const enrollUserToCohort = async (req: Request, res: Response) => {
       cohort: cohortId,
     });
 
-  
-    sendSuccess(res, 200,"User enrolled successfully", enrollment);
+
+    sendSuccess(res, 200, "User enrolled successfully", enrollment);
   } catch (error) {
     res.status(500).json({ message: "Enrollment failed", error });
   }
@@ -34,8 +35,8 @@ export const getUserEnrolledCourses = async (req: Request, res: Response) => {
     // Use req.user.id from auth middleware
     const userId = req.user?.id || req.query.userId || req.body.userId;
     if (!userId) {
-       res.status(400).json({ message: "Missing userId" });
-       return
+      res.status(400).json({ message: "Missing userId" });
+      return
     }
     const enrollments = await CohortEnrollment.find({ user: userId })
       .populate({
@@ -77,8 +78,8 @@ export const getCohortDetail = async (req: Request, res: Response) => {
     const { id } = req.params;
     if (!req.user || !req.user.id) {
       console.error("[getCohortDetail] req.user is missing. Auth middleware may have failed.");
-       res.status(401).json({ message: "Unauthorized: user not found in request" });
-       return
+      res.status(401).json({ message: "Unauthorized: user not found in request" });
+      return
     }
     const userId = req.user.id;
     // Deep populate: mentor, chapters, lessons, and for each lesson: codeExamples and resources
@@ -98,8 +99,8 @@ export const getCohortDetail = async (req: Request, res: Response) => {
         },
       });
     if (!cohort) {
-       res.status(404).json({ message: "Cohort not found" });
-       return
+      res.status(404).json({ message: "Cohort not found" });
+      return
     }
 
     // Fetch user progress for this cohort
@@ -138,27 +139,27 @@ export const getCohortDetail = async (req: Request, res: Response) => {
     }
     const progressData = userProgress
       ? {
-          overall: totalLessons > 0 ? (userProgress.completedLessons.length / totalLessons) : 0,
-          byType: byTypePercent,
-          completedLessons: userProgress.completedLessons.length,
-          totalLessons,
-          timeSpent: userProgress.timeSpentSeconds ? `${Math.floor(userProgress.timeSpentSeconds / 3600)}h ${Math.floor((userProgress.timeSpentSeconds % 3600) / 60)}m` : "0h 0m",
-          streakDays: userProgress.streakDays,
-          achievements: userProgress.achievements,
-          xp: userProgress.xp,
-          streak: userProgress.streak,
-        }
+        overall: totalLessons > 0 ? (userProgress.completedLessons.length / totalLessons) : 0,
+        byType: byTypePercent,
+        completedLessons: userProgress.completedLessons.length,
+        totalLessons,
+        timeSpent: userProgress.timeSpentSeconds ? `${Math.floor(userProgress.timeSpentSeconds / 3600)}h ${Math.floor((userProgress.timeSpentSeconds % 3600) / 60)}m` : "0h 0m",
+        streakDays: userProgress.streakDays,
+        achievements: userProgress.achievements,
+        xp: userProgress.xp,
+        streak: userProgress.streak,
+      }
       : {
-          overall: 0,
-          byType: byTypePercent,
-          completedLessons: 0,
-          totalLessons,
-          timeSpent: "0h 0m",
-          streakDays: [],
-          achievements: [],
-          xp: 0,
-          streak: "",
-        };
+        overall: 0,
+        byType: byTypePercent,
+        completedLessons: 0,
+        totalLessons,
+        timeSpent: "0h 0m",
+        streakDays: [],
+        achievements: [],
+        xp: 0,
+        streak: "",
+      };
 
     // Type guard for mentor
     let instructor = { id: "", name: "", avatar: "", bio: "" };
@@ -245,14 +246,170 @@ export const getCohortDetail = async (req: Request, res: Response) => {
       prerequisites: cohort.prerequisites,
 
     };
-     sendSuccess(res, 200, "Cohort detail fetched", cohortData);
-     return
+    sendSuccess(res, 200, "Cohort detail fetched", cohortData);
+    return
   } catch (error) {
     const err = error as Error;
     console.error("[getCohortDetail] Error:", err.stack || err);
-     res.status(500).json({ message: "Failed to fetch cohort detail", error: err.message });
-     return
+    res.status(500).json({ message: "Failed to fetch cohort detail", error: err.message });
+    return
 
 
   }
+};
+
+export const LessonDurationUpdate = async (req: Request, res: Response) => {
+  const { lessonId, timeWatched } = req.body;
+  const userId = req.user.id; // From auth middleware
+  const cohortId = req.body.cohortId; // Should come from frontend
+
+  const progress = await UserCohortProgress.findOne({ user: userId, cohort: cohortId });
+
+  if (!progress) {
+    res.status(404).json({ error: "Progress not found" });
+    return
+  }
+
+  const lessonProgress = progress.completedLessons.find(
+    (item) => item?.lessonId?.toString() === lessonId
+  );
+
+  if (lessonProgress) {
+    lessonProgress.lastWatchedTime = timeWatched;
+    lessonProgress.timeSpent += 10; // Optional: increment total time spent
+  } else {
+    progress.completedLessons.push({
+      lessonId,
+      lastWatchedTime: timeWatched,
+      timeSpent: 10,
+    });
+  }
+
+  progress.lastUpdated = new Date();
+  await progress.save();
+
+  res.json({ success: true });
+}
+
+export const getProgress = async (req: Request, res: Response) => {
+  const { lessonId, cohortId } = req.query;
+
+  if (!lessonId || !cohortId) {
+    res.status(400).json({ message: 'Missing lessonId or cohortId' });
+    return
+  }
+
+  try {
+    const userId = req.user.id;
+
+    const progress = await UserCohortProgress.findOne({
+      user: userId,
+      cohort: cohortId,
+    });
+
+    if (!progress) {
+      res.json({ lastWatchedTime: 0 });
+      return
+    }
+
+    const lessonProgress = progress.completedLessons.find(
+      (l) => l?.lessonId?.toString() === lessonId
+    );
+
+    const lastWatchedTime = lessonProgress?.lastWatchedTime || 0;
+
+    res.json({ lastWatchedTime });
+  } catch (error) {
+    console.error('Error fetching progress:', error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+export const saveLessonProgress = async (req: Request, res: Response) => {
+  const { lessonId, time, cohortId } = req.body;
+
+  console.log("Saving progress for lesson:", lessonId, "time:", time, "cohortId:", cohortId);
+
+  if (!lessonId || time == null || !cohortId) {
+    res.status(400).json({ message: "Missing lessonId, time, or cohortId" });
+    return
+  }
+
+  try {
+    const userId = req.user.id;
+
+    let progress = await userCohortProgress.findOne({ user: userId, cohort: cohortId });
+
+    if (!progress) {
+      // If progress not exists, create new document
+      progress = new userCohortProgress({
+        user: userId,
+        cohort: cohortId,
+        completedLessons: [{
+          lessonId,
+          lastWatchedTime: time,
+          timeSpent: time,
+          completedAt: new Date(),
+        }],
+      });
+    } else {
+      // Update existing progress
+      const lessonProgress = progress.completedLessons.find((l) => l?.lessonId?.toString() === lessonId);
+
+      if (lessonProgress) {
+        lessonProgress.lastWatchedTime = time;
+
+        // Optional: update timeSpent if needed
+        lessonProgress.timeSpent = Math.max(lessonProgress.timeSpent || 0, time);
+        lessonProgress.completedAt = new Date();
+      } else {
+        // New lesson entry
+        progress.completedLessons.push({
+          lessonId,
+          lastWatchedTime: time,
+          timeSpent: time,
+          completedAt: new Date(),
+        });
+      }
+
+      progress.lastUpdated = new Date();
+    }
+
+    await progress.save();
+    res.json({ message: "Progress saved successfully" });
+
+  } catch (error) {
+    console.error("Error saving progress", error);
+    res.status(500).json({ message: "Server error saving progress", error });
+  }
+}
+
+export const getLessonProgress = async (req: Request, res: Response) => {
+  const { lessonId, cohortId } = req.query;
+  const userId = req.user.id; // From auth middleware
+  if (!lessonId || !cohortId) {
+    res.status(400).json({ message: "Missing lessonId or cohortId" });
+    return;
+  }
+  if (typeof lessonId !== "string" || typeof cohortId !== "string") {
+    res.status(400).json({ message: "Invalid lessonId or cohortId format" });
+    return;
+  }
+  const progress = await UserCohortProgress.findOne({ user: userId, cohort: cohortId });
+  if (!progress) {
+    res.status(404).json({ error: "Progress not found" }); return;
+  }
+  if (!progress.completedLessons || !Array.isArray(progress.completedLessons)) {
+    res.status(404).json({ error: "No lessons found for this user in this cohort" }); return;
+  }
+  const lessonProgress = progress.completedLessons.find(
+    (item) => item?.lessonId?.toString() === lessonId
+  );
+
+  if (!lessonProgress) {
+    res.status(404).json({ error: "Lesson progress not found" }); return;
+  }
+
+  res.json({ lastWatchedTime: lessonProgress.lastWatchedTime || 8 });
+
 };

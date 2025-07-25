@@ -56,7 +56,6 @@ router.delete(
 router.post(
   "/:id/rate",
   protect,
-  restrictTo(Role.student,),
   CohortController.rateCohort
 );
 
@@ -64,8 +63,7 @@ router.post(
 router.delete(
   "/:id/rate",
   protect,
-  restrictTo(Role.student),
-  CohortController.unrateCohort // ✅ Added unrateCohort function to handle unrating a cohort.
+  CohortController.unrateCohort
 );
 
 

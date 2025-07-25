@@ -3,11 +3,12 @@ import { Chapter } from "@/models/chapter.model";
 import { Cohort, ICohort } from "@/models/cohort.model";
 import { CohortRating } from "@/models/cohortRating.model";
 import { Lesson } from "@/models/lesson.model";
-import Mentor from "@/models/mentor.model";
-import Organization from "@/models/organization.model";
+import Mentor, { IMentor } from "@/models/mentor.model";
+import Organization, { IOrganization } from "@/models/organization.model";
 import { ApiError } from "@/utils/apiError";
 import { uploadImage, uploadVideo } from "./cloudinaryService";
 import mongoose from "mongoose";
+import Student, { IStudent } from "@/models/student.model";
 
 export const CohortService = {
   async createCohort({
@@ -143,9 +144,9 @@ export const CohortService = {
 
 
     let thumbnailUrl: string | undefined;
-        let demoVideoUrl: string | undefined;
-    
-        if (thumbnail && thumbnail.buffer) {
+    let demoVideoUrl: string | undefined;
+
+    if (thumbnail && thumbnail.buffer) {
       try {
         const thumbnailUploadRes = await uploadImage(thumbnail);
         thumbnailUrl = thumbnailUploadRes?.secure_url;
@@ -154,8 +155,8 @@ export const CohortService = {
         throw new ApiError(400, "Thumbnail upload failed");
       }
     }
-    
-        if (demoVideo && demoVideo.buffer) {
+
+    if (demoVideo && demoVideo.buffer) {
       try {
         const demoVideoUploadRes = await uploadVideo(demoVideo);
         demoVideoUrl = demoVideoUploadRes?.secure_url;
@@ -164,21 +165,21 @@ export const CohortService = {
         throw new ApiError(400, "Demo video upload failed");
       }
     }
-        console.log("Thumbnail buffer size:", thumbnail?.buffer?.length);
+    console.log("Thumbnail buffer size:", thumbnail?.buffer?.length);
     console.log("Demo video buffer size:", demoVideo?.buffer?.length);
-    
-        if (!thumbnailUrl) {
-          throw new ApiError(400, "Thumbnail upload failedssss");
-        }
-    
-        if (!demoVideoUrl) {
-          throw new ApiError(400, "Demo video upload failed");
-        }
-    
 
-        // 💸 Apply discount logic before update
+    if (!thumbnailUrl) {
+      throw new ApiError(400, "Thumbnail upload failedssss");
+    }
+
+    if (!demoVideoUrl) {
+      throw new ApiError(400, "Demo video upload failed");
+    }
+
+
+    // 💸 Apply discount logic before update
     if (originalPrice && discount !== undefined) {
-      const discountAmount = (originalPrice *discount) / 100;
+      const discountAmount = (originalPrice * discount) / 100;
       price = Math.round(originalPrice - discountAmount);
       discount = Math.round(discount);
     }
@@ -394,7 +395,17 @@ export const CohortService = {
         },
       },
 
-      // Add rating fields
+      // Lookup Users for ratings
+      {
+        $lookup: {
+          from: "users",
+          localField: "ratings.userId",
+          foreignField: "_id",
+          as: "userDetails",
+        },
+      },
+
+      // Add rating stats + merge user into ratings
       {
         $addFields: {
           totalRatings: { $size: "$ratings" },
@@ -429,10 +440,54 @@ export const CohortService = {
               in: { $arrayToObject: "$$dist" },
             },
           },
+          ratings: {
+            $map: {
+              input: "$ratings",
+              as: "r",
+              in: {
+                $mergeObjects: [
+                  "$$r",
+                  {
+                    user: {
+                      $let: {
+                        vars: {
+                          matchedUser: {
+                            $arrayElemAt: [
+                              {
+                                $filter: {
+                                  input: "$userDetails",
+                                  as: "u",
+                                  cond: {
+                                    $eq: [
+                                      { $toString: "$$u._id" },
+                                      { $toString: "$$r.userId" }
+                                    ]
+                                  }
+                                }
+                              },
+                              0
+                            ]
+                          }
+                        },
+                        in: {
+                          _id: "$$matchedUser._id",
+                          name: "$$matchedUser.name",
+                          email: "$$matchedUser.email",
+                          profileImageUrl: "$$matchedUser.profileImageUrl"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+
         },
       },
 
-      { $project: { ratings: 0 } },
+      // Remove temporary userDetails array
+      { $project: { userDetails: 0 } },
 
       // Lookup mentor
       {
@@ -456,7 +511,7 @@ export const CohortService = {
       },
       { $unwind: { path: "$organization", preserveNullAndEmptyArrays: true } },
 
-      // Lookup chapters (with lessons inside)
+      // Lookup chapters with lessons
       {
         $lookup: {
           from: "chapters",
@@ -478,9 +533,7 @@ export const CohortService = {
                 localField: "lessons",
                 foreignField: "_id",
                 as: "lessons",
-                pipeline: [
-                  { $match: { isDeleted: false } },
-                ],
+                pipeline: [{ $match: { isDeleted: false } }],
               },
             },
           ],
@@ -488,6 +541,7 @@ export const CohortService = {
         },
       },
     ]);
+
     if (!cohort) throw new ApiError(404, "Cohort not found");
     return cohort;
   },
@@ -524,7 +578,7 @@ export const CohortService = {
       }
     }
 
-    
+
 
     console.log(payload)
 
@@ -572,9 +626,32 @@ export const CohortService = {
       throw new ApiError(500, "Failed to delete cohort and its chapters");
     }
   },
-  async rateCohort(cohortId: string, userId: string, rating: number) {
+  async rateCohort(cohortId: string, userId: string, rating: number, review: string, userRole: string) {
+
+    console.log("Rating cohort:", cohortId, "by user:", userId, "with rating:", rating, "and review:", review);
+
     const cohort = await Cohort.findById(cohortId);
     if (!cohort) throw new ApiError(404, "Cohort not found");
+
+    if (rating < 1 || rating > 5) {
+      throw new ApiError(400, "Rating must be between 1 and 5");
+    }
+
+    let user;
+
+    switch (userRole) {
+      case "student":
+        user = await Student.findById(userId)
+        break;
+      case "mentor":
+        user = await Mentor.findById(userId)
+        break;
+      case "organization":
+        user = await Organization.findById(userId)
+        break;
+      default:
+        break;
+    }
 
     const existingRating = await CohortRating.findOne({
       cohortId,
@@ -583,30 +660,46 @@ export const CohortService = {
 
     if (existingRating) {
       existingRating.rating = rating;
+      existingRating.review = review; // ✅ Update review if exists
       await existingRating.save();
       return existingRating;
     }
+
+    let userName = "";
+    let userAvatar = "";
+
+    if (userRole === "student" || userRole === "mentor") {
+      userName = (user as IStudent | IMentor)?.name || "";
+      userAvatar = (user as IStudent | IMentor)?.profileImageUrl || "";
+    } else if (userRole === "organization") {
+      userName = (user as IOrganization)?.name || "";
+      userAvatar = (user as IOrganization)?.logo || "";
+    }
+
 
     const newRating = new CohortRating({
       cohortId,
       userId,
       rating,
+      review,
+      userName,
+      userAvatar,
+      userRole: userRole, // ✅ Store user role
     });
 
-  if (!cohort.ratingSummary) {
-  cohort.ratingSummary = [];
-}
+    if (!cohort.ratingSummary) {
+      cohort.ratingSummary = [];
+    }
 
-cohort.ratingSummary.push(newRating._id);
+    cohort.ratingSummary.push(newRating._id);
 
-// ✅ Use old count * old rating logic
-const oldTotal = cohort.rating * (cohort.ratingSummary.length - 1);
-const newTotal = oldTotal + rating;
-const newAvg = Math.round(newTotal / cohort.ratingSummary.length);
+    // ✅ Use old count * old rating logic
+    const oldTotal = cohort.rating * (cohort.ratingSummary.length - 1);
+    const newTotal = oldTotal + rating;
+    const newAvg = Math.round(newTotal / cohort.ratingSummary.length);
+    cohort.rating = newAvg;
 
-cohort.rating = newAvg;
-
-await cohort.save();
+    await cohort.save();
 
 
     await newRating.save();

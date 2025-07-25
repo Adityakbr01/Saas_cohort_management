@@ -121,13 +121,18 @@ export const CohortController = {
   rateCohort: wrapAsync(async (req, res) => {
     const cohortId = req.params.id;
     const userId = req.user.id;
-    const rating = req.body.rating; // ✅ recived rating from body like { rating: 5 }
+    const userRole = req.user.role;
+    const { rating, review } = req.body; // ✅ recived rating from body like { rating: 5 } and review from body like { review: "this is a review" } or { review: "" } if no review is provided.
     if (!rating) throw new ApiError(400, "Rating is required");
     if (rating < 1 || rating > 5) throw new ApiError(400, "Rating must be between 1 and 5");
     if (typeof rating !== "number") throw new ApiError(400, "Rating must be a number");
     if (rating % 1 !== 0) throw new ApiError(400, "Rating must be an integer");
 
-    const rated = await CohortService.rateCohort(cohortId, userId, rating); // ✅ Call the rateCohort function with the cohortId, userId, and rating.
+    if (!review) {
+      throw new ApiError(400, "Review is required");
+    }
+
+    const rated = await CohortService.rateCohort(cohortId, userId, rating, review, userRole); // ✅ Call the rateCohort function with the cohortId, userId, and rating.
 
     sendSuccess(res, 200, "Cohort rated", rated);
   }),
@@ -142,7 +147,6 @@ export const CohortController = {
 
     sendSuccess(res, 200, "Cohort unrated", unrated);
   }),
-
   getRatingSummary: wrapAsync(async (req, res) => {
     const cohortId = req.params.id;
     const userId = req.user.id;
