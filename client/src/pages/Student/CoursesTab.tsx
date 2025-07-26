@@ -81,4 +81,4 @@ export function CoursesTab({ userData }: { userData: UserData }) {
       </div>
     </TabsContent>
   )
-}
+}   
