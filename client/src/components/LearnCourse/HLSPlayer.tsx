@@ -43,10 +43,11 @@ export default function HLSPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [isCompleted, setIsCompleted] = useState(false); // Added to prevent duplicate onMarkComplete calls
   const controlTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  console.log(lastWatched);
 
-  console.log(lastWatched)
   // Secure HLS video loading and resume last watched time
   useEffect(() => {
     const video = videoRef.current;
@@ -87,7 +88,6 @@ export default function HLSPlayer({
 
         setLastWatched(data.lastWatchedTime);
         setCurrentTime(data.lastWatchedTime);
-        // toast.success(`Resumed from ${formatTime(data.lastWatchedTime)}`); // Optional: Show a toast with the last watched time
         return data.lastWatchedTime;
       } catch (err) {
         console.error('Progress fetch failed:', err);
@@ -192,16 +192,26 @@ export default function HLSPlayer({
       saveProgress(Math.floor(video.currentTime));
     };
 
+    const handleVideoEnded = () => {
+      console.debug('Video ended, saving progress and marking complete:', video.currentTime);
+      saveProgress(Math.floor(video.currentTime));
+      if (onMarkComplete && !isCompleted) {
+        console.debug('Calling onMarkComplete');
+        onMarkComplete();
+        setIsCompleted(true);
+      }
+    };
+
     video.addEventListener('pause', handleSignificantEvent);
     video.addEventListener('seeked', handleSignificantEvent);
-    video.addEventListener('ended', handleSignificantEvent);
+    video.addEventListener('ended', handleVideoEnded);
 
     return () => {
       video.removeEventListener('pause', handleSignificantEvent);
       video.removeEventListener('seeked', handleSignificantEvent);
-      video.removeEventListener('ended', handleSignificantEvent);
+      video.removeEventListener('ended', handleVideoEnded);
     };
-  }, [saveProgress]);
+  }, [saveProgress, onMarkComplete, isCompleted]);
 
   // Periodic progress saving
   useEffect(() => {
@@ -216,9 +226,10 @@ export default function HLSPlayer({
         console.debug('Progress update:', { currentTime, percentWatched });
 
         if (onProgressUpdate) onProgressUpdate(percentWatched);
-        if (percentWatched >= 95 && onMarkComplete) {
+        if (percentWatched >= 95 && onMarkComplete && !isCompleted) {
           console.debug('Marking complete at 95%');
           onMarkComplete();
+          setIsCompleted(true);
         }
 
         // Debounce API call
@@ -230,13 +241,13 @@ export default function HLSPlayer({
       } else {
         console.debug('Progress save skipped:', { isPlaying, videoExists: !!video, videoDuration });
       }
-    }, 5000); // Changed to 5 seconds for better balance
+    }, 5000);
 
     return () => {
       clearInterval(interval);
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isPlaying, videoDuration, onProgressUpdate, onMarkComplete, saveProgress]);
+  }, [isPlaying, videoDuration, onProgressUpdate, onMarkComplete, saveProgress, isCompleted]);
 
   // Auto pause on tab switch
   useEffect(() => {

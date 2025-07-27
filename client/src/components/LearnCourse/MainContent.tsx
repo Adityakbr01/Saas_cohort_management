@@ -23,11 +23,9 @@ const MainContent: React.FC<MainContentProps> = ({
   selectedLesson,
   onMarkLessonComplete,
   toggleBookmark,
-  cohortData,
+  // cohortData,
   cohortId
 }) => {
-
-  console.log(cohortData)
 
   const isQuiz = (lesson: Lesson): lesson is Lesson & { questions: Question[] } => {
     return lesson.type === "quiz" && Array.isArray((lesson as { questions?: unknown }).questions);

@@ -60,18 +60,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">My Notes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <textarea
-                  className="w-full h-32 p-3 text-sm border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="Add your notes here..."
-                />
-                <Button size="sm" className="mt-2">Save Notes</Button>
-              </CardContent>
-            </Card>
           </TabsContent>
           <TabsContent value="code" className="space-y-4">
             {selectedLesson && <CodeExamplesTab lesson={selectedLesson} />}
