@@ -10,6 +10,7 @@ import ChapterNavigation from "./chapter-navigation";
 import DueDatesPanel from "./due-dates-panel";
 import ProgressTracker from "./progress-tracker";
 
+
 interface LeftSidebarProps {
     cohortData: CohortData;
     selectedLesson: Lesson | null;
@@ -25,7 +26,6 @@ interface LeftSidebarProps {
     }>;
     getBookmarkedItems: () => BookmarkedItem[];
 }
-
 
 
 const LeftSidebar: React.FC<LeftSidebarProps> = ({
@@ -136,23 +136,35 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </div>
 
           <div className="grid grid-cols-3 gap-1 sm:gap-2">
-            <div className="text-center p-1 sm:p-2 bg-green-50 rounded-lg border border-green-100 hover:bg-green-100 transition-colors">
+            <div className="text-center p-1 sm:p-2 rounded-lg
+    bg-green-100 dark:bg-green-900/40
+    border border-green-200 dark:border-green-800
+    hover:bg-green-200 dark:hover:bg-green-900/60
+    transition-colors">
               <div className="flex items-center justify-center gap-1 mb-1">
-                <CheckCircle className="h-3 sm:h-4 w-3 sm:w-4 text-green-500" />
+                <CheckCircle className="h-3 sm:h-4 w-3 sm:w-4 text-green-600 dark:text-green-300" />
                 <span className="font-bold text-base sm:text-lg">{userProgress.chapterProgress.completedChapters}</span>
               </div>
               <div className="text-xs text-muted-foreground">Chapters</div>
             </div>
-            <div className="text-center p-1 sm:p-2 bg-blue-50 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors">
+            <div className="text-center p-1 sm:p-2 rounded-lg
+    bg-blue-100 dark:bg-blue-900/40
+    border border-blue-200 dark:border-blue-800
+    hover:bg-blue-200 dark:hover:bg-blue-900/60
+    transition-colors">
               <div className="flex items-center justify-center gap-1 mb-1">
-                <BookMarked className="h-3 sm:h-4 w-3 sm:w-4 text-blue-500" />
+                <BookMarked className="h-3 sm:h-4 w-3 sm:w-4 text-blue-600 dark:text-blue-300" />
                 <span className="font-bold text-base sm:text-lg">{userProgress.lessonProgress.completedLessons}</span>
               </div>
               <div className="text-xs text-muted-foreground">Lessons</div>
             </div>
-            <div className="text-center p-1 sm:p-2 bg-orange-50 rounded-lg border border-orange-100 hover:bg-orange-100 transition-colors">
+            <div className="text-center p-1 sm:p-2 rounded-lg
+    bg-orange-100 dark:bg-orange-900/40
+    border border-orange-200 dark:border-orange-800
+    hover:bg-orange-200 dark:hover:bg-orange-900/60
+    transition-colors">
               <div className="flex items-center justify-center gap-1 mb-1">
-                <Flame className="h-3 sm:h-4 w-3 sm:w-4 text-orange-500" />
+                <Flame className="h-3 sm:h-4 w-3 sm:w-4 text-orange-600 dark:text-orange-300" />
                 <span className="font-bold text-base sm:text-lg">{userProgress.currentStreak}</span>
               </div>
               <div className="text-xs text-muted-foreground">Streak</div>
