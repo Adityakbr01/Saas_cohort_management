@@ -248,7 +248,7 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
             </Sheet>
             <div className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-primary" />
-              <span className="font-semibold">EduPlatform</span>
+              <span className="font-semibold">EduLaunch</span>
             </div>
             <div className="flex items-center gap-2">
               <NotificationBell count={12} onClick={() => { }} />
@@ -282,7 +282,7 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
           <div className="flex items-center justify-between p-4 border-b bg-card/50 lg:hidden">
             <div className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-primary" />
-              <span className="font-semibold">EduPlatform</span>
+              <span className="font-semibold">EduLaunch</span>
             </div>
             <div className="flex items-center gap-2">
               <NotificationBell count={12} onClick={() => { }} />
