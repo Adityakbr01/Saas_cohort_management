@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Loader2, MessageSquare, Pencil, Pin, Reply, Send, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
 import { Role } from "@/config/constant";
 import { cn } from "@/lib/utils";
@@ -348,7 +349,7 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
   }
 
   return (
-    <div className="space-y-4 max-w-full mx-auto px-4 sm:px-6 lg:px-8 overflow-auto">
+    <div className="space-y-4 max-w-full mx-auto overflow-auto">
       <Card className="w-full">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -358,15 +359,19 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
             </CardTitle>
             <CardDescription>Join the conversation about this lesson</CardDescription>
           </div>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as "newest" | "oldest" | "popular")}
-            className="text-sm border rounded px-2 py-1 w-full sm:w-auto"
-          >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="popular">Most Popular</option>
-          </select>
+       <Select
+  value={sortBy}
+  onValueChange={(value) => setSortBy(value as "newest" | "oldest" | "popular")}
+>
+  <SelectTrigger className="w-full sm:w-[200px] text-sm">
+    <SelectValue placeholder="Sort By" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="newest">Newest First</SelectItem>
+    <SelectItem value="oldest">Oldest First</SelectItem>
+    <SelectItem value="popular">Most Popular</SelectItem>
+  </SelectContent>
+</Select>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* New Comment Form */}

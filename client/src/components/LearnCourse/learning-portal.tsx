@@ -61,8 +61,6 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
     localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
   }, [bookmarks]);
 
-  console.log(cohortData)
-
   // Merge bookmarks into cohortData
   const mergedCohortData = React.useMemo(() => {
     if (!cohortData) return cohortData;
@@ -76,7 +74,7 @@ const LearningPortal: React.FC<LearningPortalProps> = ({ cohortId }) => {
           isBookmarked: !!bookmarks[lesson.id],
         })),
         students: cohortData.students,
-        rating: cohortData.rating,
+        ratingStats: cohortData.ratingStats,
       })),
     };
   }, [cohortData, bookmarks]);

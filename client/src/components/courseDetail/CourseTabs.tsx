@@ -253,7 +253,7 @@ function CourseTabs({ course, totalLessons, totalDuration, ratingsPercentages }:
             <CardContent>
               <div className="flex items-center gap-4 mb-6">
                 <div className="text-center" aria-label={`Course rating: ${course.rating}`}>
-                  <div className="text-4xl font-bold">{course.rating}</div>
+                  <div className="text-4xl font-bold">{course.rating.toFixed(1)}</div>
                   <div className="flex items-center justify-center gap-1 mt-1">
                     {[...Array(5)].map((_, i) => (
                       <Star

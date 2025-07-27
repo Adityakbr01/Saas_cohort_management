@@ -86,6 +86,18 @@ export interface CohortData {
   language: string;
   tags: string[];
   prerequisites: string[];
+  thumbnail: string;
+  ratingSummary?: Array<{
+    userId: string;
+    rating: number;
+    comment?: string;
+  }>;
+  ratingStats?: {
+   ratings:[],
+    averageRating: number;
+    totalRatings: number;
+    
+  };
 
 }
 

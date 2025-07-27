@@ -1,7 +1,3 @@
-import { Backend_URL } from '@/config/constant';
-import Hls from 'hls.js';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,7 +7,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { PauseCircle, PlayCircle, Rewind, FastForward, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
+import { Backend_URL } from '@/config/constant';
+import Hls from 'hls.js';
+import { FastForward, Maximize2, Minimize2, PauseCircle, PlayCircle, Rewind, Volume2, VolumeX } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 export default function HLSPlayer({
   lessonId,
@@ -43,7 +43,7 @@ export default function HLSPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
-  const [isCompleted, setIsCompleted] = useState(false); // Added to prevent duplicate onMarkComplete calls
+  const [isCompleted, setIsCompleted] = useState(false);
   const controlTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   console.log(lastWatched);
@@ -289,9 +289,41 @@ export default function HLSPlayer({
     };
   }, [saveProgress]);
 
+
+    const toggleFullscreen = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    if (!isFullscreen) {
+      container.requestFullscreen().catch(err => console.error('Fullscreen error:', err));
+    } else {
+      document.exitFullscreen().catch(err => console.error('Exit fullscreen error:', err));
+    }
+  }, [isFullscreen]);
+
+    const toggleMute = useCallback(() => {
+    setIsMuted(prev => {
+      const newMuted = !prev;
+      if (videoRef.current) {
+        videoRef.current.volume = newMuted ? 0 : volume / 100;
+      }
+      return newMuted;
+    });
+  }, [volume]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      // Ignore keyboard shortcuts if an input element is focused
+      const activeElement = document.activeElement;
+      if (
+        activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement ||
+        activeElement instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+
       const video = videoRef.current;
       if (!video) return;
 
@@ -331,7 +363,7 @@ export default function HLSPlayer({
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [onBookmark]);
+  }, [onBookmark, toggleMute, toggleFullscreen]);
 
   // Enhanced control bar visibility
   useEffect(() => {
@@ -383,16 +415,7 @@ export default function HLSPlayer({
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  const toggleFullscreen = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
 
-    if (!isFullscreen) {
-      container.requestFullscreen().catch(err => console.error('Fullscreen error:', err));
-    } else {
-      document.exitFullscreen().catch(err => console.error('Exit fullscreen error:', err));
-    }
-  }, [isFullscreen]);
 
   const handleVolumeChange = useCallback((newVolume: number[]) => {
     const volumeValue = newVolume[0];
@@ -403,15 +426,7 @@ export default function HLSPlayer({
     }
   }, []);
 
-  const toggleMute = useCallback(() => {
-    setIsMuted(prev => {
-      const newMuted = !prev;
-      if (videoRef.current) {
-        videoRef.current.volume = newMuted ? 0 : volume / 100;
-      }
-      return newMuted;
-    });
-  }, [volume]);
+
 
   const handleSeek = useCallback((value: number[]) => {
     if (videoRef.current) {
