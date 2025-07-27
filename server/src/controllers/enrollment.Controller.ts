@@ -176,52 +176,62 @@ export const getCohortDetail = async (req: Request, res: Response) => {
     }
 
     // Mark lessons as completed based on user progress
-    const chapters = (cohort.chapters || []).map((chapter: any) => ({
-      id: chapter._id,
-      title: chapter.title,
-      description: chapter.description,
-      estimatedTime: chapter.estimatedTime || "",
-      lessons: (chapter.lessons || []).map((lesson: any) => ({
-        id: lesson._id,
-        title: lesson.title,
-        description: lesson.description,
-        shortDescription: lesson.shortDescription,
-        type: lesson.contentType,
-        duration: lesson.duration || "",
-        isCompleted: completedLessonIds.includes(lesson._id.toString()),
-        isBookmarked: lesson.isBookmarked || false,
-        isLocked: lesson.isLocked || false,
-        dueDate: lesson.dueDate,
-        content: lesson.content,
-        videoUrl: lesson.videoUrl,
-        transcript: lesson.transcript,
-        instructions: lesson.instructions,
-        questions: lesson.questions,
-        codeExamples: (lesson.codeExamples || []).map((code: any) => ({
-          id: code._id,
-          title: code.title,
-          language: code.language,
-          code: code.code,
-          description: code.description,
-          isStarter: code.isStarter,
-          isSolution: code.isSolution,
-          version: code.version,
-          runLink: code.runLink,
-          level: code.level,
+    const chapters = (cohort.chapters || []).map((chapter: any) => {
+      const lessonList = chapter.lessons || [];
+
+      // Determine if all lessons in chapter are completed
+      const isChapterCompleted = lessonList.length > 0
+        ? lessonList.every((lesson: any) => completedLessonIds.includes(lesson._id.toString()))
+        : false;
+
+      return {
+        id: chapter._id,
+        title: chapter.title,
+        description: chapter.description,
+        estimatedTime: chapter.estimatedTime || "",
+        lessons: lessonList.map((lesson: any) => ({
+          id: lesson._id,
+          title: lesson.title,
+          description: lesson.description,
+          shortDescription: lesson.shortDescription,
+          type: lesson.contentType,
+          duration: lesson.duration || "",
+          isCompleted: completedLessonIds.includes(lesson._id.toString()),
+          isBookmarked: lesson.isBookmarked || false,
+          isLocked: lesson.isLocked || false,
+          dueDate: lesson.dueDate,
+          content: lesson.content,
+          videoUrl: lesson.videoUrl,
+          transcript: lesson.transcript,
+          instructions: lesson.instructions,
+          questions: lesson.questions,
+          codeExamples: (lesson.codeExamples || []).map((code: any) => ({
+            id: code._id,
+            title: code.title,
+            language: code.language,
+            code: code.code,
+            description: code.description,
+            isStarter: code.isStarter,
+            isSolution: code.isSolution,
+            version: code.version,
+            runLink: code.runLink,
+            level: code.level,
+          })),
+          resources: (lesson.resources || []).map((resource: any) => ({
+            id: resource._id,
+            title: resource.title,
+            type: resource.type,
+            url: resource.url,
+            size: resource.size,
+            description: resource.description,
+          })),
         })),
-        resources: (lesson.resources || []).map((resource: any) => ({
-          id: resource._id,
-          title: resource.title,
-          type: resource.type,
-          url: resource.url,
-          size: resource.size,
-          description: resource.description,
-        })),
-      })),
-      isCompleted: chapter.isCompleted || false,
-      isBookmarked: chapter.isBookmarked || false,
-      progress: chapter.progress || 0,
-    }));
+        isCompleted: isChapterCompleted,
+        isBookmarked: chapter.isBookmarked || false,
+        progress: chapter.progress || 0,
+      };
+    });
+
 
     const cohortData = {
       id: cohort._id,

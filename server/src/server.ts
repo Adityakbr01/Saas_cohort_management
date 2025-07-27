@@ -29,6 +29,7 @@ import lessonRoutes from "@/routes/lessons.routes";
 import mentorRouter from "@/routes/mentorRoutes";
 import enrollmentRoutes from "./routes/enrollment.Routes";
 import progressRoutes from "@/routes/progress.routes";
+import commentRoutes from "@/routes/comment.routes";
 
 
 const app = express();
@@ -136,6 +137,7 @@ app.use("/api/v1/cohorts", cohortRoutes)
 app.use("/api/v1/chapters", chapterRoutes);
 app.use("/api/v1/lessons", lessonRoutes);
 app.use("/api/v1/progress", progressRoutes);
+app.use("/api/v1/comments", commentRoutes);
 
 //Student Routes
 
