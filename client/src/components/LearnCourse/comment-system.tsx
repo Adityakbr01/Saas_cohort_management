@@ -68,6 +68,14 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
   const [editText, setEditText] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "popular">("newest");
   const [optimisticComments, setOptimisticComments] = useState<Comment[]>([]);
+  // Add per-comment and per-action loading state
+  const [likeLoading, setLikeLoading] = useState<Record<string, boolean>>({});
+  const [dislikeLoading, setDislikeLoading] = useState<Record<string, boolean>>({});
+  const [pinLoading, setPinLoading] = useState<Record<string, boolean>>({});
+  const [editLoading, setEditLoading] = useState<Record<string, boolean>>({});
+  const [deleteLoading, setDeleteLoading] = useState<Record<string, boolean>>({});
+  const [replyLoading, setReplyLoading] = useState<Record<string, boolean>>({});
+  const [deleteReplyLoading, setDeleteReplyLoading] = useState<Record<string, boolean>>({});
 
   const user = useSelector(selectCurrentUser); // Get current user
   const isMentor = user?.role === Role.mentor; // Check if user is a mentor
@@ -148,6 +156,8 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
       toast.error("Cannot toggle reaction: commentId or userId is undefined");
       return;
     }
+    if (reaction === "like") setLikeLoading((prev) => ({ ...prev, [commentId]: true }));
+    else setDislikeLoading((prev) => ({ ...prev, [commentId]: true }));
 
     // Store original comment state for rollback
     const originalComment = mergedComments.find((c) => c._id === commentId);
@@ -200,10 +210,11 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
         toast.success("Dislike updated successfully");
       }
     } catch (err) {
-      console.error(`Failed to ${reaction} comment:`, err);
-      toast.error(`Failed to update ${reaction}`);
-      // Rollback to original state
       setOptimisticComments((prev) => prev.filter((c) => c._id !== commentId));
+      toast.error(`Failed to update ${reaction}`);
+    } finally {
+      if (reaction === "like") setLikeLoading((prev) => ({ ...prev, [commentId]: false }));
+      else setDislikeLoading((prev) => ({ ...prev, [commentId]: false }));
     }
   };
 
@@ -212,13 +223,15 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
       toast.error("Cannot toggle pin: commentId is undefined");
       return;
     }
+    setPinLoading((prev) => ({ ...prev, [commentId]: true }));
     try {
       const newPinState = !currentIsPinned;
       await togglePin({ commentId, isPinned: newPinState }).unwrap();
       toast.success(newPinState ? "Comment pinned successfully" : "Comment unpinned successfully");
     } catch (err) {
-      console.error("Failed to toggle pin:", err);
       toast.error("Failed to toggle pin");
+    } finally {
+      setPinLoading((prev) => ({ ...prev, [commentId]: false }));
     }
   };
 
@@ -240,6 +253,22 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
     }
   };
 
+  const handleDeleteComment = async (commentId: string) => {
+    if (!commentId) {
+      toast.error("Cannot delete comment: commentId is undefined");
+      return;
+    }
+    setDeleteLoading((prev) => ({ ...prev, [commentId]: true }));
+    try {
+      await deleteComment({ commentId }).unwrap();
+      toast.success("Comment deleted successfully");
+    } catch (err) {
+      toast.error("Failed to delete comment");
+    } finally {
+      setDeleteLoading((prev) => ({ ...prev, [commentId]: false }));
+    }
+  };
+
   const handleAddReply = async (parentId: string) => {
     if (!replyText.trim()) {
       toast.error("Reply cannot be empty");
@@ -249,6 +278,7 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
       toast.error("Cannot add reply: parentId is undefined");
       return;
     }
+    setReplyLoading((prev) => ({ ...prev, [parentId]: true }));
     try {
       await addReply({
         commentId: parentId,
@@ -258,22 +288,9 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
       setReplyingTo(null);
       toast.success("Reply added successfully");
     } catch (err) {
-      console.error("Failed to add reply:", err);
       toast.error("Failed to add reply");
-    }
-  };
-
-  const handleDeleteComment = async (commentId: string) => {
-    if (!commentId) {
-      toast.error("Cannot delete comment: commentId is undefined");
-      return;
-    }
-    try {
-      await deleteComment({ commentId }).unwrap();
-      toast.success("Comment deleted successfully");
-    } catch (err) {
-      console.error("Failed to delete comment:", err);
-      toast.error("Failed to delete comment");
+    } finally {
+      setReplyLoading((prev) => ({ ...prev, [parentId]: false }));
     }
   };
 
@@ -282,12 +299,15 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
       toast.error("Cannot delete reply: commentId or replyId is undefined");
       return;
     }
+    const key = `${commentId}_${replyId}`;
+    setDeleteReplyLoading((prev) => ({ ...prev, [key]: true }));
     try {
       await deleteReply({ commentId, replyId }).unwrap();
       toast.success("Reply deleted successfully");
     } catch (err) {
-      console.error("Failed to delete reply:", err);
       toast.error("Failed to delete reply");
+    } finally {
+      setDeleteReplyLoading((prev) => ({ ...prev, [key]: false }));
     }
   };
 
@@ -296,14 +316,16 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
       toast.error("Cannot edit comment: commentId or content is undefined");
       return;
     }
+    setEditLoading((prev) => ({ ...prev, [commentId]: true }));
     try {
       await editComment({ commentId, content }).unwrap();
       setEditingComment(null);
       setEditText("");
       toast.success("Comment updated successfully");
     } catch (err) {
-      console.error("Failed to edit comment:", err);
       toast.error("Failed to edit comment");
+    } finally {
+      setEditLoading((prev) => ({ ...prev, [commentId]: false }));
     }
   };
 
@@ -508,9 +530,9 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
                               comment.userReaction === "like" && "bg-blue-600 text-white hover:bg-blue-700"
                             )}
                             onClick={() => handleReaction(comment._id, "like")}
-                            disabled={isTogglingLike}
+                            disabled={likeLoading[comment._id]}
                           >
-                            {isTogglingLike ? (
+                            {likeLoading[comment._id] ? (
                               <Loader2 className="h-3 w-3 animate-spin mr-1" />
                             ) : (
                               <ThumbsUp
@@ -528,9 +550,9 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
                               comment.userReaction === "dislike" && "bg-red-600 text-white hover:bg-red-700"
                             )}
                             onClick={() => handleReaction(comment._id, "dislike")}
-                            disabled={isTogglingDislike}
+                            disabled={dislikeLoading[comment._id]}
                           >
-                            {isTogglingDislike ? (
+                            {dislikeLoading[comment._id] ? (
                               <Loader2 className="h-3 w-3 animate-spin mr-1" />
                             ) : (
                               <ThumbsDown
@@ -545,7 +567,7 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
                             size="sm"
                             className="h-6 px-2 text-xs"
                             onClick={() => setReplyingTo(comment._id)}
-                            disabled={isAddingReply}
+                            disabled={replyLoading[comment._id]}
                           >
                             <Reply className="h-3 w-3 mr-1" />
                             Reply
@@ -614,15 +636,15 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
                               value={replyText}
                               onChange={(e) => setReplyText(e.target.value)}
                               className="min-h-[60px] text-sm w-full"
-                              disabled={isAddingReply}
+                              disabled={replyLoading[comment._id]}
                             />
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
                                 onClick={() => handleAddReply(comment._id)}
-                                disabled={isAddingReply || !replyText.trim() || !comment._id}
+                                disabled={replyLoading[comment._id] || !replyText.trim() || !comment._id}
                               >
-                                {isAddingReply ? (
+                                {replyLoading[comment._id] ? (
                                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                                 ) : (
                                   "Reply"
@@ -632,7 +654,7 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setReplyingTo(null)}
-                                disabled={isAddingReply}
+                                disabled={replyLoading[comment._id]}
                               >
                                 Cancel
                               </Button>
@@ -692,16 +714,20 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
                               onClick={() => startEditingComment(comment)}
                               disabled={isEditingComment}
                             >
-                              <Pencil className="h-3 w-3 text-blue-500" />
+                              {editLoading[comment._id] ? (
+                                <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+                              ) : (
+                                <Pencil className="h-3 w-3 text-blue-500" />
+                              )}
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-6 w-6 p-0"
                               onClick={() => handleDeleteComment(comment._id)}
-                              disabled={isDeletingComment}
+                              disabled={deleteLoading[comment._id]}
                             >
-                              {isDeletingComment ? (
+                              {deleteLoading[comment._id] ? (
                                 <Loader2 className="h-3 w-3 animate-spin text-red-500" />
                               ) : (
                                 <Trash2 className="h-3 w-3 text-red-500" />
@@ -725,9 +751,9 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
                             <Button
                               size="sm"
                               onClick={() => handleEditComment(comment._id, editText)}
-                              disabled={isEditingComment || !editText.trim()}
+                              disabled={editLoading[comment._id] || !editText.trim()}
                             >
-                              {isEditingComment ? (
+                              {editLoading[comment._id] ? (
                                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
                               ) : (
                                 "Save"
@@ -755,9 +781,9 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
                             comment.userReaction === "like" && "bg-blue-600 text-white hover:bg-blue-700"
                           )}
                           onClick={() => handleReaction(comment._id, "like")}
-                          disabled={isTogglingLike}
+                          disabled={likeLoading[comment._id]}
                         >
-                          {isTogglingLike ? (
+                          {likeLoading[comment._id] ? (
                             <Loader2 className="h-3 w-3 animate-spin mr-1" />
                           ) : (
                             <ThumbsUp
@@ -775,9 +801,9 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
                             comment.userReaction === "dislike" && "bg-red-600 text-white hover:bg-red-700"
                           )}
                           onClick={() => handleReaction(comment._id, "dislike")}
-                          disabled={isTogglingDislike}
+                          disabled={dislikeLoading[comment._id]}
                         >
-                          {isTogglingDislike ? (
+                          {dislikeLoading[comment._id] ? (
                             <Loader2 className="h-3 w-3 animate-spin mr-1" />
                           ) : (
                             <ThumbsDown
@@ -792,7 +818,7 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
                           size="sm"
                           className="h-6 px-2 text-xs"
                           onClick={() => setReplyingTo(comment._id)}
-                          disabled={isAddingReply}
+                          disabled={replyLoading[comment._id]}
                         >
                           <Reply className="h-3 w-3 mr-1" />
                           Reply
@@ -861,15 +887,15 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}
                             className="min-h-[60px] text-sm w-full"
-                            disabled={isAddingReply}
+                            disabled={replyLoading[comment._id]}
                           />
                           <div className="flex gap-2">
                             <Button
                               size="sm"
                               onClick={() => handleAddReply(comment._id)}
-                              disabled={isAddingReply || !replyText.trim() || !comment._id}
+                              disabled={replyLoading[comment._id] || !replyText.trim() || !comment._id}
                             >
-                              {isAddingReply ? (
+                              {replyLoading[comment._id] ? (
                                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
                               ) : (
                                 "Reply"
@@ -879,7 +905,7 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
                               variant="outline"
                               size="sm"
                               onClick={() => setReplyingTo(null)}
-                              disabled={isAddingReply}
+                              disabled={replyLoading[comment._id]}
                             >
                               Cancel
                             </Button>
