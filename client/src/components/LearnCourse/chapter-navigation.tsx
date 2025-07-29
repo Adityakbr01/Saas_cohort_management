@@ -199,7 +199,9 @@ export default function ChapterNavigation({
                             </div>
                             <div className="text-left">
                               <div className="flex items-center gap-2">
-                                <p className="font-medium text-sm">{lesson.title}</p>
+                                <p className="font-medium text-sm truncate overflow-hidden whitespace-nowrap max-w-[100px]">
+                                  {lesson.title}
+                                </p>
                                 {getLessonStatusIcon(lesson)}
                                 {lesson.isBookmarked && <BookmarkCheck className="h-3 w-3 text-amber-600" />}
                               </div>

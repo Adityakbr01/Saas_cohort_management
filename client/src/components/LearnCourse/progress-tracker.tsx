@@ -110,12 +110,25 @@ export default function ProgressTracker({ progress, chapters = [] }: ProgressTra
     }
   };
 
-  const percent = Math.round((progress.overall ?? 0) * 100);
+  // Calculate percent values rounded to two decimal places
+  const percent = Number(((progress.overall ?? 0) * 100).toFixed(2));
   const chapterProgress = {
     totalChapters: chapters.length,
     completedChapters: chapters.filter((c) => c.isCompleted).length,
-    percentage: chapters.length > 0 ? Math.round((chapters.filter((c) => c.isCompleted).length / chapters.length) * 100) : 0,
+    percentage:
+      chapters.length > 0
+        ? Number(
+            (
+              (chapters.filter((c) => c.isCompleted).length / chapters.length) *
+              100
+            ).toFixed(2)
+          )
+        : 0,
   };
+  const lessonPercent =
+    progress.totalLessons > 0
+      ? Number(((progress.completedLessons / progress.totalLessons) * 100).toFixed(2))
+      : 0;
 
   return (
     <div className="space-y-4">
@@ -205,21 +218,24 @@ export default function ProgressTracker({ progress, chapters = [] }: ProgressTra
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {Object.entries(progress.byType).map(([type, percentage]) => (
-            <div key={type} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {getTypeIcon(type)}
-                  <span className="text-sm font-medium capitalize">{getTypeLabel(type)}</span>
+          {Object.entries(progress.byType).map(([type, percentage]) => {
+            const roundedTypePercent = Number(Number(percentage).toFixed(2));
+            return (
+              <div key={type} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {getTypeIcon(type)}
+                    <span className="text-sm font-medium capitalize">{getTypeLabel(type)}</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">{roundedTypePercent}%</div>
                 </div>
-                <div className="text-sm text-muted-foreground">{percentage}%</div>
+                <div className="flex items-center gap-2">
+                  <Progress value={roundedTypePercent} className="flex-1 h-2" />
+                  <span className="text-xs font-medium w-10">{roundedTypePercent}%</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Progress value={percentage} className="flex-1 h-2" />
-                <span className="text-xs font-medium w-10">{percentage}%</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
 
