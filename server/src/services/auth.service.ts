@@ -346,7 +346,7 @@ export const authService = {
     //remove cached user
     safeCache.del(user._id.toString());
 
-    return { accessToken,refreshToken, user };
+    return { accessToken, refreshToken, user };
   },
   async getProfile(userId: string, role: string) {
     if (!userId || !role) {
@@ -467,11 +467,14 @@ export const authService = {
         throw new ApiError(401, "User no longer exists");
       }
 
+      // 🔴 If tokenVersion mismatches → other device login
       if (user.tokenVersion !== decoded.tokenVersion) {
-        throw new ApiError(401, "Invalid refresh token");
+        throw new ApiError(401, "You have logged in from another device");
       }
 
+
       // Check single refresh token (not array)
+      // 🔴 Refresh token check
       if (
         !user.refreshToken ||
         user.refreshToken.token !== refreshToken ||
@@ -486,7 +489,11 @@ export const authService = {
       safeCache.del(user._id.toString());
       return accessToken;
     } catch (err) {
-      throw new ApiError(401, "Invalid refresh token");
+      if(err instanceof ApiError){
+ throw new ApiError(401, err.message);
+      }
+      throw new ApiError(401,"invalide Token")
+     
     }
   },
   async forgotPassword(email: string, role: string) {
