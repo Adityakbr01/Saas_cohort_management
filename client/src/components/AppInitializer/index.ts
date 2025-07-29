@@ -1,8 +1,9 @@
 import { authApi } from "@/store/features/auth/authApi";
-import { setUser, logout, setInitialized } from "@/store/features/slice/UserAuthSlice"; // 👈 add setInitialized
+import { logout, setInitialized, setUser } from "@/store/features/slice/UserAuthSlice"; // 👈 add setInitialized
 import { useAppDispatch } from "@/store/hook";
-import { useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 interface DecodedToken {
   exp: number;
@@ -94,7 +95,11 @@ const AppInitializer = () => {
           localStorage.setItem("accessToken", response.data.accessToken);
           return response.data.accessToken;
         }
-      } catch (err) {
+      } catch (err: any) {
+        const message = err?.data?.message || "Failed to refresh session. Logging out.";
+        if (message === "You have logged in from another device") {
+          toast.error(message)
+        }
         console.error("[DEBUG] Refresh token failed", err);
       }
       return null;

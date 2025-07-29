@@ -36,7 +36,7 @@ function CourseTabs({ course, totalLessons, totalDuration, ratingsPercentages }:
   const [hoveredRating, setHoveredRating] = useState(0);
 
   // Check if user has already reviewed
-  const hasReviewed = user && course.reviews.some(review => review?.userId?.toString() === user._id.toString());
+  const hasReviewed = user && course.reviews.some(review => review?.userId?.toString() === user._id?.toString());
 
   console.log("Ratings Percentages:", course?.reviews);
 

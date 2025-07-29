@@ -73,7 +73,11 @@ const useSessionWatcher = () => {
               localStorage.setItem("accessToken", res.data.accessToken);
               console.log("[DEBUG] Access token refreshed");
             }
+             else {
+              throw new Error("No new access token received");
+            }
           } catch (err) {
+            console.log(err)
             handleLogout();
             console.error("[DEBUG] Refresh failed", err);
           }

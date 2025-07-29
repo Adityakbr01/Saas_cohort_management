@@ -17,11 +17,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ModeToggle } from "@/components/Theme/mode-toggle";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
-import { useLoginUserMutation } from "@/store/features/auth/authApi";
+import { authApi, useLoginUserMutation } from "@/store/features/auth/authApi";
 import { useState, useMemo, useEffect } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import AES from "crypto-js/aes";
 import encUtf8 from "crypto-js/enc-utf8";
+import { useDispatch } from "react-redux";
+import { setUser } from "@/store/features/slice/UserAuthSlice";
+import type { AppDispatch } from "@/store/store";
 
 
 
@@ -97,6 +100,8 @@ function Login() {
     form.reset(remembered);
   }, [form]);
 
+  const dispatch = useDispatch<AppDispatch>()
+
   const onSubmit = async (data: LoginFormValues) => {
     try {
       // Save or remove remembered credentials based on checkbox
@@ -116,6 +121,7 @@ function Login() {
         description: `Welcome back, ${name || "User"}!`,
       });
 
+
       // Store user data in localStorage
       localStorage.setItem("user", JSON.stringify(response.data.user));
       localStorage.setItem("accessToken", JSON.stringify(accessToken));
@@ -127,6 +133,8 @@ function Login() {
       localStorage.removeItem("registerStep");
       localStorage.removeItem("initiateData");
       localStorage.removeItem("forgotPasswordStep");
+     const profileResult = await dispatch(authApi.endpoints.getProfile.initiate(undefined)).unwrap();
+      dispatch(setUser(profileResult.data));
     } catch (error: unknown) {
       let errorMessage = "Invalid credentials. Please try again.";
 
@@ -167,11 +175,11 @@ function Login() {
       <header className="p-4 flex justify-between items-center">
         {/* Back to Home Button */}
         <Button variant="ghost" size="sm" asChild>
-            <Link to="/">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Link>
-          </Button>
+          <Link to="/">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
+          </Link>
+        </Button>
         <ModeToggle />
       </header>
       <main className="flex-1 flex items-center justify-center px-4">

@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { ProgressData } from "@/types/cohort";
+import Logger from "@/utils/logger";
 import { motion } from "framer-motion";
 import { Award, BookOpen, Calendar, Clock, FileText, Play, Target, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -129,6 +130,8 @@ export default function ProgressTracker({ progress, chapters = [] }: ProgressTra
     progress.totalLessons > 0
       ? Number(((progress.completedLessons / progress.totalLessons) * 100).toFixed(2))
       : 0;
+
+      Logger.info("Lesson Parcantage",lessonPercent)
 
   return (
     <div className="space-y-4">

@@ -2,9 +2,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Loader2, MessageSquare, Pencil, Pin, Reply, Send, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
 import { Role } from "@/config/constant";
 import { cn } from "@/lib/utils";
 import {
@@ -19,6 +18,8 @@ import {
   useTogglePinMutation,
 } from "@/store/features/api/comments/comment.api";
 import { selectCurrentUser } from "@/store/features/slice/UserAuthSlice";
+import Logger from "@/utils/logger";
+import { Loader2, MessageSquare, Pencil, Pin, Reply, Send, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
@@ -77,13 +78,16 @@ export default function CommentSystem({ lessonId }: CommentSystemProps) {
   const [replyLoading, setReplyLoading] = useState<Record<string, boolean>>({});
   const [deleteReplyLoading, setDeleteReplyLoading] = useState<Record<string, boolean>>({});
 
+Logger.info("pinLoading state:", pinLoading); // ✅ Correct
+Logger.info("deleteReplyLoading state:", deleteReplyLoading); // ✅ Correct
+
   const user = useSelector(selectCurrentUser); // Get current user
   const isMentor = user?.role === Role.mentor; // Check if user is a mentor
   const { data: comments = [], isLoading: isCommentsLoading, error } = useGetCommentsQuery(lessonId);
   const [addComment, { isLoading: isAddingComment }] = useAddCommentMutation();
-  const [addReply, { isLoading: isAddingReply }] = useAddReplyMutation();
-  const [toggleLike, { isLoading: isTogglingLike }] = useToggleLikeMutation();
-  const [toggleDislike, { isLoading: isTogglingDislike }] = useToggleDislikeMutation();
+  const [addReply, ] = useAddReplyMutation();
+  const [toggleLike,] = useToggleLikeMutation();
+  const [toggleDislike] = useToggleDislikeMutation();
   const [togglePin, { isLoading: isTogglingPin }] = useTogglePinMutation();
   const [deleteComment, { isLoading: isDeletingComment }] = useDeleteCommentMutation();
   const [deleteReply, { isLoading: isDeletingReply }] = useDeleteReplyMutation();

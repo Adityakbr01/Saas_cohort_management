@@ -83,6 +83,7 @@ export const authApi = createApi({
         method: "POST",
         body: credentials,
       }),
+      
     }),
     initiateRegisterUser: builder.mutation<
       AuthResponse,
@@ -167,6 +168,7 @@ export const authApi = createApi({
         method: "POST",
         body: loginData,
       }),
+      invalidatesTags: ["Profile"],
     }),
     forgotPassword: builder.mutation<
       {
@@ -218,6 +220,7 @@ export const authApi = createApi({
         url: "/getProfile",
         method: "GET",
       }),
+       providesTags: ["Profile"],
       async onQueryStarted(_, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
@@ -227,6 +230,7 @@ export const authApi = createApi({
           console.error("Failed to get profile:", error);
         }
       },
+      
     }),
     updateProfile: builder.mutation<void, FormData>({
       query: (updateData) => ({

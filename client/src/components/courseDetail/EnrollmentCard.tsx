@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCreate_checkout_session_cohortMutation } from "@/store/features/api/payment/payment";
-import { selectCurrentUser } from "@/store/features/slice/UserAuthSlice";
+import { selectAuthLoading, selectCurrentUser } from "@/store/features/slice/UserAuthSlice";
 import { loadStripe } from "@stripe/stripe-js";
 import { Loader2 } from "lucide-react";
 import { useMemo } from "react";
@@ -44,7 +44,9 @@ function EnrollmentCard({
   toggleBookmark: () => void;
   refetch: () => void;
 }) {
+  const isUserLoading = useSelector(selectAuthLoading)
   const user = useSelector(selectCurrentUser);
+  console.log(user)
   const [createCheckoutSession, { isLoading }] = useCreate_checkout_session_cohortMutation();
   const navigate = useNavigate();
 
@@ -116,6 +118,19 @@ function EnrollmentCard({
   };
 
   const isEnrolled = user?.cohorts?.includes(course.id) || user?.enrolledCourses?.includes(course.id);
+
+  if (isUserLoading) {
+    return (
+      <aside className="lg:col-span-1">
+        <Card className="sticky top-8">
+          <CardContent className="p-6">
+            <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+            <p className="text-center text-sm text-muted-foreground">Loading enrollment status...</p>
+          </CardContent>
+        </Card>
+      </aside>
+    );
+  }
 
 
   return (
