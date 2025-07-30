@@ -414,7 +414,7 @@ export const saveLessonProgress = async (req: Request, res: Response) => {
         timeSpentSeconds: time,
         streakDays: [],
         achievements: [],
-        xp: 0,
+        xp: 10,
         byType: { video: 0, reading: 0, quiz: 0, assignment: 0, project: 0 },
         lastCompletedAt: null,
       });
@@ -431,19 +431,6 @@ export const saveLessonProgress = async (req: Request, res: Response) => {
           lessonProgress.timeSpent = (lessonProgress.timeSpent || 0) + timeIncrement;
           progress.timeSpentSeconds = (progress.timeSpentSeconds || 0) + timeIncrement;
         }
-
-        // Optionally update completedAt (if video is fully watched)
-        lessonProgress.completedAt = new Date(); // Uncomment if needed
-      } else {
-        // Add new lesson entry
-        progress.completedLessons.push({
-          lessonId,
-          lastWatchedTime: time,
-          timeSpent: time,
-          completedAt: null,
-        });
-
-        progress.timeSpentSeconds = (progress.timeSpentSeconds || 0) + time;
       }
     }
 
