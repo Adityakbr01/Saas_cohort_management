@@ -39,10 +39,10 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
 }) => {
   const [activeSection, setActiveSection] = useState<"content" | "progress" | "due" | "bookmarks">("content");
   const [sectionLoading, setSectionLoading] = useState(false);
-
+  
   const progress = cohortData.progress;
 
-  function calculatePercentage(completed: number, total: number) {
+ function calculatePercentage(completed: number, total: number) {
     if (!total || total === 0) return 0;
     return Math.round((completed / total) * 100);
   }

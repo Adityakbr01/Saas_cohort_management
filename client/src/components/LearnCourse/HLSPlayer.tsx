@@ -290,7 +290,7 @@ export default function HLSPlayer({
   }, [saveProgress]);
 
 
-    const toggleFullscreen = useCallback(() => {
+  const toggleFullscreen = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
 
@@ -301,7 +301,7 @@ export default function HLSPlayer({
     }
   }, [isFullscreen]);
 
-    const toggleMute = useCallback(() => {
+  const toggleMute = useCallback(() => {
     setIsMuted(prev => {
       const newMuted = !prev;
       if (videoRef.current) {
@@ -495,9 +495,8 @@ export default function HLSPlayer({
 
         {/* Control Bar */}
         <div
-          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 control-bar ${
-            showControls ? 'opacity-100' : 'opacity-0'
-          } hover:opacity-100 z-10`}
+          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 control-bar ${showControls ? 'opacity-100' : 'opacity-0'
+            } hover:opacity-100 z-10`}
         >
           {/* Seek Bar */}
           <div className="mb-4">

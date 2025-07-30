@@ -67,6 +67,12 @@ function EnrollmentCard({
     [user?.email, user?.name, user?.phone]
   );
 
+
+
+const isEnrolled = user?.enrolledCourses?.some((c: any) => c.id === course.id || c._id === course.id);
+
+  console.log(isEnrolled)
+
   const handleEnroll = async () => {
     // If not authenticated, redirect to login and show toast
     if (!user) {
@@ -117,7 +123,6 @@ function EnrollmentCard({
     }
   };
 
-  const isEnrolled = user?.cohorts?.includes(course.id) || user?.enrolledCourses?.includes(course.id);
 
   if (isUserLoading) {
     return (

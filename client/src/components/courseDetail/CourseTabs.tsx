@@ -320,7 +320,7 @@ function CourseTabs({ course, totalLessons, totalDuration, ratingsPercentages }:
                               {review.userRole}
                             </Badge>
 
-                            {hasReviewed && (
+                            {hasReviewed && review.userId === user._id && (
                               <Badge variant="outline" className="border-green-500 text-green-500">
                                 You
                               </Badge>

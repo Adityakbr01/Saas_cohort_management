@@ -13,8 +13,6 @@ interface UserData {
 }
 
 export function ProfileSidebar({ userData }: { userData: UserData }) {
-
-  console.log(userData)
   return (
     <Card>
       <CardContent className="pt-6">

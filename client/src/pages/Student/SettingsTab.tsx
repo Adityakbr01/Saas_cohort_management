@@ -1,11 +1,4 @@
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,16 +10,24 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { User, Settings, Eye, EyeOff, Trash2, Plus, Loader2 } from "lucide-react";
-import { useForm, useFieldArray, useWatch } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { toast } from "sonner";
-import { useUpdateProfileMutation, useGetProfileQuery, useResetPasswordMutation, useLogoutMutation } from "@/store/features/auth/authApi";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { TabsContent } from "@/components/ui/tabs";
-import { logout as logoutUtil } from "@/utils/authUtils";
-import { useDispatch } from "react-redux";
+import { Textarea } from "@/components/ui/textarea";
+import { useGetProfileQuery, useLogoutMutation, useResetPasswordMutation, useUpdateProfileMutation } from "@/store/features/auth/authApi";
 import { logout as logoutAction } from "@/store/features/slice/UserAuthSlice";
+import { logout as logoutUtil } from "@/utils/authUtils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff, Loader2, Plus, Settings, Trash2, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { useDispatch } from "react-redux";
+import { toast } from "sonner";
+import * as z from "zod";
+import type { UserData } from "./CoursesTab";
 
 // Zod schema for student profile form
 const studentSchema = z.object({
@@ -73,32 +74,23 @@ const passwordSchema = z
 
 type ProfileFormData = z.infer<typeof studentSchema>;
 
-// Skill interface for better type safety
-interface Skill {
-  name: string;
-  progress: number;
-}
+// // Skill interface for better type safety
+// interface Skill {
+//   name: string;
+//   progress: number;
+// }
 
-// Background interface for student profile
-interface StudentBackground {
-  education?: string;
-  previousCourses?: string[];
-  experience?: string;
-  skills?: Skill[];
-  learningGoals?: string;
-}
+// // Background interface for student profile
+// interface StudentBackground {
+//   education?: string;
+//   previousCourses?: string[];
+//   experience?: string;
+//   skills?: Skill[];
+//   learningGoals?: string;
+// }
 
 // Main user data interface
-interface UserData {
-  role?: "student";
-  name: string;
-  email: string;
-  phone?: string;
-  bio?: string;
-  goals?: string;
-  background?: StudentBackground;
-  profileImageUrl?: string;
-}
+
 
 interface SettingsTabProps {
   userData: UserData;
@@ -117,7 +109,7 @@ export function SettingsTab({ userData }: SettingsTabProps) {
 
   const currentData = profileData?.data || userData;
 
-  console.log("[DEBUG] SettingsTab: Current data:", currentData);
+  // console.log("[DEBUG] SettingsTab: Current data:", currentData);
 
   const {
     register: registerProfile,
@@ -162,8 +154,8 @@ export function SettingsTab({ userData }: SettingsTabProps) {
   });
 
   useEffect(() => {
-    console.log("[DEBUG] SettingsTab: Received userData:", userData);
-    console.log("[DEBUG] SettingsTab: Profile data from API:", profileData);
+    // console.log("[DEBUG] SettingsTab: Received userData:", userData);
+    // console.log("[DEBUG] SettingsTab: Profile data from API:", profileData);
     resetProfileForm({
       name: currentData.name !== "Unknown User" ? currentData.name : "Aditya kbr",
       phone: currentData.phone || "",
