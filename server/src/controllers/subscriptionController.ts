@@ -1,6 +1,7 @@
 import { SubscriptionService } from "@/services/subscription.service";
 import { sendError, sendSuccess } from "@/utils/responseUtil";
 import { wrapAsync } from "../utils/wrapAsync"; // adjust path as needed
+import { ApiError } from "@/utils/apiError";
 
 export const SubscriptionController = {
   createSubscriptionController: wrapAsync(async (req, res) => {
@@ -22,8 +23,8 @@ export const SubscriptionController = {
     console.log(req.user.id);
 
     if (!userId) {
-      sendError(res, 400, "User ID is required");
-      return;
+      throw new ApiError(400, "Unauthorized");
+
     }
     const created = await SubscriptionService.createSubscription({
       price,

@@ -18,7 +18,7 @@ router.post(
   orgController.createOrg
 );
 router.get("/myOrg", protect, orgController.getmyOrg);
-//Todo : Invite New Mentor jab frontend me email dalu to automatically data fetch kar ke fronted fill ho jaye like exprince,specliest amany more fields.
+
 router.post(
   "/invite",
   validateRequest(inviteMentorSchema),
@@ -31,7 +31,8 @@ router.get("/resend-invite", protect, orgController.resendInvite);
 router.post("/cencel-invite", protect, orgController.cancelInvite);
 router.delete("/delete-Mentor", protect, orgController.deleteMentor);
 router.get("/accept-invite", orgController.acceptInvite);
-// POST /api/org/approve-invite
+
+
 router.post(
   "/approve-invite",
   protect,
@@ -42,16 +43,7 @@ router.get(
   "/pending-invites/:orgId",
   protect,
   restrictTo(Role.org_admin, Role.organization),
-  async (req, res) => {
-    const org = await Organization.findById(req.user.id);
-
-    const invites = await PendingInvite.find({
-      invitedBy: req?.user.id,
-      status: { $in: ["PENDING_USER", "PENDING_ADMIN"] },
-    });
-    console.log(invites);
-    res.json(invites);
-  }
+  orgController.pendingInvitesOrgId
 );
 router.get(
   "/",

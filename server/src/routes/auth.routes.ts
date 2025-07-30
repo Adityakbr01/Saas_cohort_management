@@ -36,16 +36,6 @@ router.post(
   createDynamicRateLimiter({
     timeWindow: 1, // 1 minute
     maxRequests: 5,
-    keyGenerator: (req) => `${req.ip}:register`,
-    onLimitExceeded: (req, res) => {
-      console.log(
-        `[DEBUG] Rate limit exceeded for register from IP: ${req.ip}`
-      );
-      res.status(429).json({
-        status: "error",
-        message: "Too many registration attempts. Please try again later.",
-      });
-    },
   }),
   validateRequest(registerSchema),
   AuthController.register
@@ -56,14 +46,6 @@ router.post(
   createDynamicRateLimiter({
     timeWindow: 1, // 1 minute
     maxRequests: 10,
-    keyGenerator: (req) => `${req.ip}:login`,
-    onLimitExceeded: (req, res) => {
-      console.log(`[DEBUG] Rate limit exceeded for login from IP: ${req.ip}`);
-      res.status(429).json({
-        status: "error",
-        message: "Too many login attempts. Please try again later.",
-      });
-    },
   }),
   AuthController.login
 );
@@ -73,17 +55,6 @@ router.post(
   createDynamicRateLimiter({
     timeWindow: 10, // 10 minutes
     maxRequests: 4,
-    keyGenerator: (req) => `${req.ip}:verify-email`,
-    onLimitExceeded: (req, res) => {
-      console.log(
-        `[DEBUG] Rate limit exceeded for verify-email from IP: ${req.ip}`
-      );
-      res.status(429).json({
-        status: "error",
-        message:
-          "Too many email verification attempts. Please try again later.",
-      });
-    },
   }),
   validateRequest(verifyEmailSchema),
   AuthController.verifyEmail
@@ -95,16 +66,6 @@ router.post(
   createDynamicRateLimiter({
     timeWindow: 10, // 10 minutes
     maxRequests: 5,
-    keyGenerator: (req) => `${req.ip}:forgot-password`,
-    onLimitExceeded: (req, res) => {
-      console.log(
-        `[DEBUG] Rate limit exceeded for forgot-password from IP: ${req.ip}`
-      );
-      res.status(429).json({
-        status: "error",
-        message: "Too many password reset requests. Please try again later.",
-      });
-    },
   }),
   validateRequest(forgotPasswordSchema),
   AuthController.forgotPassword
@@ -115,16 +76,6 @@ router.post(
   createDynamicRateLimiter({
     timeWindow: 10, // 10 minutes
     maxRequests: 4,
-    keyGenerator: (req) => `${req.ip}:forgot-password-verify`,
-    onLimitExceeded: (req, res) => {
-      console.log(
-        `[DEBUG] Rate limit exceeded for forgot-password/verify from IP: ${req.ip}`
-      );
-      res.status(429).json({
-        status: "error",
-        message: "Too many OTP verification attempts. Please try again later.",
-      });
-    },
   }),
   validateRequest(forgotPasswordVerifySchema),
   AuthController.verifyForgotPassword
@@ -135,16 +86,6 @@ router.post(
   createDynamicRateLimiter({
     timeWindow: 10, // 10 minutes
     maxRequests: 3,
-    keyGenerator: (req) => `${req.ip}:forgot-password-resend`,
-    onLimitExceeded: (req, res) => {
-      console.log(
-        `[DEBUG] Rate limit exceeded for forgot-password/resend from IP: ${req.ip}`
-      );
-      res.status(429).json({
-        status: "error",
-        message: "Too many OTP resend requests. Please try again later.",
-      });
-    },
   }),
   validateRequest(forgotPasswordResendSchema),
   AuthController.resendForgotPasswordOTP
@@ -156,18 +97,6 @@ router.post(
   createDynamicRateLimiter({
     timeWindow: 10, // 10 minutes
     maxRequests: 20,
-    keyGenerator: (req) => `${req.user?.id || "unknown_user"}:refresh-token`, // Fallback to avoid undefined
-    onLimitExceeded: (req, res) => {
-      console.log(
-        `[DEBUG] Rate limit exceeded for refresh-token for user: ${
-          req.user?.id || "unknown_user"
-        }`
-      );
-      res.status(429).json({
-        status: "error",
-        message: "Too many token refresh attempts. Please try again later.",
-      });
-    },
   }),
   AuthController.refreshToken
 );
@@ -179,18 +108,6 @@ router.post(
   createDynamicRateLimiter({
     timeWindow: 10, // 10 minutes
     maxRequests: 10,
-    keyGenerator: (req) => `${req.user?.id || "unknown_user"}:logout`,
-    onLimitExceeded: (req, res) => {
-      console.log(
-        `[DEBUG] Rate limit exceeded for logout for user: ${
-          req.user?.id || "unknown_user"
-        }`
-      );
-      res.status(429).json({
-        status: "error",
-        message: "Too many logout attempts. Please try again later.",
-      });
-    },
   }),
   AuthController.logout
 );
@@ -200,18 +117,6 @@ router.get(
   createDynamicRateLimiter({
     timeWindow: 5, // 5 minutes
     maxRequests: 30,
-    keyGenerator: (req) => `${req.user?.id || "unknown_user"}:getProfile`,
-    onLimitExceeded: (req, res) => {
-      console.log(
-        `[DEBUG] Rate limit exceeded for getProfile for user: ${
-          req.user?.id || "unknown_user"
-        }`
-      );
-      res.status(429).json({
-        status: "error",
-        message: "Too many profile requests. Please try again later.",
-      });
-    },
   }),
   AuthController.getProfile
 );
@@ -220,19 +125,7 @@ router.post(
   protect,
   createDynamicRateLimiter({
     timeWindow: 10, // 10 minutes
-    maxRequests: 5,
-    keyGenerator: (req) => `${req.user?.id || "unknown_user"}:password-reset`,
-    onLimitExceeded: (req, res) => {
-      console.log(
-        `[DEBUG] Rate limit exceeded for password/reset for user: ${
-          req.user?.id || "unknown_user"
-        }`
-      );
-      res.status(429).json({
-        status: "error",
-        message: "Too many password reset attempts. Please try again later.",
-      });
-    },
+    maxRequests: 5
   }),
   AuthController.resetPassword
 );
@@ -243,18 +136,6 @@ router.patch(
   createDynamicRateLimiter({
     timeWindow: 10, // 10 minutes
     maxRequests: 10,
-    keyGenerator: (req) => `${req.user?.id || "unknown_user"}:updateProfile`,
-    onLimitExceeded: (req, res) => {
-      console.log(
-        `[DEBUG] Rate limit exceeded for updateProfile for user: ${
-          req.user?.id || "unknown_user"
-        }`
-      );
-      res.status(429).json({
-        status: "error",
-        message: "Too many profile update attempts. Please try again later.",
-      });
-    },
   }),
   AuthController.updateProfile
 );

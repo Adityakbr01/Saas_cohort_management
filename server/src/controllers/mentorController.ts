@@ -12,16 +12,14 @@ export const MentorController = {
   getMyOrganizations: wrapAsync(async (req, res) => {
     const userId = req.user?.id;
     const orgs = await MentorService.getMyOrganizations(userId);
-    res.json(orgs);
+    sendSuccess(res,200,"",orgs)
   }),
 
   getMentorCohorts: wrapAsync(async (req, res) => {
     const userId = req.user?.id;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-
     const result = await MentorService.getMentorCohorts(userId, page, limit);
-
     sendSuccess(res, 200, "All cohorts", result);
   }),
 };

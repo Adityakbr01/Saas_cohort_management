@@ -87,8 +87,7 @@ export const OrganizationService = {
         pendingMentorInvitesCount;
       throw new ApiError(
         400,
-        `Mentor limit reached. Only ${
-          remaining <= 0 ? 0 : remaining
+        `Mentor limit reached. Only ${remaining <= 0 ? 0 : remaining
         } invite slots remaining.`
       );
     }
@@ -330,10 +329,13 @@ export const OrganizationService = {
     }).select("name email role specialization lastActive studentsCount");
     return mentors;
   },
-  async getMentorDetails({ email }:any) {
+  async getMentorDetails({ email }: any) {
     const mentor = await Mentor.findOne({ email }).select(
       "name email phone specialization experience bio certifications"
     );
+    if (!mentor) {
+      throw new ApiError(404, "Not Found")
+    }
     return mentor;
   },
 };

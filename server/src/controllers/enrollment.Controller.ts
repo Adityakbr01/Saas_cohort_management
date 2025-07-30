@@ -7,16 +7,20 @@ import mongoose from "mongoose";
 import { CohortEnrollment } from "../models/CohortEnrollment";
 import { Cohort } from "../models/cohort.model";
 import { default as UserCohortProgress, default as userCohortProgress } from "../models/userCohortProgress";
+import { logger } from "@/utils/logger";
 
 
 export const enrollUserToCohort = async (req: Request, res: Response) => {
   try {
     const { userId, cohortId } = req.body;
 
+    if (!userId || !cohortId) {
+      throw new ApiError(400, "userId and cohortId Requires")
+    }
+
     const existing = await CohortEnrollment.findOne({ user: userId, cohort: cohortId });
     if (existing) {
-      res.status(400).json({ message: "User already enrolled in this cohort." });
-      return
+      throw new ApiError(400, "User already enrolled in this cohort.")
     }
 
     const enrollment = await CohortEnrollment.create({
@@ -27,18 +31,16 @@ export const enrollUserToCohort = async (req: Request, res: Response) => {
 
     sendSuccess(res, 200, "User enrolled successfully", enrollment);
   } catch (error) {
-    res.status(500).json({ message: "Enrollment failed", error });
+    throw new ApiError(500, "Enrollment failed")
   }
 };
-
 // Get all cohorts a user is enrolled in
 export const getUserEnrolledCourses = async (req: Request, res: Response) => {
   try {
     // Use req.user.id from auth middleware
     const userId = req.user?.id || req.query.userId || req.body.userId;
     if (!userId) {
-      res.status(400).json({ message: "Missing userId" });
-      return
+      throw new ApiError(400, "Missing userId")
     }
     const enrollments = await CohortEnrollment.find({ user: userId })
       .populate({
@@ -68,20 +70,18 @@ export const getUserEnrolledCourses = async (req: Request, res: Response) => {
           language: cohort.language,
         };
       });
-    res.json({ courses });
+    sendSuccess(res, 200, "", courses)
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch enrolled courses", error });
+    throw new ApiError(500, "Failed to fetch enrolled courses");
   }
 };
-
 // Get full cohort detail for a given cohortId
 export const getCohortDetail = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     if (!req.user || !req.user.id) {
-      console.error("[getCohortDetail] req.user is missing. Auth middleware may have failed.");
-      res.status(401).json({ message: "Unauthorized: user not found in request" });
-      return;
+      logger.error("[getCohortDetail] req.user is missing. Auth middleware may have failed.");
+      throw new ApiError(401, "Unauthorized: user not found in request")
     }
     const userId = req.user.id;
 
@@ -102,8 +102,7 @@ export const getCohortDetail = async (req: Request, res: Response) => {
       });
 
     if (!cohort) {
-      res.status(404).json({ message: "Cohort not found" });
-      return;
+      throw new ApiError(404, "Cohort not found")
     }
 
     const userProgress = await UserCohortProgress.findOne({ user: userId, cohort: id });
@@ -289,9 +288,8 @@ export const getCohortDetail = async (req: Request, res: Response) => {
     return;
   } catch (error) {
     const err = error as Error;
-    console.error("[getCohortDetail] Error:", err.stack || err);
-    res.status(500).json({ message: "Failed to fetch cohort detail", error: err.message });
-    return;
+    logger.error("[getCohortDetail] Error:", err.stack || err);
+    throw new ApiError(500, "Failed to fetch cohort detail");
   }
 };
 export const LessonDurationUpdate = async (req: Request, res: Response) => {
@@ -344,8 +342,9 @@ export const LessonDurationUpdate = async (req: Request, res: Response) => {
     await progress.save();
 
     res.json({ success: true });
+    sendSuccess(res, 200, "updated lesson duration", true)
   } catch (error) {
-    console.error("[LessonDurationUpdate] Error:", error);
+    logger.error("[LessonDurationUpdate] Error:", error);
     throw new ApiError(500, "Failed to update lesson duration");
   }
 };
@@ -353,8 +352,7 @@ export const getProgress = async (req: Request, res: Response) => {
   const { lessonId, cohortId } = req.query;
 
   if (!lessonId || !cohortId) {
-    res.status(400).json({ message: 'Missing lessonId or cohortId' });
-    return
+    throw new ApiError(400, "Missing lessonId or cohortId")
   }
 
   try {
@@ -378,14 +376,14 @@ export const getProgress = async (req: Request, res: Response) => {
 
     res.json({ lastWatchedTime });
   } catch (error) {
-    console.error('Error fetching progress:', error);
-    res.status(500).json({ message: 'Server error', error });
+    logger.error('Error fetching progress:', error);
+    throw new ApiError(500, "Server error")
   }
 };
 export const saveLessonProgress = async (req: Request, res: Response) => {
   const { lessonId, time, cohortId } = req.body;
 
-  console.log("Saving progress for lesson:", lessonId, "time:", time, "cohortId:", cohortId);
+  logger.info("Saving progress for lesson:", lessonId, "time:", time, "cohortId:", cohortId);
 
   if (!lessonId || time == null || !cohortId) {
     throw new ApiError(400, "Missing lessonId, time, or cohortId");
@@ -453,7 +451,7 @@ export const saveLessonProgress = async (req: Request, res: Response) => {
     sendSuccess(res, 200, "Progress saved successfully", progress);
 
   } catch (error) {
-    console.error("Error saving progress:", error);
+    logger.error("Error saving progress:", error);
     throw new ApiError(500, "Failed to save progress");
   }
 };
@@ -461,28 +459,25 @@ export const getLessonProgress = async (req: Request, res: Response) => {
   const { lessonId, cohortId } = req.query;
   const userId = req.user.id; // From auth middleware
   if (!lessonId || !cohortId) {
-    res.status(400).json({ message: "Missing lessonId or cohortId" });
-    return;
+    throw new ApiError(400, "Missing lessonId or cohortId")
   }
   if (typeof lessonId !== "string" || typeof cohortId !== "string") {
     res.status(400).json({ message: "Invalid lessonId or cohortId format" });
-    return;
+    throw new ApiError(400, "Invalid lessonId or cohortId format")
   }
   const progress = await UserCohortProgress.findOne({ user: userId, cohort: cohortId });
   if (!progress) {
-    res.status(404).json({ error: "Progress not found" }); return;
+    throw new ApiError(404, "Progress not found")
   }
   if (!progress.completedLessons || !Array.isArray(progress.completedLessons)) {
-    res.status(404).json({ error: "No lessons found for this user in this cohort" }); return;
+    throw new ApiError(404, "No lessons found for this user in this cohort")
   }
   const lessonProgress = progress.completedLessons.find(
     (item) => item?.lessonId?.toString() === lessonId
   );
 
   if (!lessonProgress) {
-    res.status(404).json({ error: "Lesson progress not found" }); return;
+    throw new ApiError(404, "Lesson progress not found")
   }
-
   res.json({ lastWatchedTime: lessonProgress.lastWatchedTime || 8 });
-
 };

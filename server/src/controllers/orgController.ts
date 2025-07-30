@@ -6,6 +6,8 @@ import { Request, Response } from "express";
 import { Types } from "mongoose";
 
 import { OrganizationService } from "@/services/organization.service";
+import PendingInvite from "@/models/PendingInvite";
+import { logger } from "@/utils/logger";
 
 export const orgController = {
   createOrg: wrapAsync(async (req: Request, res: Response) => {
@@ -31,7 +33,7 @@ export const orgController = {
 
     const org = await OrganizationService.getMyOrg({ userId });
 
-    console.log("Found organization:", org);
+    logger.info("Found organization:", org);
     sendSuccess(res, 200, "Org fetched successfully", org);
   }),
   getAllOrgs: wrapAsync(async (req: Request, res: Response) => {
@@ -174,6 +176,9 @@ export const orgController = {
     if (!inviteId) {
       throw new ApiError(400, "Invite ID is required");
     }
+    if (!userId) {
+      throw new ApiError(400, "Unothrized")
+    }
     await OrganizationService.finalizeInvite({ inviteId, userId });
     sendSuccess(res, 200, "Invite finalized successfully");
   }),
@@ -187,7 +192,23 @@ export const orgController = {
   }),
   getMentorDetails: wrapAsync(async (req: Request, res: Response) => {
     const { email } = req.body;
+    if (!email) {
+      throw new ApiError(400, "Email Required")
+    }
     const mentor = await OrganizationService.getMentorDetails({ email });
     sendSuccess(res, 200, "Mentor fetched successfully", mentor);
   }),
+  pendingInvitesOrgId: wrapAsync(async (req, res) => {
+    const org = await Organization.findById(req.user.id);
+
+    if (!org) {
+      throw new ApiError(404, "User Not Found")
+    }
+    const invites = await PendingInvite.find({
+      invitedBy: req?.user.id,
+      status: { $in: ["PENDING_USER", "PENDING_ADMIN"] },
+    });
+    logger.info(invites);
+    sendSuccess(res, 200, "Success", invites)
+  })
 };

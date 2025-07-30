@@ -20,7 +20,7 @@ import notFound from "@/middleware/notFound";
 // import userRouter from "@/routes/userRoutes";
 import orgRouter from "@/routes/orgRoutes";
 import subscriptionRouter from "@/routes/subscriptionRoute";
-import paymentRouter from "./routes/paymentRoutes";
+import paymentRouter from "./routes/payment.Routes";
 // import studentRouter from "@/routes/studentRouter";
 import authRoutes from "@/routes/auth.routes";
 import chapterRoutes from "@/routes/chapter.routes";
@@ -90,7 +90,7 @@ app.use(cookieParser());
 
 // Skip JSON parser for Stripe webhook
 app.use((req, res, next) => {
-  if (req.originalUrl === "/api/v1/payments/stripe/webhook/enrollment" ||  req.originalUrl === "/api/v1/payments/stripe/webhook") {
+  if (req.originalUrl === "/api/v1/payments/stripe/webhook/enrollment" || req.originalUrl === "/api/v1/payments/stripe/webhook") {
     next(); // skip parsing
   } else {
     express.json({ limit: "24kb" })(req, res, next);
@@ -127,9 +127,12 @@ app.use("/api/v1/payments", paymentRouter)
 app.use("/api/v1/org", orgRouter);
 app.use("/api/v1/enrollment", enrollmentRoutes);
 
+
+
 // app.use("/api/v1/students", studentRouter);
 app.use("/api/v1/mentors", mentorRouter);
 
+//Uper ka complate ho gya hai
 //New Routes
 app.use("/api/v1/auth", authRoutes);
 // for mentor Or org admin

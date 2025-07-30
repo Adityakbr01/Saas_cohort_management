@@ -40,8 +40,6 @@ export const SubscriptionService = {
       throw new ApiError(400, "Only 3 subscriptions allowed");
     }
 
-    console.log(userId);
-
     const newSubscription = new SubscriptionModel({
       name,
       price,
