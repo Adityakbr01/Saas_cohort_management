@@ -1,12 +1,13 @@
 // // controllers/enrollmentController.ts
+import { CohortRating } from "@/models/cohortRating.model";
+import { ApiError } from "@/utils/apiError";
+import { sendSuccess } from "@/utils/responseUtil";
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import { CohortEnrollment } from "../models/CohortEnrollment";
 import { Cohort } from "../models/cohort.model";
-import { sendSuccess } from "@/utils/responseUtil";
-import UserCohortProgress from "../models/userCohortProgress";
-import Student from "@/models/student.model";
-import userCohortProgress from "../models/userCohortProgress";
-import { CohortRating } from "@/models/cohortRating.model";
+import { default as UserCohortProgress, default as userCohortProgress } from "../models/userCohortProgress";
+
 
 export const enrollUserToCohort = async (req: Request, res: Response) => {
   try {
@@ -141,31 +142,31 @@ export const getCohortDetail = async (req: Request, res: Response) => {
 
     const progressData = userProgress
       ? {
-          overall: totalLessons > 0 ? userProgress.completedLessons.length / totalLessons : 0,
-          byType: byTypePercent,
-          completedLessons: userProgress.completedLessons.length,
-          totalLessons,
-          timeSpent: userProgress.timeSpentSeconds
-            ? `${Math.floor(userProgress.timeSpentSeconds / 3600)}h ${Math.floor(
-                (userProgress.timeSpentSeconds % 3600) / 60
-              )}m`
-            : "0h 0m",
-          streakDays: userProgress.streakDays,
-          achievements: userProgress.achievements,
-          xp: userProgress.xp,
-          streak: userProgress.streak,
-        }
+        overall: totalLessons > 0 ? userProgress.completedLessons.length / totalLessons : 0,
+        byType: byTypePercent,
+        completedLessons: userProgress.completedLessons.length,
+        totalLessons,
+        timeSpent: userProgress.timeSpentSeconds
+          ? `${Math.floor(userProgress.timeSpentSeconds / 3600)}h ${Math.floor(
+            (userProgress.timeSpentSeconds % 3600) / 60
+          )}m`
+          : "0h 0m",
+        streakDays: userProgress.streakDays,
+        achievements: userProgress.achievements,
+        xp: userProgress.xp,
+        streak: userProgress.streak,
+      }
       : {
-          overall: 0,
-          byType: byTypePercent,
-          completedLessons: 0,
-          totalLessons,
-          timeSpent: "0h 0m",
-          streakDays: [],
-          achievements: [],
-          xp: 0,
-          streak: "",
-        };
+        overall: 0,
+        byType: byTypePercent,
+        completedLessons: 0,
+        totalLessons,
+        timeSpent: "0h 0m",
+        streakDays: [],
+        achievements: [],
+        xp: 0,
+        streak: "",
+      };
 
     let instructor = { id: "", name: "", avatar: "", bio: "" };
     if (cohort.mentor && typeof cohort.mentor === "object" && "name" in cohort.mentor) {
@@ -252,7 +253,7 @@ export const getCohortDetail = async (req: Request, res: Response) => {
       _id: r._id,
       rating: r.rating,
       createdAt: r.createdAt,
-    
+
     }));
 
     const cohortData = {
@@ -293,40 +294,61 @@ export const getCohortDetail = async (req: Request, res: Response) => {
     return;
   }
 };
-
 export const LessonDurationUpdate = async (req: Request, res: Response) => {
-  const { lessonId, timeWatched } = req.body;
-  const userId = req.user.id; // From auth middleware
-  const cohortId = req.body.cohortId; // Should come from frontend
+  try {
+    const { lessonId, cohortId, timeWatched = 0, increment = 5 } = req.body;
+    const userId = req.user.id;
 
-  const progress = await UserCohortProgress.findOne({ user: userId, cohort: cohortId });
+    // Basic validation
+    if (
+      !lessonId ||
+      !cohortId ||
+      !mongoose.Types.ObjectId.isValid(lessonId) ||
+      !mongoose.Types.ObjectId.isValid(cohortId) ||
+      typeof timeWatched !== "number" ||
+      typeof increment !== "number"
+    ) {
+      throw new ApiError(400, "Invalid input fields");
+    }
 
-  if (!progress) {
-    res.status(404).json({ error: "Progress not found" });
-    return
+    const progress = await UserCohortProgress.findOne({ user: userId, cohort: cohortId });
+
+    if (!progress) {
+      throw new ApiError(404, "Progress not found");
+    }
+
+    const lessonProgress = progress.completedLessons.find(
+      (item) => item?.lessonId?.toString() === lessonId
+    );
+
+    if (lessonProgress) {
+      // Update lastWatchedTime only if timeWatched moved forward
+      if (timeWatched > (lessonProgress.lastWatchedTime || 0)) {
+        lessonProgress.lastWatchedTime = timeWatched;
+      }
+
+      lessonProgress.timeSpent = (lessonProgress.timeSpent || 0) + increment;
+    } else {
+      // First-time watching this lesson, add entry
+      progress.completedLessons.push({
+        lessonId,
+        lastWatchedTime: timeWatched,
+        timeSpent: increment,
+        completedAt: null, // Not yet completed
+      });
+    }
+
+    progress.timeSpentSeconds = (progress.timeSpentSeconds || 0) + increment;
+    progress.lastUpdated = new Date();
+
+    await progress.save();
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("[LessonDurationUpdate] Error:", error);
+    throw new ApiError(500, "Failed to update lesson duration");
   }
-
-  const lessonProgress = progress.completedLessons.find(
-    (item) => item?.lessonId?.toString() === lessonId
-  );
-
-  if (lessonProgress) {
-    lessonProgress.lastWatchedTime = timeWatched;
-    lessonProgress.timeSpent += 10; // Optional: increment total time spent
-  } else {
-    progress.completedLessons.push({
-      lessonId,
-      lastWatchedTime: timeWatched,
-      timeSpent: 10,
-    });
-  }
-
-  progress.lastUpdated = new Date();
-  await progress.save();
-
-  res.json({ success: true });
-}
-
+};
 export const getProgress = async (req: Request, res: Response) => {
   const { lessonId, cohortId } = req.query;
 
@@ -360,15 +382,18 @@ export const getProgress = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
-
 export const saveLessonProgress = async (req: Request, res: Response) => {
   const { lessonId, time, cohortId } = req.body;
 
   console.log("Saving progress for lesson:", lessonId, "time:", time, "cohortId:", cohortId);
 
   if (!lessonId || time == null || !cohortId) {
-    res.status(400).json({ message: "Missing lessonId, time, or cohortId" });
-    return
+    throw new ApiError(400, "Missing lessonId, time, or cohortId");
+  }
+
+  // Validate ObjectId
+  if (!mongoose.Types.ObjectId.isValid(lessonId) || !mongoose.Types.ObjectId.isValid(cohortId)) {
+    throw new ApiError(400, "Invalid lessonId or cohortId")
   }
 
   try {
@@ -377,7 +402,7 @@ export const saveLessonProgress = async (req: Request, res: Response) => {
     let progress = await userCohortProgress.findOne({ user: userId, cohort: cohortId });
 
     if (!progress) {
-      // If progress not exists, create new document
+      // Create new progress doc
       progress = new userCohortProgress({
         user: userId,
         cohort: cohortId,
@@ -385,41 +410,53 @@ export const saveLessonProgress = async (req: Request, res: Response) => {
           lessonId,
           lastWatchedTime: time,
           timeSpent: time,
-          completedAt: new Date(),
+          completedAt: null, // Not yet completed unless confirmed
         }],
+        timeSpentSeconds: time,
+        streakDays: [],
+        achievements: [],
+        xp: 0,
+        byType: { video: 0, reading: 0, quiz: 0, assignment: 0, project: 0 },
+        lastCompletedAt: null,
       });
     } else {
       // Update existing progress
       const lessonProgress = progress.completedLessons.find((l) => l?.lessonId?.toString() === lessonId);
 
       if (lessonProgress) {
-        lessonProgress.lastWatchedTime = time;
+        // Only update if time increased
+        if (time > (lessonProgress.lastWatchedTime || 0)) {
+          const timeIncrement = time - (lessonProgress.lastWatchedTime || 0);
 
-        // Optional: update timeSpent if needed
-        lessonProgress.timeSpent = Math.max(lessonProgress.timeSpent || 0, time);
-        lessonProgress.completedAt = new Date();
+          lessonProgress.lastWatchedTime = time;
+          lessonProgress.timeSpent = (lessonProgress.timeSpent || 0) + timeIncrement;
+          progress.timeSpentSeconds = (progress.timeSpentSeconds || 0) + timeIncrement;
+        }
+
+        // Optionally update completedAt (if video is fully watched)
+        lessonProgress.completedAt = new Date(); // Uncomment if needed
       } else {
-        // New lesson entry
+        // Add new lesson entry
         progress.completedLessons.push({
           lessonId,
           lastWatchedTime: time,
           timeSpent: time,
-          completedAt: new Date(),
+          completedAt: null,
         });
-      }
 
-      progress.lastUpdated = new Date();
+        progress.timeSpentSeconds = (progress.timeSpentSeconds || 0) + time;
+      }
     }
 
+    progress.lastUpdated = new Date();
     await progress.save();
-    res.json({ message: "Progress saved successfully" });
+    sendSuccess(res, 200, "Progress saved successfully", progress);
 
   } catch (error) {
-    console.error("Error saving progress", error);
-    res.status(500).json({ message: "Server error saving progress", error });
+    console.error("Error saving progress:", error);
+    throw new ApiError(500, "Failed to save progress");
   }
-}
-
+};
 export const getLessonProgress = async (req: Request, res: Response) => {
   const { lessonId, cohortId } = req.query;
   const userId = req.user.id; // From auth middleware
