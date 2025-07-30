@@ -9,7 +9,7 @@ const userCohortProgressSchema = new mongoose.Schema(
     completedLessons: [
       {
         lessonId: { type: mongoose.Schema.Types.ObjectId, ref: "Lesson" },
-        completedAt: { type: Date, default: Date.now },
+        completedAt: { type: Date|| null, default: null },
         timeSpent: { type: Number, default: 0 }, // seconds
         lastWatchedTime: { type: Number, default: 0 }, // ⬅️ NEW FIELD: save last watched second
       },
@@ -37,7 +37,7 @@ const userCohortProgressSchema = new mongoose.Schema(
 
     // Timestamps
     lastUpdated: { type: Date, default: Date.now },
-    lastCompletedAt: { type: Date },
+    lastCompletedAt: { type: Date || null,default: null},
   },
   { timestamps: true }
 );

@@ -4,7 +4,7 @@ import express from "express";
 import Stripe from "stripe";
 import { z } from "zod";
 import { ApiError } from "@/utils/apiError";
-import { PaymentController } from "@/controllers/payment.Controller";
+import { PaymentController } from "@/controllers/payment.controller";
 import { createDynamicRateLimiter } from "@/middleware/rateLimitMiddleware";
 
 dotenv.config();

@@ -372,6 +372,7 @@ export const getProgress = async (req: Request, res: Response) => {
       (l) => l?.lessonId?.toString() === lessonId
     );
 
+
     const lastWatchedTime = lessonProgress?.lastWatchedTime || 0;
 
     res.json({ lastWatchedTime });
