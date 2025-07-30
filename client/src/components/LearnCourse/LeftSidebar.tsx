@@ -120,7 +120,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
               <GraduationCap className="h-4 w-4 text-blue-600" />
             </div>
             <div>
-              <span className="font-bold text-base sm:text-lg">{userProgress.lessonProgress.percentage}%</span>
+              <span className="font-bold text-base sm:text-lg">{userProgress.lessonProgress.percentage.toFixed(0)}%</span>
               <span className="text-xs sm:text-sm text-muted-foreground ml-1">Complete</span>
             </div>
           </div>
@@ -132,7 +132,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         <div className="space-y-1 sm:space-y-2">
           <div className="flex justify-between text-xs sm:text-sm">
             <span>Course Progress</span>
-            <span className="font-medium">{userProgress.courseProgress.percentage}% Complete</span>
+            <span className="font-medium">{userProgress.courseProgress.percentage.toFixed(1)}% Complete</span>
           </div>
           <Progress value={userProgress.courseProgress.percentage} className="h-2" />
         </div>
@@ -202,7 +202,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 p-3 sm:p-4 overflow-y-auto overflow-x-hidden max-w-full break-words min-h-[200px]">
+      <div className="flex-1 p-3 sm:p-4 overflow-y-auto overflow-x-hidden max-w-full break-words min-h-[200px] scrollbar-hide">
         {sectionLoading ? (
           <div className="p-4 space-y-3">
             <div className="h-4 w-32 bg-muted animate-pulse rounded" />

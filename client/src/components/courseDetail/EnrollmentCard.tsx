@@ -46,7 +46,6 @@ function EnrollmentCard({
 }) {
   const isUserLoading = useSelector(selectAuthLoading)
   const user = useSelector(selectCurrentUser);
-  console.log(user)
   const [createCheckoutSession, { isLoading }] = useCreate_checkout_session_cohortMutation();
   const navigate = useNavigate();
 
@@ -71,7 +70,6 @@ function EnrollmentCard({
 
 const isEnrolled = user?.enrolledCourses?.some((c: any) => c.id === course.id || c._id === course.id);
 
-  console.log(isEnrolled)
 
   const handleEnroll = async () => {
     // If not authenticated, redirect to login and show toast
@@ -104,8 +102,8 @@ const isEnrolled = user?.enrolledCourses?.some((c: any) => c.id === course.id ||
       }).unwrap();
       console.log(response);
 
-      if (response?.id) {
-        const result = await stripe.redirectToCheckout({ sessionId: response.id });
+      if (response?.data?.id) {
+        const result = await stripe.redirectToCheckout({ sessionId: response?.data?.id });
         if (result.error) {
           toast.error(result.error.message || "Enrollment Error");
           throw new Error(result.error.message);

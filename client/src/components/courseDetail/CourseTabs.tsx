@@ -11,6 +11,11 @@ import { memo, useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
 import { Badge } from "../ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { formatDuration } from "@/utils/formatDuration";
+import Logger from "@/utils/logger";
 
 type Course = {
   longDescription: string;
@@ -34,11 +39,15 @@ function CourseTabs({ course, totalLessons, totalDuration, ratingsPercentages }:
   const [newRating, setNewRating] = useState(0);
   const [newReview, setNewReview] = useState("");
   const [hoveredRating, setHoveredRating] = useState(0);
+  // Define openSections as an object with numeric keys and boolean values
+  const [openSections, setOpenSections] = useState<{ [key: number]: boolean }>({})
+
+  const toggleSection = (index: number) => {
+    setOpenSections((prev) => ({ ...prev, [index]: !prev[index] }))
+  }
 
   // Check if user has already reviewed
   const hasReviewed = user && course.reviews.some(review => review?.userId?.toString() === user._id?.toString());
-
-  console.log("Ratings Percentages:", course?.reviews);
 
   const handleRateCohort = async () => {
     try {
@@ -54,8 +63,9 @@ function CourseTabs({ course, totalLessons, totalDuration, ratingsPercentages }:
       toast.success("Review submitted successfully");
       setNewRating(0);
       setNewReview("");
-    } catch (error) {
+    } catch (error:any) {
       toast.error("Failed to submit review");
+      Logger.info(error)
     }
   };
 
@@ -127,43 +137,91 @@ function CourseTabs({ course, totalLessons, totalDuration, ratingsPercentages }:
       </TabsContent>
 
       <TabsContent value="syllabus" id="syllabus-panel" className="mt-6">
-        <div className="space-y-4">
-          {course.syllabus.map((section, index) => (
-            <article key={index} aria-label={`Syllabus section: ${section.title}`}>
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{section.title}</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        {section.lessons} lessons • {section.duration}s
-                      </p>
+      <div className="space-y-4">
+        {course.syllabus.map((section, index) => (
+          <motion.article
+            key={index}
+            aria-label={`Syllabus section: ${section.title}`}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.1 }}
+          >
+            <Collapsible
+              open={openSections[index]}
+              onOpenChange={() => toggleSection(index)}
+            >
+              <Card className="p-0 overflow-hidden border transition-all duration-300 hover:shadow-md">
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer bg-background hover:bg-accent transition-colors duration-200">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <CardTitle className="text-lg font-semibold text-foreground">
+                          {section.title}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {section.lessons} lessons • {formatDuration(Number(section.duration))}
+                        </p>
+                      </div>
+                      <motion.div
+                        animate={{ rotate: openSections[index] ? 0 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        {openSections[index] ? (
+                          <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </motion.div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {section.topics.map((topic, topicIndex) => (
-                      <li key={topicIndex} className="flex items-center gap-2 text-sm" aria-label={`Topic: ${topic}`}>
-                        <Play className="h-3 w-3 text-muted-foreground" />
-                        {topic}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <AnimatePresence>
+                  {openSections[index] && (
+                    <CollapsibleContent forceMount>
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                      >
+                        <CardContent className="pb-6">
+                          <ul className="space-y-3">
+                            {section.topics.map((topic, topicIndex) => (
+                              <motion.li
+                                key={topicIndex}
+                                className="flex items-center gap-3 text-sm text-foreground"
+                                aria-label={`Topic: ${topic}`}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.2, delay: topicIndex * 0.05 }}
+                              >
+                                <Play className="h-4 w-4 text-primary flex-shrink-0" />
+                                <span>{topic}</span>
+                              </motion.li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                      </motion.div>
+                    </CollapsibleContent>
+                  )}
+                </AnimatePresence>
               </Card>
-            </article>
-          ))}
-          {
-            (!course.syllabus || course.syllabus.length === 0) && (
-              <p className="text-muted-foreground text-center" aria-label="No syllabus available">
-                No syllabus available yet. Be the first to share your feedback!
-              </p>
-            )
-          }
-        </div>
-      </TabsContent>
-
+            </Collapsible>
+          </motion.article>
+        ))}
+        {(!course.syllabus || course.syllabus.length === 0) && (
+          <motion.p
+            className="text-muted-foreground text-center py-4"
+            aria-label="No syllabus available"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            No syllabus available yet. Be the first to share your feedback!
+          </motion.p>
+        )}
+      </div>
+    </TabsContent>
       <TabsContent value="instructor" id="instructor-panel" className="mt-6">
         <Card aria-label="Instructor details">
           <CardContent className="pt-6">

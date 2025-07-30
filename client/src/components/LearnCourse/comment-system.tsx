@@ -830,58 +830,58 @@ Logger.info("deleteReplyLoading state:", deleteReplyLoading); // ✅ Correct
                       </div>
 
                       {/* Replies */}
-                      {comment.replies.length > 0 && (
-                        <div className="ml-0 sm:ml-4 space-y-2 border-l-0 sm:border-l-2 border-muted pl-0 sm:pl-4">
-                          {comment.replies
-                            .filter((reply) => !!reply.id)
-                            .map((reply) => (
-                              <div key={reply.id} className="flex flex-col sm:flex-row gap-2">
-                                <Avatar className="h-6 w-6">
-                                  <AvatarImage
-                                    src={reply.author.avatar || "/placeholder.svg"}
-                                    alt={reply.author.name}
-                                  />
-                                  <AvatarFallback className="text-xs">
-                                    {reply.author.name
-                                      .split(" ")
-                                      .map((n) => n[0])
-                                      .join("")}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1">
-                                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                                    <span className="font-medium text-xs">{reply.author.name}</span>
-                                    <Badge
-                                      variant="outline"
-                                      className={`text-xs ${getRoleColor(reply.author.role)}`}
-                                    >
-                                      {getRoleLabel(reply.author.role)}
-                                    </Badge>
-                                    {user?._id === reply.author._id && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 p-0"
-                                        onClick={() => handleDeleteReply(comment._id, reply.id!)}
-                                        disabled={isDeletingReply}
-                                      >
-                                        {isDeletingReply ? (
-                                          <Loader2 className="h-3 w-3 animate-spin text-red-500" />
-                                        ) : (
-                                          <Trash2 className="h-3 w-3 text-red-500" />
-                                        )}
-                                      </Button>
-                                    )}
-                                    <span className="text-xs text-muted-foreground">
-                                      {formatTimestamp(reply.timestamp)}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs">{reply.content}</p>
-                                </div>
-                              </div>
-                            ))}
-                        </div>
-                      )}
+                    {comment.replies.length > 0 && (
+  <div className="ml-0 sm:ml-4 space-y-2 border-l-0 sm:border-l-2 border-muted pl-0 sm:pl-4">
+    {comment.replies
+      .filter((reply) => !!reply.id)
+      .map((reply) => (
+        <div key={reply.id} className="flex flex-col sm:flex-row gap-2">
+          <Avatar className="h-6 w-6">
+            <AvatarImage
+              src={reply.author.avatar || "/placeholder.svg"}
+              alt={reply.author.name}
+            />
+            <AvatarFallback className="text-xs">
+              {reply.author.name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <span className="font-medium text-xs">{reply.author.name}</span>
+              <Badge
+                variant="outline"
+                className={`text-xs ${getRoleColor(reply.author.role)}`}
+              >
+                {getRoleLabel(reply.author.role)}
+              </Badge>
+              {user?._id === reply.author._id && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 p-0"
+                  onClick={() => handleDeleteReply(comment._id, reply.id!)}
+                  disabled={deleteReplyLoading[`${comment._id}_${reply.id}`]}
+                >
+                  {deleteReplyLoading[`${comment._id}_${reply.id}`] ? (
+                    <Loader2 className="h-3 w-3 animate-spin text-red-500" />
+                  ) : (
+                    <Trash2 className="h-3 w-3 text-red-500" />
+                  )}
+                </Button>
+              )}
+              <span className="text-xs text-muted-foreground">
+                {formatTimestamp(reply.timestamp)}
+              </span>
+            </div>
+            <p className="text-xs">{reply.content}</p>
+          </div>
+        </div>
+      ))}
+  </div>
+)}
 
                       {/* Reply Form */}
                       {replyingTo === comment._id && (
