@@ -4,6 +4,7 @@ import { Cohort } from "../models/cohort.model";
 import { Lesson } from "../models/lesson.model";
 import mongoose from "mongoose";
 import { sendSuccess, sendError } from "@/utils/responseUtil";
+import safeCache from "@/utils/cache";
 
 function formatTimeSpent(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
@@ -23,15 +24,16 @@ export const markLessonComplete = async (req: Request, res: Response) => {
   try {
     const userId = req.user.id; // Always use authenticated user
     const { cohortId, chapterId, lessonId, timeSpent = 0 } = req.body;
+    safeCache.del(userId)
 
     // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(cohortId) || !mongoose.Types.ObjectId.isValid(lessonId)) {
-       sendError(res, 400, "Invalid ID format");
-       return
+      sendError(res, 400, "Invalid ID format");
+      return
     }
     if (!cohortId || !lessonId) {
-       sendError(res, 400, "Missing required fields");
-       return
+      sendError(res, 400, "Missing required fields");
+      return
     }
 
     // Find or create progress doc
@@ -52,8 +54,8 @@ export const markLessonComplete = async (req: Request, res: Response) => {
 
     // If lesson already completed, just return current progress
     if (progress.completedLessons.some((l: any) => l.lessonId.toString() === lessonId)) {
-       sendSuccess(res, 200, "Lesson already completed", { progress });
-       return
+      sendSuccess(res, 200, "Lesson already completed", { progress });
+      return
     }
 
     // Get lesson type
@@ -118,7 +120,7 @@ export const markLessonComplete = async (req: Request, res: Response) => {
     await progress.save();
 
     // Return updated progress
-     sendSuccess(res, 200, "Progress updated", {
+    sendSuccess(res, 200, "Progress updated", {
       progress: {
         overall,
         byType: progress.byType,
@@ -135,7 +137,7 @@ export const markLessonComplete = async (req: Request, res: Response) => {
   } catch (error) {
     // Log error with user and endpoint context
     console.error(`[Progress] Error for user ${req.user?.id}:`, error);
-     sendError(res, 500, "Failed to update progress");
-     return
+    sendError(res, 500, "Failed to update progress");
+    return
   }
 };

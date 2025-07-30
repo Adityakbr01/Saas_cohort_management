@@ -17,6 +17,57 @@ import fileModel from "@/models/file.model";
 import { deleteFile, uploadImage } from "./cloudinaryService";
 import { Role } from "@/configs/roleConfig";
 import isSuperAdmin from "@/utils/isSuperAdmin";
+import userCohortProgress from "@/models/userCohortProgress";
+
+
+
+import { Types } from "mongoose";
+
+// Define interfaces for the relevant models
+interface Lesson {
+  _id: Types.ObjectId;
+  title: string;
+  contentType: string; // e.g., "video", "reading", "quiz", etc.
+}
+
+interface Chapter {
+  _id: Types.ObjectId;
+  title: string;
+  shortDescription: string;
+  totalLessons: number;
+  totalDuration: number;
+  lessons: Lesson[] | Types.ObjectId[];
+  Thumbnail: string;
+  status: string;
+}
+
+interface Cohort {
+  _id: Types.ObjectId;
+  title: string;
+  description: string;
+  shortDescription: string;
+  Thumbnail: string;
+  startDate: Date;
+  endDate: Date;
+  status: string;
+  mentor: {
+    _id: Types.ObjectId;
+    name: string;
+    avatar: string;
+    profileImageUrl: string;
+  };
+  chapters: Chapter[] | Types.ObjectId[];
+}
+
+interface CourseProgress {
+  user: Types.ObjectId;
+  cohort: Cohort | Types.ObjectId; // Can be ObjectId if not populated
+  completedLessons: { lessonId: Types.ObjectId }[];
+  timeSpentSeconds: number;
+  streakDays: Date[];
+  xp: number;
+}
+
 
 export const authService = {
   async register({
@@ -353,36 +404,113 @@ export const authService = {
       throw new ApiError(400, "User ID and role are required");
     }
 
-    let user: IMentor | IStudent | IOrganization | ISuperAdmin | null;
-
+    let user: any | null;
     const cachedUser = await safeCache.get(userId);
     if (cachedUser) {
       return cachedUser;
     }
-
     switch (role) {
       case "mentor":
-        user = await Mentor.findById(userId);
+        user = await Mentor.findById(userId).select("_id name email phone bio location avatar profileImageUrl createdAt");
         break;
       case "student":
-        user = await Student.findById(userId);
+        user = await Student.findById(userId)
+          .select("_id name email phone bio location avatar profileImageUrl createdAt")
+          .populate({
+            path: "enrolledCourses",
+            model: "Cohort",
+            select: "_id title description shortDescription Thumbnail startDate endDate status mentor",
+            populate: {
+              path: "mentor",
+              select: "_id name avatar profileImageUrl",
+            },
+          });
         break;
       case "organization":
-        user = await Organization.findById(userId);
+        user = await Organization.findById(userId).select("_id name email phone bio location avatar profileImageUrl createdAt");
         break;
       case "super_admin":
-        user = await SuperAdmin.findById(userId);
+        user = await SuperAdmin.findById(userId).select("_id name email phone bio location avatar profileImageUrl createdAt");
         break;
       default:
         throw new ApiError(400, "Invalid Role!");
     }
+
     if (!user) {
       throw new ApiError(404, "User not found");
     }
 
-    //cache for faster response for 10 minutes (600 seconds)
-    safeCache.set(userId, user, 600);
-    return user;
+    // Fetch course progress with cohort details
+    const courseProgress = await userCohortProgress.find({ user: userId })
+      .populate({
+        path: "cohort",
+        select: "_id title Thumbnail chapters",
+        populate: {
+          path: "chapters",
+          select: "_id title shortDescription totalLessons totalDuration lessons Thumbnail status",
+          populate: {
+            path: "lessons",
+            select: "_id title contentType",
+          },
+        },
+      })
+      .lean() as CourseProgress[]
+
+    // Calculate progress details
+    const enrichedProgress = courseProgress.map((progress) => {
+      let totalLessons = 0;
+      let completedByType: Record<string, number> = { video: 0, reading: 0, quiz: 0, assignment: 0, project: 0 };
+      let totalByType: Record<string, number> = { video: 0, reading: 0, quiz: 0, assignment: 0, project: 0 };
+
+      if (typeof progress.cohort === "object" && "chapters" in progress.cohort && Array.isArray(progress.cohort.chapters)) {
+        for (const chapter of progress.cohort.chapters as any[]) {
+          if (chapter.lessons) {
+            totalLessons += chapter.lessons.length;
+            for (const lesson of chapter.lessons) {
+              const type = lesson.contentType || "video";
+              if (totalByType[type] !== undefined) totalByType[type]++;
+              if (progress.completedLessons?.some((cl: any) => cl.lessonId.toString() === lesson._id.toString())) {
+                completedByType[type]++;
+              }
+            }
+          }
+        }
+      }
+
+      const byTypePercent: Record<string, number> = {};
+      for (const type of Object.keys(totalByType)) {
+        byTypePercent[type] = totalByType[type] > 0 ? Math.round((completedByType[type] / totalByType[type]) * 100) : 0;
+      }
+
+      return {
+        cohortId: progress.cohort?._id,
+        title: progress.cohort && "title" in progress.cohort ? progress.cohort.title : "Unknown Course",
+        thumbnail: progress.cohort && "Thumbnail" in progress.cohort && progress.cohort.Thumbnail
+          ? progress.cohort.Thumbnail
+          : "/placeholder-course.jpg",
+        overallProgress: totalLessons > 0 ? Math.round((progress.completedLessons.length / totalLessons) * 100) : 0,
+        completedLessons: progress.completedLessons.length,
+        totalLessons,
+        byType: byTypePercent,
+        timeSpent: progress.timeSpentSeconds
+          ? `${Math.floor(progress.timeSpentSeconds / 3600)}h ${Math.floor((progress.timeSpentSeconds % 3600) / 60)}m`
+          : "0h 0m",
+        streakDays: progress.streakDays?.length || 0,
+        xp: progress.xp || 0,
+      };
+    });
+
+    const userObject = user.toObject();
+    userObject.courseProgress = enrichedProgress;
+    userObject.stats = {
+      coursesCompleted: enrichedProgress.filter((p: any) => p.overallProgress >= 100).length,
+      coursesInProgress: enrichedProgress.filter((p: any) => p.overallProgress < 100 && p.overallProgress > 0).length,
+      totalHoursLearned: enrichedProgress.reduce((acc: number, p: any) => acc + (p.timeSpentSeconds || 0) / 3600, 0),
+      certificatesEarned: user.certificates?.length || 0,
+    };
+
+    await safeCache.set(userId, userObject, 600);
+    return userObject;
   },
   async logout(userId: string, role: string) {
     if (!userId || !role) {
@@ -489,11 +617,11 @@ export const authService = {
       safeCache.del(user._id.toString());
       return accessToken;
     } catch (err) {
-      if(err instanceof ApiError){
- throw new ApiError(401, err.message);
+      if (err instanceof ApiError) {
+        throw new ApiError(401, err.message);
       }
-      throw new ApiError(401,"invalide Token")
-     
+      throw new ApiError(401, "invalide Token")
+
     }
   },
   async forgotPassword(email: string, role: string) {
