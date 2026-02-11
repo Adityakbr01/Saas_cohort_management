@@ -4,8 +4,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const BUNNY_STORAGE_NAME = "lms-videos-aditya";
-const BUNNY_API_KEY = "33c09703-3218-4a1f-b1a67738850c-a9d3-4714";
+const BUNNY_STORAGE_NAME = process.env.BUNNY_STORAGE_NAME || "";
+const BUNNY_API_KEY = process.env.BUNNY_API_KEY || "";
 const BUNNY_URL = `https://storage.bunnycdn.com/${BUNNY_STORAGE_NAME}`;
 
 export const uploadToBunny = async (filePath: string, remotePath: string) => {
